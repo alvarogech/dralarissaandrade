@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dra. Larissa Andrade | Orientação Facial</title>
+    <meta
+      name="description"
+      content="Experiência digital de orientação facial da Dra. Larissa Andrade, estética facial estratégica na Clínica Stimma."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Dra. Larissa Andrade | Estética facial estratégica" />
+    <meta
+      property="og:description"
+      content="Conheça o olhar, os resultados e as possibilidades de tratamento da Dra. Larissa Andrade."
+    />
+    <meta property="og:image" content="assets/foto-larissa.jpg" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="chat-shell">
+      <header class="chat-header">
+        <button id="backButton" class="icon-button" type="button" hidden aria-label="Voltar uma etapa">
+          <span aria-hidden="true">‹</span>
+        </button>
+
+        <div class="avatar-wrap">
+          <img
+            class="avatar-photo"
+            src="assets/foto-larissa.jpg"
+            alt="Foto da Dra. Larissa Andrade"
+            data-fallback-initials="LA"
+          />
+          <span class="avatar-fallback" aria-hidden="true">LA</span>
+        </div>
+
+        <div class="header-info">
+          <h1>Dra. Larissa Andrade</h1>
+          <p class="header-status">
+            <span class="status-dot" aria-hidden="true"></span>
+            disponível para orientar
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <button id="restartButton" class="icon-button" type="button" aria-label="Recomeçar experiência">
+            <span aria-hidden="true">↺</span>
+          </button>
+          <button
+            class="text-action"
+            type="button"
+            data-event="whatsapp_header"
+            data-whatsapp="general"
+            aria-label="Falar com a equipe"
+          >
+            <span class="text-action-icon" aria-hidden="true">💬</span>
+            <span class="text-action-label">Falar com a equipe</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="chat-progress">
+        <div class="chat-progress-track">
+          <div id="progressFill" class="chat-progress-fill"></div>
+        </div>
+        <p id="progressLabel" class="chat-progress-label">Compreensão inicial · 1 de 4</p>
+      </div>
+
+      <div class="chat-scroll">
+        <section id="conversation" class="conversation" aria-live="polite" aria-relevant="additions"></section>
+
+        <footer class="site-footer">
+          <strong>Dra. Larissa Andrade</strong>
+          <span>Estética facial estratégica</span>
+          <span>Clínica Stimma</span>
+          <div class="footer-links">
+            <a href="#" aria-label="Instagram provisório">Instagram</a>
+            <a href="#" data-event="whatsapp_footer" data-whatsapp="general">WhatsApp</a>
+            <a href="#">Localização</a>
+            <a href="#">Política de privacidade</a>
+          </div>
+        </footer>
+      </div>
+
+      <div class="chat-composer">
+        <p id="composerHint" class="composer-hint">Escolha uma opção para continuar</p>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
