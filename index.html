@@ -3,22 +3,44 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dra. Larissa Andrade | Orientação Facial</title>
+    <title>Dra. Larissa Andrade | Arquitetura do Olhar</title>
     <meta
       name="description"
       content="Experiência digital de orientação facial da Dra. Larissa Andrade, estética facial estratégica na Clínica Stimma."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Dra. Larissa Andrade | Estética facial estratégica" />
+    <meta property="og:title" content="Dra. Larissa Andrade | Arquitetura do Olhar" />
     <meta
       property="og:description"
       content="Conheça o olhar, os resultados e as possibilidades de tratamento da Dra. Larissa Andrade."
     />
     <meta property="og:image" content="assets/foto-larissa.jpg" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="chat-shell">
+    <section id="splash" class="splash" aria-label="Abertura da experiência">
+      <div class="splash-lines" aria-hidden="true"></div>
+      <div class="splash-content">
+        <span class="splash-monogram" aria-hidden="true">LA</span>
+        <p class="splash-eyebrow">Larissa Andrade</p>
+        <h1 class="splash-title">Arquitetura do Olhar</h1>
+        <p class="splash-phrase">
+          Meu trabalho não começa quando eu pego uma seringa.<br />
+          Começa quando eu aprendo a enxergar.
+        </p>
+        <button id="splashStart" class="splash-button" type="button">Iniciar orientação</button>
+        <span class="splash-mark" aria-hidden="true">1/1</span>
+      </div>
+    </section>
+
+    <main class="chat-shell" id="chatShell" hidden>
       <header class="chat-header">
         <button id="backButton" class="icon-button" type="button" hidden aria-label="Voltar uma etapa">
           <span aria-hidden="true">‹</span>
@@ -38,7 +60,7 @@
           <h1>Dra. Larissa Andrade</h1>
           <p class="header-status">
             <span class="status-dot" aria-hidden="true"></span>
-            disponível para orientar
+            orientação facial estratégica
           </p>
         </div>
 
@@ -63,7 +85,10 @@
         <div class="chat-progress-track">
           <div id="progressFill" class="chat-progress-fill"></div>
         </div>
-        <p id="progressLabel" class="chat-progress-label">Compreensão inicial · 1 de 4</p>
+        <p class="chat-progress-row">
+          <span id="progressLabel" class="chat-progress-label">Compreensão inicial</span>
+          <span id="progressMark" class="chat-progress-mark">1/4</span>
+        </p>
       </div>
 
       <div class="chat-scroll">

@@ -2,7 +2,7 @@
    1. CONFIGURAÇÕES
    ======================================================================== */
 const CONFIG = {
-  whatsappNumber: "55XXXXXXXXXXX",
+  whatsappNumber: "5562981693898",
   clinicName: "Stimma",
   professionalName: "Dra. Larissa Andrade",
   instagramUrl: "#",
@@ -46,6 +46,10 @@ const restartButton = document.querySelector("#restartButton");
 const composerHint = document.querySelector("#composerHint");
 const progressFill = document.querySelector("#progressFill");
 const progressLabel = document.querySelector("#progressLabel");
+const progressMark = document.querySelector("#progressMark");
+const splash = document.querySelector("#splash");
+const splashStart = document.querySelector("#splashStart");
+const chatShell = document.querySelector("#chatShell");
 const snapshots = [];
 const choiceActions = new Map();
 let lockedChoiceGroups = new Set();
@@ -60,7 +64,8 @@ function setProgress(stepNumber) {
   if (!progressFill || !progressLabel) return;
   const clamped = Math.min(PROGRESS_STEPS.length, Math.max(1, stepNumber));
   progressFill.style.width = `${(clamped / PROGRESS_STEPS.length) * 100}%`;
-  progressLabel.textContent = `${PROGRESS_STEPS[clamped - 1]} · ${clamped} de ${PROGRESS_STEPS.length}`;
+  progressLabel.textContent = PROGRESS_STEPS[clamped - 1];
+  if (progressMark) progressMark.textContent = `${clamped}/${PROGRESS_STEPS.length}`;
 }
 
 /* ========================================================================
@@ -410,6 +415,20 @@ function renderQuickReplies(choices, options = {}) {
   scrollToEnd();
 }
 
+/* Bloco de maior carga editorial, usado nos momentos de fechamento
+   da narrativa (ex.: a frase de método da Dra. Larissa). */
+function addClosingCard(title, text) {
+  const card = document.createElement("div");
+  card.className = "closing-card";
+  card.innerHTML = `
+    <span class="closing-mark" aria-hidden="true">LA</span>
+    <h2 class="closing-title">${title}</h2>
+    <p class="closing-text">${text}</p>
+  `;
+  conversation.append(card);
+  scrollToEnd();
+}
+
 function addFinalChoices() {
   renderQuickReplies([
     { label: "Recomeçar experiência", event: "reiniciar_final", skipUserMessage: true, action: startExperience },
@@ -755,14 +774,13 @@ async function handlePerception(label) {
 async function showEvaluationMethod() {
   trackEvent("evaluation_clicked");
   setProgress(4);
-  await addAssistantMessages([
-    {
-      text: "Meu trabalho não começa quando eu pego uma seringa. Começa quando eu aprendo a enxergar.",
-      quote: true
-    },
-    "A avaliação observa proporção, sustentação, movimento, passagem do tempo, qualidade da pele e harmonia entre as diferentes regiões do rosto.",
-    "A partir dessa leitura, a conversa sobre procedimentos fica mais clara, individualizada e coerente."
-  ]);
+  await addAssistantMessage("Antes de qualquer procedimento, a avaliação começa por aqui:");
+  addClosingCard(
+    "Meu trabalho não começa quando eu pego uma seringa. Começa quando eu aprendo a enxergar.",
+    "A avaliação observa proporção, sustentação, movimento, passagem do tempo, qualidade da pele e harmonia entre as diferentes regiões do rosto."
+  );
+  await wait(pauseBetweenMessages());
+  await addAssistantMessage("A partir dessa leitura, a conversa sobre procedimentos fica mais clara, individualizada e coerente.");
   addFinalChoices();
 }
 
@@ -916,7 +934,18 @@ conversation.addEventListener("click", async (event) => {
   }
 });
 
+function enterChat() {
+  trackEvent("splash_start_clicked");
+  chatShell.hidden = false;
+  splash.classList.add("is-leaving");
+  window.setTimeout(() => {
+    splash.hidden = true;
+  }, isReducedMotion() ? 20 : 480);
+  startExperience();
+}
+
+splashStart?.addEventListener("click", enterChat, { once: true });
+
 handleImageFallback();
 wireGlobalLinks();
 trackEvent("page_view");
-startExperience();
