@@ -8,7 +8,7 @@ const CONFIG = {
   instagramUrl: "#",
   locationUrl: "#",
   privacyUrl: "#",
-  pilotMode: true
+  pilotMode: false
 };
 
 /* Cadência da conversa. Ajuste estes valores para deixar a experiência
@@ -44,29 +44,11 @@ const conversation = document.querySelector("#conversation");
 const backButton = document.querySelector("#backButton");
 const restartButton = document.querySelector("#restartButton");
 const composerHint = document.querySelector("#composerHint");
-const progressFill = document.querySelector("#progressFill");
-const progressLabel = document.querySelector("#progressLabel");
-const progressMark = document.querySelector("#progressMark");
-const splash = document.querySelector("#splash");
-const splashStart = document.querySelector("#splashStart");
-const chatShell = document.querySelector("#chatShell");
 const snapshots = [];
 const choiceActions = new Map();
 let lockedChoiceGroups = new Set();
 let stepId = 0;
 let actionId = 0;
-
-/* Progresso aproximado da experiência. O fluxo é ramificado (não linear),
-   então cada etapa é mapeada para o estágio mais próximo dessas 4 fases. */
-const PROGRESS_STEPS = ["Compreensão inicial", "Percepções do rosto", "Prioridades", "Orientação"];
-
-function setProgress(stepNumber) {
-  if (!progressFill || !progressLabel) return;
-  const clamped = Math.min(PROGRESS_STEPS.length, Math.max(1, stepNumber));
-  progressFill.style.width = `${(clamped / PROGRESS_STEPS.length) * 100}%`;
-  progressLabel.textContent = PROGRESS_STEPS[clamped - 1];
-  if (progressMark) progressMark.textContent = `${clamped}/${PROGRESS_STEPS.length}`;
-}
 
 /* ========================================================================
    4. DADOS DAS MENSAGENS
@@ -446,7 +428,6 @@ function addFinalChoices() {
    ======================================================================== */
 async function showResultsIntro() {
   userJourney.entryPath = userJourney.entryPath || "resultados";
-  setProgress(2);
   await addAssistantMessages([
     "Os resultados ajudam a visualizar possibilidades, mas cada rosto exige um planejamento individual.",
     "Selecione o tipo de resultado que gostaria de conhecer."
@@ -581,7 +562,6 @@ async function handleResultSelection(caseId) {
   if (!selected) return;
   userJourney.resultViewed = selected.title;
   trackEvent("result_viewed", { result: selected.title, caseId });
-  setProgress(4);
   saveSnapshot();
   clearActiveChoices();
   addUserMessage("Quero entender este resultado");
@@ -708,7 +688,6 @@ async function startExperience() {
     whatsappClickedAt: null
   });
   backButton.hidden = true;
-  setProgress(1);
 
   trackEvent("conversation_started");
   await wait(isReducedMotion() ? 300 : CONVERSATION_TIMING.initialDelay);
@@ -730,7 +709,6 @@ async function startExperience() {
 
 async function startFaceUnderstanding() {
   userJourney.entryPath = "entender_rosto";
-  setProgress(2);
   await addAssistantMessages([
     "Nem sempre aquilo que nos incomoda é exatamente o que precisa ser tratado.",
     "Por isso, a avaliação começa pela compreensão do rosto como um conjunto, e não pela escolha isolada de um procedimento.",
@@ -749,7 +727,6 @@ async function handlePerception(label) {
   userJourney.selectedSituation = label;
   userJourney.concern = label;
   trackEvent("situation_selected", { situation: label });
-  setProgress(3);
   await addAssistantMessages(concernResponses[label]);
   await showRelatedResult(label);
   await addAssistantMessage("Prefere conversar diretamente com a equipe?");
@@ -773,7 +750,6 @@ async function handlePerception(label) {
 
 async function showEvaluationMethod() {
   trackEvent("evaluation_clicked");
-  setProgress(4);
   await addAssistantMessage("Antes de qualquer procedimento, a avaliação começa por aqui:");
   addClosingCard(
     "Meu trabalho não começa quando eu pego uma seringa. Começa quando eu aprendo a enxergar.",
@@ -786,7 +762,6 @@ async function showEvaluationMethod() {
 
 async function startSpecificConcern() {
   userJourney.entryPath = "queixa_especifica";
-  setProgress(2);
   await addAssistantMessage("Claro. Selecione a região ou situação que mais se aproxima do que você percebe.");
   renderQuickReplies(
     specificConcerns.map((label) => ({
@@ -800,7 +775,6 @@ async function startSpecificConcern() {
 async function handleSpecificConcern(label) {
   userJourney.concern = label;
   trackEvent("concern_selected", { concern: label });
-  setProgress(3);
   await addAssistantMessages([
     `Você selecionou: ${label}.`,
     "Essa percepção pode estar associada a diferentes fatores. A avaliação permite compreender a origem da queixa e quais possibilidades fazem sentido para o seu rosto."
@@ -824,7 +798,6 @@ async function handleSpecificConcern(label) {
 }
 
 async function showTreatmentPossibilities() {
-  setProgress(4);
   await addAssistantMessages([
     "As possibilidades podem envolver pele, sustentação, contorno, região dos olhos ou combinações diferentes entre essas dimensões.",
     "Nesta experiência, a ideia não é indicar um procedimento, mas mostrar como a avaliação organiza o caminho com mais precisão."
@@ -834,7 +807,6 @@ async function showTreatmentPossibilities() {
 
 async function startContactPath() {
   userJourney.entryPath = "contato";
-  setProgress(4);
   await addAssistantMessage("Claro. Para direcionarmos você da melhor forma, qual destas opções descreve o seu momento?");
   renderQuickReplies([
     {
@@ -934,18 +906,7 @@ conversation.addEventListener("click", async (event) => {
   }
 });
 
-function enterChat() {
-  trackEvent("splash_start_clicked");
-  chatShell.hidden = false;
-  splash.classList.add("is-leaving");
-  window.setTimeout(() => {
-    splash.hidden = true;
-  }, isReducedMotion() ? 20 : 480);
-  startExperience();
-}
-
-splashStart?.addEventListener("click", enterChat, { once: true });
-
 handleImageFallback();
 wireGlobalLinks();
 trackEvent("page_view");
+startExperience();

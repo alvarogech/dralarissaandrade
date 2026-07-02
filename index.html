@@ -25,22 +25,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <section id="splash" class="splash" aria-label="Abertura da experiência">
-      <div class="splash-lines" aria-hidden="true"></div>
-      <div class="splash-content">
-        <span class="splash-monogram" aria-hidden="true">LA</span>
-        <p class="splash-eyebrow">Larissa Andrade</p>
-        <h1 class="splash-title">Arquitetura do Olhar</h1>
-        <p class="splash-phrase">
-          Meu trabalho não começa quando eu pego uma seringa.<br />
-          Começa quando eu aprendo a enxergar.
-        </p>
-        <button id="splashStart" class="splash-button" type="button">Iniciar orientação</button>
-        <span class="splash-mark" aria-hidden="true">1/1</span>
-      </div>
-    </section>
-
-    <main class="chat-shell" id="chatShell" hidden>
+    <main class="chat-shell" id="chatShell">
       <header class="chat-header">
         <button id="backButton" class="icon-button" type="button" hidden aria-label="Voltar uma etapa">
           <span aria-hidden="true">‹</span>
@@ -80,16 +65,6 @@
           </button>
         </div>
       </header>
-
-      <div class="chat-progress">
-        <div class="chat-progress-track">
-          <div id="progressFill" class="chat-progress-fill"></div>
-        </div>
-        <p class="chat-progress-row">
-          <span id="progressLabel" class="chat-progress-label">Compreensão inicial</span>
-          <span id="progressMark" class="chat-progress-mark">1/4</span>
-        </p>
-      </div>
 
       <div class="chat-scroll">
         <section id="conversation" class="conversation" aria-live="polite" aria-relevant="additions"></section>

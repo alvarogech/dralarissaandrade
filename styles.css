@@ -77,140 +77,6 @@ a {
 }
 
 /* ==========================================================================
-   TELA DE ABERTURA
-   ========================================================================== */
-.splash {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: var(--ink-black);
-  color: var(--text-on-dark);
-  transition: opacity 480ms ease, visibility 480ms ease;
-}
-
-.splash.is-leaving {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.splash[hidden] {
-  display: none;
-}
-
-.splash-lines {
-  position: absolute;
-  inset: 0;
-  opacity: 0.16;
-  background:
-    repeating-linear-gradient(0deg, rgba(241, 237, 229, 0.06) 0 1px, transparent 1px 74px),
-    repeating-linear-gradient(90deg, rgba(241, 237, 229, 0.06) 0 1px, transparent 1px 74px);
-}
-
-.splash-lines::before,
-.splash-lines::after {
-  content: "";
-  position: absolute;
-  border: 1px solid rgba(154, 131, 107, 0.4);
-}
-
-.splash-lines::before {
-  top: 8%;
-  left: 8%;
-  width: 84%;
-  height: 84%;
-  border-radius: 50%;
-  opacity: 0.35;
-}
-
-.splash-lines::after {
-  top: 18%;
-  left: 18%;
-  width: 64%;
-  height: 64%;
-  opacity: 0.5;
-}
-
-.splash-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: 380px;
-  padding: 32px;
-  text-align: center;
-}
-
-.splash-monogram {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 18px;
-  border: 1px solid var(--bronze);
-  border-radius: 50%;
-  font-family: var(--serif);
-  font-size: 1.5rem;
-  letter-spacing: 0.02em;
-}
-
-.splash-eyebrow {
-  margin: 0 0 4px;
-  color: var(--bronze-soft);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.splash-title {
-  margin: 0 0 18px;
-  font-family: var(--serif);
-  font-size: clamp(1.7rem, 7vw, 2.3rem);
-  font-weight: 500;
-  font-style: italic;
-}
-
-.splash-phrase {
-  margin: 0 0 28px;
-  color: var(--text-on-dark);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  opacity: 0.86;
-}
-
-.splash-button {
-  min-height: 46px;
-  padding: 0 28px;
-  border: 1px solid var(--bronze);
-  border-radius: 2px;
-  background: transparent;
-  color: var(--text-on-dark);
-  font-size: 0.86rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  transition: background-color 200ms ease, border-color 200ms ease;
-}
-
-.splash-button:hover {
-  background: var(--wine);
-  border-color: var(--wine);
-}
-
-.splash-mark {
-  margin-top: 22px;
-  color: var(--bronze-soft);
-  font-family: var(--serif);
-  font-size: 0.78rem;
-  opacity: 0.7;
-}
-
-/* ==========================================================================
    CHAT SHELL — três regiões fixas: cabeçalho, área rolável, composer
    ========================================================================== */
 .chat-shell {
@@ -385,52 +251,6 @@ a {
 }
 
 /* ==========================================================================
-   PROGRESSO — linha fina + marcação numérica arquitetônica
-   ========================================================================== */
-.chat-progress {
-  position: relative;
-  flex: 0 0 auto;
-  padding: 9px 14px 10px;
-  background: var(--mineral-black);
-  border-bottom: 1px solid rgba(154, 131, 107, 0.28);
-}
-
-.chat-progress-track {
-  height: 2px;
-  background: rgba(241, 237, 229, 0.14);
-}
-
-.chat-progress-fill {
-  height: 100%;
-  width: 25%;
-  background: var(--bronze);
-  transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.chat-progress-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin: 6px 0 0;
-}
-
-.chat-progress-label {
-  margin: 0;
-  color: var(--bronze-soft);
-  font-size: 0.68rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.chat-progress-mark {
-  margin: 0;
-  color: var(--bronze-soft);
-  font-family: var(--serif);
-  font-size: 0.78rem;
-  font-style: italic;
-}
-
-/* ==========================================================================
    ÁREA DA CONVERSA (rolável)
    ========================================================================== */
 .chat-scroll {
@@ -503,7 +323,6 @@ a {
 
 .message.bot {
   align-self: flex-start;
-  margin-left: 30px;
 }
 
 .message.bot.is-grouped {
@@ -513,27 +332,6 @@ a {
 .message.user {
   align-self: flex-end;
   transform-origin: right bottom;
-}
-
-.message.bot::after {
-  content: "LA";
-  position: absolute;
-  left: -30px;
-  bottom: 0;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--bronze);
-  border-radius: 50%;
-  background: var(--surface-elevated);
-  color: var(--warm-graphite);
-  font-family: var(--serif);
-  font-size: 0.62rem;
-}
-
-.message.bot.is-grouped::after {
-  display: none;
 }
 
 .message.bot.is-grouped .message-meta {
@@ -636,7 +434,7 @@ a {
   gap: 8px;
   width: 100%;
   max-width: 85%;
-  margin: 2px 0 12px 30px;
+  margin: 2px 0 12px;
   animation: messageIn 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
