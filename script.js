@@ -213,6 +213,15 @@ function scrollToEnd() {
   });
 }
 
+/* Usado para blocos altos (galeria de resultados): alinha o topo do
+   bloco à tela, para a imagem não ser empurrada para fora pelo texto
+   e pelos botões que vêm logo abaixo dela. */
+function scrollToTop(target) {
+  requestAnimationFrame(() => {
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
 /* Mostra o avatar e o horário apenas na última mensagem de um grupo
    consecutivo da Dra. Larissa, em vez de repetir em cada balão. */
 function refreshMessageGrouping() {
@@ -252,7 +261,7 @@ function showToast(message) {
 /* ========================================================================
    8. INDICADOR DE DIGITAÇÃO E RENDERIZAÇÃO DE MENSAGENS
    ======================================================================== */
-function showTypingIndicator() {
+function showTypingIndicator(shouldScroll = true) {
   const wrapper = document.createElement("div");
   wrapper.className = "message bot typing-wrapper";
   wrapper.innerHTML = `
@@ -261,7 +270,7 @@ function showTypingIndicator() {
     </div>
   `;
   conversation.append(wrapper);
-  scrollToEnd();
+  if (shouldScroll) scrollToEnd();
   return wrapper;
 }
 
@@ -270,7 +279,8 @@ function hideTypingIndicator(wrapper) {
 }
 
 async function addAssistantMessage(text, options = {}) {
-  const typing = showTypingIndicator();
+  const shouldScroll = options.scroll !== false;
+  const typing = showTypingIndicator(shouldScroll);
   await wait(typingDurationFor(text));
   hideTypingIndicator(typing);
 
@@ -285,7 +295,7 @@ async function addAssistantMessage(text, options = {}) {
   `;
   conversation.append(message);
   refreshMessageGrouping();
-  scrollToEnd();
+  if (shouldScroll) scrollToEnd();
 }
 
 function addUserMessage(text) {
@@ -394,7 +404,7 @@ function renderQuickReplies(choices, options = {}) {
   conversation.append(group);
   document.body.classList.add("has-active-choices");
   updateComposerHint();
-  scrollToEnd();
+  if (options.scroll !== false) scrollToEnd();
 }
 
 /* Bloco de maior carga editorial, usado nos momentos de fechamento
@@ -462,7 +472,7 @@ function renderResults(activeFilter) {
   conversation.append(panel);
   attachCarouselControls(panel);
   populateCases(panel, activeFilter);
-  scrollToEnd();
+  scrollToTop(panel);
 }
 
 function populateCases(panel, activeFilter) {
@@ -521,7 +531,7 @@ function renderSingleResult(result) {
   list.querySelectorAll("img").forEach((image) => {
     image.addEventListener("error", () => image.classList.add("is-missing"), { once: true });
   });
-  scrollToEnd();
+  scrollToTop(panel);
 }
 
 async function showRelatedResult(label) {
@@ -729,23 +739,26 @@ async function handlePerception(label) {
   trackEvent("situation_selected", { situation: label });
   await addAssistantMessages(concernResponses[label]);
   await showRelatedResult(label);
-  await addAssistantMessage("Prefere conversar diretamente com a equipe?");
-  renderQuickReplies([
-    { label: "Ver mais resultados", event: "ver_mais_resultados", action: showResultsIntro },
-    { label: "Entender como funciona a avaliação", event: "entender_avaliacao", action: showEvaluationMethod },
-    {
-      label: "Continuar pelo WhatsApp",
-      event: "whatsapp_contextual",
-      whatsapp: true,
-      action: () => openWhatsApp(buildContextMessage("relatedConcern"), "whatsapp_contextual", "relatedConcern")
-    },
-    {
-      label: "Conversar com a equipe",
-      event: "whatsapp_equipe_concern",
-      whatsapp: true,
-      action: () => openWhatsApp(buildContextMessage("general"), "whatsapp_equipe_concern", "general")
-    }
-  ]);
+  await addAssistantMessage("Prefere conversar diretamente com a equipe?", { scroll: false });
+  renderQuickReplies(
+    [
+      { label: "Ver mais resultados", event: "ver_mais_resultados", action: showResultsIntro },
+      { label: "Entender como funciona a avaliação", event: "entender_avaliacao", action: showEvaluationMethod },
+      {
+        label: "Continuar pelo WhatsApp",
+        event: "whatsapp_contextual",
+        whatsapp: true,
+        action: () => openWhatsApp(buildContextMessage("relatedConcern"), "whatsapp_contextual", "relatedConcern")
+      },
+      {
+        label: "Conversar com a equipe",
+        event: "whatsapp_equipe_concern",
+        whatsapp: true,
+        action: () => openWhatsApp(buildContextMessage("general"), "whatsapp_equipe_concern", "general")
+      }
+    ],
+    { scroll: false }
+  );
 }
 
 async function showEvaluationMethod() {
@@ -780,21 +793,24 @@ async function handleSpecificConcern(label) {
     "Essa percepção pode estar associada a diferentes fatores. A avaliação permite compreender a origem da queixa e quais possibilidades fazem sentido para o seu rosto."
   ]);
   await showRelatedResult(label);
-  renderQuickReplies([
-    { label: "Ver mais resultados", event: "ver_mais_resultados", action: showResultsIntro },
-    { label: "Conhecer possibilidades de tratamento", event: "conhecer_possibilidades", action: showTreatmentPossibilities },
-    {
-      label: "Enviar minha queixa para a equipe",
-      event: "whatsapp_queixa",
-      whatsapp: true,
-      action: () =>
-        openWhatsApp(
-          `Olá! Vim pelo Instagram da ${CONFIG.professionalName} e gostaria de entender melhor uma questão relacionada a ${label.toLowerCase()}.`,
-          "whatsapp_queixa",
-          "relatedConcern"
-        )
-    }
-  ]);
+  renderQuickReplies(
+    [
+      { label: "Ver mais resultados", event: "ver_mais_resultados", action: showResultsIntro },
+      { label: "Conhecer possibilidades de tratamento", event: "conhecer_possibilidades", action: showTreatmentPossibilities },
+      {
+        label: "Enviar minha queixa para a equipe",
+        event: "whatsapp_queixa",
+        whatsapp: true,
+        action: () =>
+          openWhatsApp(
+            `Olá! Vim pelo Instagram da ${CONFIG.professionalName} e gostaria de entender melhor uma questão relacionada a ${label.toLowerCase()}.`,
+            "whatsapp_queixa",
+            "relatedConcern"
+          )
+      }
+    ],
+    { scroll: false }
+  );
 }
 
 async function showTreatmentPossibilities() {
