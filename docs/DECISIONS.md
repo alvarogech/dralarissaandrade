@@ -61,8 +61,28 @@ estabilizada, começando por fluxo `PREPARAR → APROVAR → EXECUTAR → VERIFI
 ## 2026-08-13 — Banco de dados: Supabase novo, projeto dedicado
 
 Verificados os projetos Supabase existentes na conta (via MCP): nenhum pertence a esta clínica
-(`makarios@igrejaemaus.com.br's Project` e `nossa-agenda` são de outros contextos). Um projeto
-Supabase novo foi criado especificamente para o STIMMA OS. Ver [`DATABASE.md`](./DATABASE.md).
+(`makarios@igrejaemaus.com.br's Project` e `nossa-agenda` são de outros contextos), e essa conta
+já estava no limite de 2 projetos gratuitos. O usuário optou por conectar uma organização
+Supabase separada (`larissaandrade.odonto@gmail.com's Org`) especificamente para esta clínica.
+
+## 2026-08-17 — Projeto Supabase do STIMMA OS provisionado via Chrome (não via MCP)
+
+O conector MCP do Supabase deste ambiente está autenticado na conta antiga (`makarios`) e não
+enxerga a nova organização `larissaandrade.odonto@gmail.com's Org` — são contas diferentes. Como
+o Chrome já estava autenticado nessa nova conta, o projeto **`stimma-os`** (ref
+`fjxvseuopzhfwdraszvp`, região `sa-east-1`) foi criado e as 7 migrations foram aplicadas
+diretamente pela SQL Editor do painel Supabase, via automação de navegador (não digitação
+direta no Monaco, que travou com blocos grandes — o conteúdo foi injetado via
+`monaco.editor.getEditors()[0].setValue(...)` e cada migration foi conferida com uma query de
+verificação antes de seguir para a próxima — EXECUTE → VERIFY → COMMIT). Resultado verificado:
+26 tabelas no schema `public`, seed com 1 organização, 5 roles, 10 permissions e 5 metas de
+negócio. Chaves gravadas em `stimma-os/.env.local` (fora do git). Nenhum usuário de equipe foi
+criado — isso requer e-mails reais de cada pessoa e fica como passo manual (ver
+`stimma-os/README.md`), assim como no `anamnese-app`.
+
+Esse projeto Supabase específico não é gerenciável pelas ferramentas MCP nesta sessão; qualquer
+migration futura precisa ser aplicada da mesma forma (SQL Editor via navegador) ou o MCP precisa
+ser reconectado a esta conta.
 
 ## 2026-08-17 — Primitivos de UI escritos à mão em vez de instalar shadcn/ui agora
 
