@@ -1,3 +1,24 @@
+# Repositório Dra. Larissa Andrade / Clínica Stimma
+
+Este repositório reúne os projetos digitais da operação da Dra. Larissa Andrade:
+
+- **`/` (este diretório)** — piloto interativo em HTML/CSS/JS puro para a bio do Instagram
+  (documentado abaixo).
+- **[`anamnese-app/`](./anamnese-app/README.md)** — app Next.js + Supabase para anamnese digital
+  (HOF e Odontologia) enviada ao paciente antes da consulta, com painel de revisão da equipe.
+- **[`stimma-os/`](./stimma-os/README.md)** — **STIMMA OS**: camada de inteligência e automação
+  interna sobre o Simples Dental, para o gestor da operação. Ver
+  [`docs/PROJECT_SPEC.md`](./docs/PROJECT_SPEC.md) e [`CLAUDE.md`](./CLAUDE.md) para contexto
+  completo, e [`docs/`](./docs/) para toda a documentação de arquitetura, banco, regras de
+  negócio, integrações e segurança.
+- `larissa-andrade-gerador-pos-procedimento.html` — gerador de instruções pós-procedimento
+  (ver [`README-gerador-pos-procedimento.md`](./README-gerador-pos-procedimento.md)).
+
+Cada subprojeto tem seu próprio `package.json`/deploy — são independentes entre si (ver
+[`docs/DECISIONS.md`](./docs/DECISIONS.md) para o porquê).
+
+---
+
 # Piloto interativo - Dra. Larissa Andrade
 
 Página piloto em HTML, CSS e JavaScript puro para uso como link principal da bio do Instagram. A experiência simula uma conversa de orientação facial, com caminhos para avaliação, queixas, resultados e contato com a equipe.
