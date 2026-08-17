@@ -16,6 +16,15 @@
 7. Automação de interface — usada apenas para o que não está em nenhum export (ex. status de
    agenda em tempo real, Kanban de Vendas).
 
+## Sync Engine — implementação
+
+Vive em `stimma-os/lib/sync/`. Recebe uma lista de `NormalizedAppointment` (já extraídos da
+tela por automação de navegador — a extração em si não é código, é agêntica) e faz matching de
+paciente + upsert idempotente de compromisso, sempre deterministicamente (ver
+`lib/sync/patient-matching.ts`, `lib/sync/fingerprint.ts`, `lib/sync/run-sync.ts`). Exposto via
+`POST /api/sync/agenda` (protegido por `SYNC_API_SECRET`). Testado com um fake de Supabase em
+memória (`lib/sync/test-fake-supabase.ts`) — nunca com dado real de paciente em teste.
+
 ## Simples Dental — modelo de sincronização
 
 - **Fase 4 (leitura)**: `SyncEngine` roda como automação de navegador orientada a texto/

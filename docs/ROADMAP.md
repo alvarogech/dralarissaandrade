@@ -29,12 +29,32 @@ Sync Engine real via Claude in Chrome/Cowork + exportações estruturadas. Meta:
 **Primeira leitura real feita manualmente em 2026-08-17**: os 5 atendimentos reais confirmados
 na agenda da Dra. Larissa do dia foram lidos do Simples Dental (somente leitura, via Chrome já
 autenticado) e gravados em `patients`/`appointments` no Supabase, com aprovação explícita do
-usuário antes da escrita. Isso **não é ainda o Sync Engine** descrito em `INTEGRATIONS.md` —
-foi um pull manual, único, sem `patient_external_ids`/matching por `external_id`, sem
-idempotência automática e sem rotina recorrente. O cockpit "Hoje" já lê esses dados reais do
-Supabase (`lib/data/clinic-snapshot.ts`) em vez do modo demonstração. Constrói o Sync Engine de
-verdade (idempotente, com matching robusto, rodando por rotina) é o próximo passo real desta
-fase — não presumir que já existe só porque o primeiro pull funcionou.
+usuário antes da escrita. Isso foi um pull manual único, sem matching por `external_id` — as 5
+linhas ficaram sem `sd_appointment_id`.
+
+**Sync Engine construído em 2026-08-17** (`stimma-os/lib/sync/`): motor determinístico e
+testado (27 testes, incluindo um fake do Supabase em memória para nunca precisar tocar dado
+real em teste) que recebe compromissos já normalizados (a extração da tela continua sendo
+agêntica — Chrome/Cowork) e faz:
+
+- **Matching de paciente**: por `patient_external_ids` (source + external_id) primeiro; sem
+  isso, por telefone (match único e confiável); nome sozinho **nunca** vincula automaticamente
+  — vira `requires_review`, mesmo com match único (`lib/sync/patient-matching.ts`).
+- **Idempotência de compromisso**: fingerprint do conteúdo relevante
+  (`lib/sync/fingerprint.ts`) + índice único `(source, sd_appointment_id)` — rodar de novo com
+  o mesmo conteúdo não duplica nem gera evento; conteúdo diferente atualiza em vez de duplicar.
+- **Sem `sd_appointment_id`**: cria mas marca `requires_review = true` na própria linha —
+  honesto sobre não conseguir deduplicar isso num próximo pull.
+- Registra `automation_runs` e `audit_logs` (`actor_type = 'claude'`) a cada execução.
+
+Exposto em `POST /api/sync/agenda` (protegido por `SYNC_API_SECRET`), testado de ponta a ponta
+contra o banco real em produção (autenticação errada → 401; payload vazio → grava
+`automation_runs`/`audit_logs` reais, confirmado por consulta). **O que ainda falta** para isso
+virar o Sync Engine "de verdade" descrito em `INTEGRATIONS.md`: (1) a extração real da agenda do
+Simples Dental capturando `sd_appointment_id`/`sd_patient_id` estáveis (a extração de hoje, no
+pull manual, não capturou esses IDs — por isso os 5 registros já existentes não vão deduplicar
+sozinhos num próximo sync); (2) uma rotina recorrente disparando isso (Fase 7 / Cowork) em vez
+de eu chamar manualmente.
 
 ## Fase 5 — Simples Dental (escrita)
 
