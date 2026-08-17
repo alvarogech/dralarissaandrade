@@ -84,6 +84,29 @@ Esse projeto Supabase específico não é gerenciável pelas ferramentas MCP nes
 migration futura precisa ser aplicada da mesma forma (SQL Editor via navegador) ou o MCP precisa
 ser reconectado a esta conta.
 
+## 2026-08-17 — Ativação dos dois primeiros usuários reais
+
+O usuário criou manualmente dois usuários no Supabase Auth (Authentication → Users):
+`alvaroh.gyn@gmail.com` e `larissaandrade.odonto@gmail.com`. Claude ativou os perfis
+(`profiles.active = true`), vinculou à organização Clínica Stimma, atribuiu roles (`admin` para
+Álvaro, `professional` para Larissa) e criou o registro correspondente em `professionals` para
+Larissa — verificado por consulta após a escrita. Gabi, Dine e Jaynnes ficam para quando o
+usuário tiver os e-mails reais; nada foi inventado.
+
+## 2026-08-17 — Primeiro pull manual de dados reais do Simples Dental (com aprovação explícita)
+
+Antes de escrever qualquer paciente/agendamento real no banco do STIMMA OS, o Claude Code
+parou (bloqueio automático do classificador de segurança do ambiente) e pediu confirmação
+explícita ao usuário, que respondeu "sim". Só então os 5 atendimentos confirmados de hoje
+(17/08) da agenda da Dra. Larissa foram lidos do Simples Dental (somente leitura) e gravados em
+`patients`/`appointments`, com verificação pós-escrita (consulta conferindo nomes, horários,
+status). Nenhum CPF ou dado clínico foi copiado — apenas nome, horário e o texto do motivo da
+consulta já exibido na agenda. O cockpit "Hoje" (`app/hoje/page.tsx` +
+`lib/data/clinic-snapshot.ts`) passou a consultar o Supabase real via sessão do usuário
+(RLS), caindo para o modo demonstração só se não houver nenhum paciente cadastrado. Ver
+`docs/ROADMAP.md` (Fase 4) para o que isso é e o que ainda não é (não é o Sync Engine
+automatizado).
+
 ## 2026-08-17 — Primitivos de UI escritos à mão em vez de instalar shadcn/ui agora
 
 O briefing pede shadcn/ui. Para a primeira fatia do cockpit, os primitivos (Button, Card,
