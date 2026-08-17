@@ -2,9 +2,21 @@
 
 ## Missão
 
-Camada de inteligência e automação acima do Simples Dental, para o gestor da operação da
-Dra. Larissa Andrade (Clínica Stimma). Não é um dashboard, CRM ou relatório financeiro — é um
-sistema que observa a operação continuamente e transforma dado em ação:
+**STIMMA OS é o CRM inteligente e automatizado da Clínica Stimma** (Dra. Larissa Andrade):
+o sistema operacional da jornada da paciente, do primeiro contato à recorrência por anos, com o
+WhatsApp como canal operacional principal. Não é "mais um CRM com cards que arrastamos
+manualmente" — é um sistema que sabe quem precisa ser contatado, por quê, quando, o que dizer, e
+transforma isso em ação priorizada. Ver [`CRM_MASTER_SPEC.md`](./CRM_MASTER_SPEC.md) para a
+especificação completa (filosofia, jornada, telas por papel, MVP).
+
+Continua verdadeiro o princípio original: o STIMMA OS não reconstrói o que o Simples Dental já
+faz nativamente (agenda, ficha clínica, Kanban de orçamento, financeiro básico — ver
+[`SIMPLES_DENTAL_MAP.md`](./SIMPLES_DENTAL_MAP.md)) — ele modela por cima a jornada de
+relacionamento/comercial (que o Simples Dental nunca cobriu) e cruza com o que é lido de lá. Ver
+a decisão de 2026-08-17 em [`DECISIONS.md`](./DECISIONS.md) para o porquê da virada de
+"camada de observação" para "CRM completo".
+
+Todo o fluxo continua sendo:
 
 `DADO → EVENTO → INTERPRETAÇÃO → RISCO/OPORTUNIDADE → PRIORIDADE → AÇÃO → RESPONSÁVEL → PRAZO
 → ACOMPANHAMENTO → CONCLUSÃO`

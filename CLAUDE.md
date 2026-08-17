@@ -11,22 +11,30 @@ Andrade / Clínica Stimma. Antes de qualquer trabalho, identifique em qual proje
 
 ## O que é o STIMMA OS (resumo — contexto completo em `docs/`)
 
-Um "COO digital" para o gestor (Álvaro) da operação da Dra. Larissa Andrade: observa agenda,
-pacientes, financeiro, planejamentos, oportunidades, equipe e tarefas, e transforma isso em
-ação priorizada — não em mais um dashboard. Princípio central: **todo paciente ativo precisa
-ter um próximo passo definido**.
+**O STIMMA OS é o CRM inteligente e automatizado da Clínica Stimma** — o sistema operacional da
+jornada da paciente, do primeiro contato à recorrência por anos, com WhatsApp como canal
+operacional principal (pivô de 2026-08-17 — ver `docs/DECISIONS.md`). Continua sendo também o
+"COO digital" do gestor (Álvaro): observa agenda, financeiro, oportunidades, equipe e tarefas, e
+transforma isso em ação priorizada — não em mais um dashboard. Princípio central inalterado:
+**todo paciente ativo precisa ter um próximo passo definido** (status + responsável + próxima
+ação + data — a "regra de ouro", ver `docs/CRM_RULES.md`).
 
 Leia nesta ordem antes de mexer em algo:
 
-1. [`docs/PROJECT_SPEC.md`](./docs/PROJECT_SPEC.md) — missão, escopo, matriz de autonomia.
-2. [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — como as peças se conectam.
-3. [`docs/DATABASE.md`](./docs/DATABASE.md) — schema.
-4. [`docs/BUSINESS_RULES.md`](./docs/BUSINESS_RULES.md) — catálogo de regras P0/P1/P2.
-5. [`docs/SIMPLES_DENTAL_MAP.md`](./docs/SIMPLES_DENTAL_MAP.md) — o que o Simples Dental já
-   faz nativamente (não duplicar).
-6. [`docs/SECURITY.md`](./docs/SECURITY.md) — limites absolutos, LGPD, audit log.
-7. [`docs/DECISIONS.md`](./docs/DECISIONS.md) — por que as coisas são como são.
-8. [`docs/ROADMAP.md`](./docs/ROADMAP.md) — em que fase o projeto está agora.
+1. [`docs/CRM_MASTER_SPEC.md`](./docs/CRM_MASTER_SPEC.md) — filosofia, jornada, telas por papel, MVP.
+2. [`docs/PROJECT_SPEC.md`](./docs/PROJECT_SPEC.md) — missão, escopo, matriz de autonomia.
+3. [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — como as peças se conectam.
+4. [`docs/DATABASE.md`](./docs/DATABASE.md) + [`docs/DATABASE_SCHEMA.md`](./docs/DATABASE_SCHEMA.md) — schema (original + extensão CRM).
+5. [`docs/BUSINESS_RULES.md`](./docs/BUSINESS_RULES.md) + [`docs/CRM_RULES.md`](./docs/CRM_RULES.md) — catálogo de regras.
+6. [`docs/AUTOMATION_ENGINE.md`](./docs/AUTOMATION_ENGINE.md) — motor de eventos/automações configuráveis.
+7. [`docs/WHATSAPP_ARCHITECTURE.md`](./docs/WHATSAPP_ARCHITECTURE.md) — inbox, provider abstrato, estado real (mock).
+8. [`docs/AI_ARCHITECTURE.md`](./docs/AI_ARCHITECTURE.md) — ferramentas de IA, guardrails.
+9. [`docs/SIMPLES_DENTAL_MAP.md`](./docs/SIMPLES_DENTAL_MAP.md) — o que o Simples Dental já
+   faz nativamente (não duplicar — agenda/ficha/Kanban de orçamento/financeiro básico; o
+   pipeline de relacionamento e o WhatsApp são território novo, não duplicação).
+10. [`docs/SECURITY.md`](./docs/SECURITY.md) — limites absolutos, LGPD, audit log.
+11. [`docs/DECISIONS.md`](./docs/DECISIONS.md) — por que as coisas são como são.
+12. [`docs/ROADMAP.md`](./docs/ROADMAP.md) — em que fase o projeto está agora.
 
 ## Regras de execução deste projeto
 
@@ -46,6 +54,11 @@ Leia nesta ordem antes de mexer em algo:
   sucesso de automação, armazenar senha, expor secret, alterar dado clínico real por teste,
   excluir dado real, fazer diagnóstico/indicação clínica, enviar mensagem real ao paciente sem
   a política de aprovação, ou executar ação financeira irreversível sem aprovação Nível C.
+- **CRM — específico**: nunca mesclar pacientes automaticamente (perguntar antes — ver
+  `docs/CRM_RULES.md` §9); nunca mover paciente para "perdida" sem motivo estruturado; nunca
+  excluir paciente perdida (ela continua existindo); nunca deixar "adiar" sem data obrigatória;
+  nunca enviar mensagem de nível 2/3 automaticamente (sempre aprovação humana); nunca fingir que
+  o WhatsApp está integrado de verdade enquanto rodar em `WHATSAPP_PROVIDER=mock`.
 
 ## Como rodar `stimma-os/` localmente
 

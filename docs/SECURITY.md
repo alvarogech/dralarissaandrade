@@ -41,6 +41,23 @@ confirmação, comparar contra o esperado, e só então marcar sucesso em `autom
 - Consentimento de comunicação por paciente é lido do Simples Dental (toggles nativos) antes de
   qualquer notificação — nunca assumido como positivo.
 
+## WhatsApp e mídia clínica (CRM — ver `WHATSAPP_ARCHITECTURE.md`)
+
+- Nenhuma mensagem real é enviada a uma paciente sem provider configurado — enquanto
+  `WHATSAPP_PROVIDER=mock`, todo envio fica só no banco (`messages`), nunca sai por HTTP. Ver
+  `WHATSAPP_ARCHITECTURE.md`.
+- Fotos antes/depois (`case_media`) vivem em bucket **privado** do Supabase Storage, nunca
+  público — acesso só via URL assinada/temporária, mesmo padrão exigido no briefing original
+  (seção 65: "nunca expor fotos clínicas publicamente").
+- Mensagens de nível 2 (relacionamento/comercial) e 3 (clínico) nunca saem sem aprovação humana
+  explícita — nível 1 (operacional) só roda automático quando a `automation_rule` correspondente
+  está `active = true` e documentada em `AUTOMATION_ENGINE.md`.
+- Extração de conversa por IA nunca sobrescreve a frase original da paciente
+  (`interaction_summaries.motivation_quote`) — apenas a interpretação estruturada ao lado.
+- Consentimento de comunicação: ver `WHATSAPP_ARCHITECTURE.md` — nunca assumido para contato
+  frio; para paciente já existente no Simples Dental, o toggle nativo continua sendo a fonte de
+  verdade (não duplicado nem sobrescrito pelo CRM).
+
 ## STIMMA AI — limites de ferramenta
 
 O agente de IA interno nunca executa SQL arbitrário em produção. Só chama ferramentas internas

@@ -1,19 +1,29 @@
 export type AlertPriority = "critical" | "important" | "opportunity" | "informative";
 
+// Ver docs/DATABASE_SCHEMA.md — enum `crm_pipeline_stage` (18 estagios, migration 0009).
+// Substitui o antigo PipelineStage de 13 valores (mapeamento documentado na migration).
 export type PipelineStage =
-  | "lead"
+  | "new_lead"
+  | "first_contact_done"
+  | "motivation_identified"
+  | "case_sent"
+  | "evaluation_offered"
   | "evaluation_scheduled"
-  | "evaluation_confirmed"
-  | "evaluation_completed"
+  | "payment_pending"
+  | "confirmed"
+  | "attended"
   | "plan_presented"
-  | "negotiation"
+  | "objection_tracking"
   | "plan_accepted"
-  | "treatment_started"
-  | "treatment_active"
-  | "follow_up"
-  | "maintenance"
+  | "execution_in_phases"
+  | "post_procedure"
+  | "return_visit"
+  | "active_recurrence"
   | "reactivation"
-  | "inactive";
+  | "lost";
+
+/** Estagios em que a paciente e considerada "encerrada" — regra de ouro nao se aplica. */
+export const CLOSED_STAGES: readonly PipelineStage[] = ["lost"];
 
 export type AppointmentStatus =
   | "scheduled"

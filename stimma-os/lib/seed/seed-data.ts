@@ -19,14 +19,14 @@ export function buildDemoSnapshot(now: Date = new Date()): ClinicSnapshot {
       { id: "demo-4", fullName: "Camila Torres (demo)", requiresContinuation: true },
     ],
     journeys: [
-      { patientId: "demo-1", stage: "treatment_active", nextAction: null, nextActionDueAt: null },
+      { patientId: "demo-1", stage: "execution_in_phases", nextAction: null, nextActionDueAt: null },
       {
         patientId: "demo-2",
-        stage: "follow_up",
+        stage: "return_visit",
         nextAction: "Retorno em 30 dias",
         nextActionDueAt: iso(24 * 20),
       },
-      { patientId: "demo-4", stage: "evaluation_completed", nextAction: null, nextActionDueAt: null },
+      { patientId: "demo-4", stage: "attended", nextAction: null, nextActionDueAt: null },
     ],
     appointments: [
       {

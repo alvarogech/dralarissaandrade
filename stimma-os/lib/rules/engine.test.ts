@@ -89,7 +89,7 @@ describe("RuleEngine — golden rule (próximo passo)", () => {
           completedAt: "2026-08-16T15:00:00.000Z",
         },
       ],
-      journeys: [{ patientId: "p2", stage: "follow_up", nextAction: null, nextActionDueAt: null }],
+      journeys: [{ patientId: "p2", stage: "return_visit", nextAction: null, nextActionDueAt: null }],
     });
 
     const result = runRuleEngine(snapshot);
@@ -115,7 +115,7 @@ describe("RuleEngine — golden rule (próximo passo)", () => {
       journeys: [
         {
           patientId: "p2",
-          stage: "follow_up",
+          stage: "return_visit",
           nextAction: "Retorno em 30 dias",
           nextActionDueAt: "2026-09-16T00:00:00.000Z",
         },

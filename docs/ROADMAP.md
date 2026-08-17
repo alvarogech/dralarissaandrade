@@ -74,13 +74,49 @@ Agendador de Tarefas do Windows) esbarrou em dois bloqueios reais e documentados
 ver `docs/COWORK_RUNBOOK.md` ("Estado real da automação"). Solução entregue por enquanto:
 gatilho manual intuitivo (`/sync-agenda`), com supervisão normal, idempotente.
 
+## Fase 8 — CRM: fundação do pipeline (em andamento — 2026-08-17)
+
+Ver `CRM_MASTER_SPEC.md`, `DATABASE_SCHEMA.md`, `CRM_RULES.md`. Escopo: enum de pipeline
+expandido para 18 estágios, `pipeline_history` (histórico imutável), regra de ouro implementada
+no `RuleEngine`, tags/origem/indicação, planejamento (`treatment_plans`/`items`), biblioteca de
+casos, objeções, satisfação, manutenção/revisão anual — schema criado via `0009_crm_foundation.sql`.
+Reaproveita `patients`/`tasks`/`opportunities`/`alerts`/`automation_runs` já existentes em vez de
+recriar (ver `DATABASE_SCHEMA.md` §Reconciliação).
+
+## Fase 9 — CRM: WhatsApp
+
+`WhatsAppProvider` (interface + mock — ver `WHATSAPP_ARCHITECTURE.md`), webhook de mensagem
+recebida, Inbox de 3 colunas. Bloqueado por credencial real (conta Meta Business/BSP) para sair
+do modo mock — desenvolvido e testável com o mock enquanto isso.
+
+## Fase 10 — CRM: motor de follow-up e Modo FUP
+
+`AUTOMATION_ENGINE.md` (regras 1–18), tela "Modo FUP" (uma paciente por vez, mensagem pronta,
+adiar exige data), Central de Exceções.
+
+## Fase 11 — CRM: execução, pós-procedimento, recorrência
+
+`procedure_sessions`, `post_procedure_protocols`, retornos, `maintenance_cycles`,
+`annual_reviews`, score de recorrência interno.
+
+## Fase 12 — CRM: inteligência e IA gerencial
+
+`AI_ARCHITECTURE.md` — extração automática de conversa, próxima melhor ação, busca em linguagem
+natural, dashboards de gestão (funil visual, LTV, coortes). Bloqueado por chave de LLM de
+produção configurada para este uso — contrato de ferramentas já definido, não implementado.
+
 ## Status atual (atualizado a cada marco relevante)
 
 - [x] Fase 0 — Discovery
-- [ ] Fase 1 — Fundação (em andamento nesta sessão)
-- [ ] Fase 2 — Cockpit
-- [ ] Fase 3 — Inteligência
-- [ ] Fase 4 — Simples Dental (leitura)
+- [x] Fase 1 — Fundação (schema/auth/RBAC/cockpit base já em produção)
+- [x] Fase 2 — Cockpit ("Hoje" em produção)
+- [x] Fase 3 — Inteligência (RuleEngine com subconjunto P0)
+- [~] Fase 4 — Simples Dental (leitura) — Sync Engine construído e testado; pull manual real feito; rotina automática ainda não
 - [ ] Fase 5 — Simples Dental (escrita)
 - [ ] Fase 6 — Automação operacional
-- [ ] Fase 7 — Cowork / rotinas
+- [~] Fase 7 — Cowork / rotinas — gatilho manual (`/sync-agenda`) entregue; automação sem supervisão bloqueada
+- [~] Fase 8 — CRM: fundação do pipeline — docs e schema desta sessão; migration a aplicar
+- [ ] Fase 9 — CRM: WhatsApp
+- [ ] Fase 10 — CRM: motor de follow-up e Modo FUP
+- [ ] Fase 11 — CRM: execução, pós-procedimento, recorrência
+- [ ] Fase 12 — CRM: inteligência e IA gerencial

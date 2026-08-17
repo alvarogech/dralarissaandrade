@@ -150,6 +150,64 @@ depender do CLI/registry do shadcn nesta sessão. Trocar por componentes gerados
 é direto quando fizer sentido — nenhuma decisão de design foi tomada que dependa de ser
 especificamente shadcn.
 
+## 2026-08-17 — STIMMA OS vira o CRM (não mais só "camada de observação")
+
+**Contexto**: até aqui, `PROJECT_SPEC.md` definia o STIMMA OS explicitamente como "não é um
+dashboard, CRM ou relatório financeiro" — uma camada de alerta/oportunidade que lê o Simples
+Dental e nunca duplica seus módulos (agenda, Vendas/Kanban, pacientes). O usuário entregou um
+prompt mestre extenso e explícito pedindo a construção de **um CRM próprio** (pipeline de 18
+estágios, inbox de WhatsApp, motor de follow-up, IA de conversa, planejamento/execução/
+financeiro por paciente, dashboards de gestão) — muito além do escopo original.
+
+**Decisão**: tratar isso como evolução do mesmo produto, não um projeto novo. `stimma-os/`
+continua sendo o único app, o mesmo banco Supabase, a mesma equipe (Álvaro, Larissa, Gabi,
+Dine), o mesmo `RuleEngine`/`Sync Engine`/audit log já construídos. A missão em
+`PROJECT_SPEC.md` é reescrita para refletir o CRM como norte, mas os princípios de segurança,
+minimização de dado clínico, autonomia por nível (A/B/C/D) e EXECUTE→VERIFY→COMMIT **não
+mudam** — só se aplicam a uma superfície bem maior agora.
+
+**Por que isso não contradiz "não duplicar o Simples Dental"**: o Simples Dental não tem CRM,
+WhatsApp, motor de follow-up nem IA — só agenda, ficha, Kanban de orçamento e financeiro básico.
+O pipeline de relacionamento (lead → recorrência) e o WhatsApp são território que o Simples
+Dental nunca cobriu; o STIMMA OS não recria a agenda nem o Kanban nativo de Vendas, ele modela a
+**jornada comercial/relacionamento por cima**, e onde fizer sentido, cruza com o que já é lido
+de lá (agendamento, débito). O princípio de "ler e cruzar, não reconstruir" continua valendo
+especificamente para agenda/financeiro nativo — não se aplica ao pipeline de relacionamento, que
+o Simples Dental nunca teve.
+
+**O que muda de fato no schema existente**: `patient_journeys` (uma linha por paciente, sem
+histórico) vira insuficiente frente à exigência explícita do prompt mestre de nunca sobrescrever
+histórico de estágio — ver `DATABASE_SCHEMA.md` (nova tabela `pipeline_history`, enum de estágio
+expandido de 13 para os 18 estágios do prompt mestre, mantendo os já existentes como subconjunto
+compatível).
+
+**O que fica fora desta rodada (sem credencial/tempo para fingir que existe)**: WhatsApp Business
+API real (provider mockado até existir número/token oficial — ver `WHATSAPP_ARCHITECTURE.md`),
+LLM de produção para extração automática de conversa (interface definida, sem chave configurada
+em produção ainda), telas de Inbox/Modo FUP/dashboards de gestão completos (ficam no roadmap,
+Fase 2 em diante — ver `ROADMAP.md`). Documentar e não fingir testado é o mesmo princípio já
+seguido com o Simples Dental.
+
+## 2026-08-17 — Migration 0009 (fundação do CRM) aplicada e verificada em produção
+
+`stimma-os/supabase/migrations/0009_crm_foundation.sql` foi aplicado ao projeto Supabase real
+(`fjxvseuopzhfwdraszvp`) pelo SQL Editor via Chrome (mesma técnica de injeção no Monaco das
+migrations anteriores — MCP ainda não alcança este projeto). Antes de rodar: o editor sinalizou
+"Potential issue detected — destructive operations" por causa do `drop type
+patient_pipeline_stage` (esperado — é o enum antigo, substituído pelo `crm_pipeline_stage` de 18
+estágios com mapeamento explícito de cada valor antigo; nenhuma tabela é dropada). Confirmado e
+executado.
+
+**Verificação pós-escrita (EXECUTE → VERIFY → COMMIT)**: `total_tables` 26 → 48 (+22, bate exato
+com as tabelas novas da migration); `crm_pipeline_stage` existe (1), `patient_pipeline_stage` não
+existe mais (0); `patients` = 34 linhas, `appointments` = 5 — nenhuma alterada, nenhum dado
+perdido. **Achado real, não esperado**: `patient_journeys` está com **0 linhas** — os 34
+pacientes reais (5 da agenda + 29 do import de recebíveis, ver decisão de 2026-08-17 anterior)
+nunca tiveram uma jornada de pipeline criada. Ou seja, a "regra de ouro" ainda não tem o que
+validar de verdade — isso vira o próximo passo concreto (backfill de `patient_journeys` para os
+pacientes reais existentes, ao implementar `lib/rules/golden-rule.ts`), não um problema da
+migration em si.
+
 ## 2026-08-13 — Stack confirmada sem alterações
 
 Next.js (App Router) + TypeScript + Tailwind + shadcn/ui no frontend; Supabase (Postgres + Auth
