@@ -52,3 +52,33 @@ export interface SyncRunSummary {
   requiresReview: number;
   results: SyncItemResult[];
 }
+
+/**
+ * Recebível normalizado (débito em atraso, etc.) lido do Simples Dental —
+ * mesma ideia de NormalizedAppointment, mesma fonte de extração agêntica.
+ */
+export interface NormalizedReceivable {
+  source: "simples_dental_browser";
+  patient: {
+    sdPatientId?: string;
+    fullName: string;
+    phone?: string;
+  };
+  amount: number;
+  dueAt: string;
+}
+
+export interface ReceivableSyncItemResult {
+  input: NormalizedReceivable;
+  patientAction: PatientMatchDecision["action"];
+  receivableAction: "created" | "skipped_duplicate" | "requires_review";
+  patientId?: string;
+}
+
+export interface ReceivableSyncSummary {
+  total: number;
+  created: number;
+  skippedDuplicate: number;
+  requiresReview: number;
+  results: ReceivableSyncItemResult[];
+}
