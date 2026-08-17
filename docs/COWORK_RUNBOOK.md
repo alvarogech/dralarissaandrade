@@ -5,6 +5,33 @@ no ambiente, via execução manual assistida por Claude Code + Chrome). Nenhuma 
 configurada/agendada de fato ainda — este documento é o desenho de referência para quando o
 Sync Engine e a Fase 4 estiverem estáveis.
 
+## Estado real da automação (2026-08-17) — leia antes de assumir que algo roda sozinho
+
+Tentamos deixar a auditoria matinal 100% automática (sem ninguém disparar) e batemos em dois
+bloqueios reais, não contornados:
+
+1. **Rotina agendada na nuvem** (mecanismo disponível neste ambiente para "cron") roda em
+   sandbox isolado — sem acesso ao Chrome pareado do usuário nem à rede local. Não consegue ler
+   o Simples Dental de jeito nenhum.
+2. **Agendador de Tarefas local do Windows** rodando o Claude Code sem supervisão exigiria
+   `--dangerously-skip-permissions` (bloqueado pelo classificador de segurança do ambiente sem
+   autorização explícita) e, mesmo com escopo de ferramentas restrito
+   (`--permission-mode dontAsk` + `--allowedTools`), o processo novo não estava autenticado
+   ("Not logged in") — a sessão interativa não empresta login para um processo disparado de
+   fora. Resolver isso exigiria o usuário rodar `claude /login` nesse contexto ou configurar uma
+   chave de API separada — decisão dele, não tomada aqui.
+
+**O que existe de verdade hoje**: um **gatilho manual intuitivo** — o comando
+`/sync-agenda` (definido em `.claude/commands/sync-agenda.md`). O usuário roda esse comando
+dentro de uma sessão normal do Claude Code (com supervisão normal, sem bypass de permissão), e
+o Claude: lê a agenda de hoje no Simples Dental, normaliza, chama
+`POST /api/sync/agenda` (https://stimma-os-gestor.netlify.app), e reporta quantos pacientes/
+compromissos foram criados, atualizados, ficaram sem mudança, ou caíram em `requiresReview`. É
+idempotente — pode rodar várias vezes no mesmo dia sem duplicar nada.
+
+As rotinas abaixo continuam sendo o desenho de referência para quando (a) o usuário resolver o
+login/autenticação de um processo não-interativo, ou (b) houver acesso real ao Claude Cowork.
+
 ## 07:00 — Auditoria matinal
 
 - **Objetivo**: sincronizar agenda e financeiro do dia antes do início do expediente.

@@ -69,6 +69,11 @@ Reduzir intervenção humana progressivamente, conforme confiabilidade comprovad
 
 Configurar rotinas de `COWORK_RUNBOOK.md` no ambiente do usuário quando disponível.
 
+**Tentativa real em 2026-08-17**: automação 100% sem supervisão (cron na nuvem, depois
+Agendador de Tarefas do Windows) esbarrou em dois bloqueios reais e documentados —
+ver `docs/COWORK_RUNBOOK.md` ("Estado real da automação"). Solução entregue por enquanto:
+gatilho manual intuitivo (`/sync-agenda`), com supervisão normal, idempotente.
+
 ## Status atual (atualizado a cada marco relevante)
 
 - [x] Fase 0 — Discovery

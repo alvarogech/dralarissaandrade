@@ -107,6 +107,28 @@ consulta já exibido na agenda. O cockpit "Hoje" (`app/hoje/page.tsx` +
 `docs/ROADMAP.md` (Fase 4) para o que isso é e o que ainda não é (não é o Sync Engine
 automatizado).
 
+## 2026-08-17 — Deploy real em Netlify (`stimma-os-gestor`)
+
+Com aprovação explícita do usuário (push para GitHub + criação do site), o STIMMA OS foi
+publicado em produção: `https://stimma-os-gestor.netlify.app`. Site Netlify novo e dedicado
+(não reaproveitou nenhum dos outros ~13 sites já existentes na conta, incluindo um chamado só
+"stimma" de outro contexto — mesma lógica de isolamento do projeto Supabase). Variáveis de
+ambiente (URL/chaves do Supabase, `SYNC_API_SECRET`) cadastradas direto no painel Netlify, nunca
+no repositório. Testado ao vivo: rota protegida por segredo (401 sem ele), `/api/sync/agenda`
+gravando `automation_runs`/`audit_logs` reais em produção.
+
+## 2026-08-17 — Automação 100% sem supervisão tentada e não alcançada; gatilho manual entregue
+
+Duas tentativas de deixar a leitura da agenda rodando sozinha, ambas com bloqueio real (não
+contornado à força): rotina agendada na nuvem não alcança o Chrome pareado nem a rede local;
+Agendador de Tarefas do Windows rodando o Claude Code sem supervisão exigiria bypass total de
+permissão (bloqueado pelo classificador do ambiente; o usuário autorizou escopo restrito, mas o
+processo novo apareceu como não autenticado). Em vez de forçar um contorno arriscado ou fingir
+que funciona, a solução entregue foi um **gatilho manual intuitivo**: comando `/sync-agenda`
+(`.claude/commands/sync-agenda.md`, não versionado — `.claude/` está no `.gitignore` — mas
+documentado por extenso em `docs/COWORK_RUNBOOK.md` para poder ser recriado). Detalhe completo
+em `docs/COWORK_RUNBOOK.md`.
+
 ## 2026-08-17 — Primitivos de UI escritos à mão em vez de instalar shadcn/ui agora
 
 O briefing pede shadcn/ui. Para a primeira fatia do cockpit, os primitivos (Button, Card,
