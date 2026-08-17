@@ -129,6 +129,18 @@ que funciona, a solução entregue foi um **gatilho manual intuitivo**: comando 
 documentado por extenso em `docs/COWORK_RUNBOOK.md` para poder ser recriado). Detalhe completo
 em `docs/COWORK_RUNBOOK.md`.
 
+## 2026-08-17 — Financeiro no cockpit + import real de recebíveis vencidos
+
+Com aprovação explícita do usuário, os 30 recebíveis vencidos reais visíveis em
+Inteligência → "Pacientes com débitos em atraso" foram lidos (nome, valor, dias em atraso,
+telefone quando disponível — sem CPF) e sincronizados via `POST /api/sync/receivables`
+(reaproveita o mesmo `resolvePatient` do sync de agenda). Resultado real: 29 criados, 1
+`requires_review` (Jovenal de Andrade e Silva — já existia no banco pelo pull de agenda desta
+manhã, mas sem telefone cadastrado; o motor corretamente recusou vincular só pelo nome). Total
+real em recebíveis vencidos no banco: R$ 43.699,06. O card "Financeiro" do cockpit Hoje
+(`components/cockpit/FinancialSummary.tsx`) já lê isso pela `getClinicSnapshot()` existente —
+nenhuma mudança na tela foi necessária além de plugar o novo card.
+
 ## 2026-08-17 — Primitivos de UI escritos à mão em vez de instalar shadcn/ui agora
 
 O briefing pede shadcn/ui. Para a primeira fatia do cockpit, os primitivos (Button, Card,
