@@ -208,6 +208,47 @@ validar de verdade — isso vira o próximo passo concreto (backfill de `patient
 pacientes reais existentes, ao implementar `lib/rules/golden-rule.ts`), não um problema da
 migration em si.
 
+## 2026-08-18 — Avaliação e adoção do Chatwoot como backend do WhatsApp
+
+**Pedido do usuário**: avaliar se faz sentido usar o Chatwoot no CRM e, se sim, adicionar ao
+projeto. Antes de decidir, os fatos abaixo foram verificados na documentação oficial
+(`developers.chatwoot.com`, `chatwoot.com`) nesta sessão — nada foi assumido de memória sem
+checar, para não arriscar inventar uma integração (ver limite absoluto em `SECURITY.md`):
+
+- Licença **MIT**, código aberto, self-hostable via Docker (depende de Postgres, Redis e
+  Sidekiq — pode apontar para serviços gerenciados via variáveis de ambiente).
+- Suporta WhatsApp via **WhatsApp Cloud API oficial**, além de 360dialog/Twilio como alternativa.
+- **Application API** documentada e estável: `POST .../contacts`, `GET .../contacts/search`,
+  `GET .../contacts/{id}/conversations`, `POST .../conversations`,
+  `POST .../conversations/{id}/messages`, `GET .../conversations/{id}/messages` — autenticação
+  via header `api_access_token`.
+- **Webhooks assinados**: `X-Chatwoot-Signature` (HMAC-SHA256 de `{timestamp}.{corpo}`) +
+  `X-Chatwoot-Timestamp`, eventos incluindo `message_created`, `conversation_created`,
+  `conversation_status_changed`, `contact_created`/`updated`.
+- **Dashboard Apps** (iframe com contexto de conversa/contato via window event) existem, mas
+  **não foram adotados** nesta decisão — expor a interface do Chatwoot para a Gabi contradiria a
+  exigência explícita do prompt mestre de ela nunca precisar alternar de tela. O STIMMA OS
+  continua sendo a única interface; o Chatwoot roda como peça de infraestrutura por trás dela.
+
+**Decisão: adotar Chatwoot self-hosted como a implementação concreta de `WhatsAppProvider`**,
+mantendo a interface abstrata (ver `WHATSAPP_ARCHITECTURE.md`). Por quê:
+
+- Resolve a parte mais cara de construir do zero (status de entrega, mídia, templates
+  aprovados, reconexão de sessão) sem prender o STIMMA OS a um único BSP — o Chatwoot já
+  abstrai isso.
+- MIT + self-hosted dá controle total do dado (relevante para LGPD/minimização, já um princípio
+  do projeto) — evita depender do Chatwoot Cloud hospedado fora do Brasil para dado de paciente.
+- Webhooks assinados encaixam direto no princípio já existente de nunca confiar em payload não
+  verificado.
+
+**O que fica deliberadamente em aberto (decisão de infraestrutura/custo, não técnica)**: onde
+hospedar a instância Chatwoot (VPS, região, custo mensal) e quando de fato criar a conta
+WhatsApp Business/Meta — isso não foi provisionado nem terá custo incorrido sem o usuário
+decidir explicitamente. O código (`ChatwootProvider`, webhook, migration de IDs externos) foi
+implementado e testado contra endpoints/payloads simulados, exatamente como o `MockWhatsAppProvider`
+já existente — nada disso depende da instância real existir para o resto do CRM continuar
+evoluindo. `WHATSAPP_PROVIDER=mock` continua sendo o padrão até essa decisão de infra ser tomada.
+
 ## 2026-08-13 — Stack confirmada sem alterações
 
 Next.js (App Router) + TypeScript + Tailwind + shadcn/ui no frontend; Supabase (Postgres + Auth

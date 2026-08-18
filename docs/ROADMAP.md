@@ -85,9 +85,11 @@ recriar (ver `DATABASE_SCHEMA.md` §Reconciliação).
 
 ## Fase 9 — CRM: WhatsApp
 
-`WhatsAppProvider` (interface + mock — ver `WHATSAPP_ARCHITECTURE.md`), webhook de mensagem
-recebida, Inbox de 3 colunas. Bloqueado por credencial real (conta Meta Business/BSP) para sair
-do modo mock — desenvolvido e testável com o mock enquanto isso.
+`WhatsAppProvider` (interface + mock + `ChatwootProvider` — ver `WHATSAPP_ARCHITECTURE.md` e
+decisão de 2026-08-18 em `DECISIONS.md`), webhook assinado do Chatwoot, Inbox de 3 colunas.
+Código pronto e testado (`lib/whatsapp/`, `app/api/webhooks/chatwoot/`); falta apenas a instância
+Chatwoot real existir (decisão de hospedagem/custo do usuário) e a conta WhatsApp Business/Meta
+para sair do modo mock — desenvolvido e testável com o mock enquanto isso.
 
 ## Fase 10 — CRM: motor de follow-up e Modo FUP
 

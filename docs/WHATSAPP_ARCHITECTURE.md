@@ -1,21 +1,34 @@
 # WhatsApp Architecture — STIMMA OS CRM
 
-## Estado real hoje (2026-08-17)
+## Decisão: Chatwoot como backend concreto do WhatsApp (2026-08-18)
 
-**Não há número de WhatsApp Business API, conta Meta Business verificada ou token de produção
-configurado.** `INTEGRATIONS.md` (versão anterior) documentava explicitamente que o STIMMA OS
-"não reimplementa envio de WhatsApp no MVP" — isso muda agora por instrução direta do usuário,
-mas a ausência de credencial é um fato, não uma decisão de arquitetura. O que existe nesta rodada
-é a **interface abstrata + um provider mock** para desenvolver e testar o resto do CRM (inbox,
-automações, IA) sem depender da credencial. Trocar o mock pelo provider real quando a conta
-existir é uma troca de implementação, não uma reescrita — ver `DECISIONS.md`.
+Avaliado a pedido do usuário. **Recomendação: sim, usar Chatwoot** — self-hosted, atrás da
+mesma interface `WhatsAppProvider` já desenhada (continua não sendo um acoplamento cego). Ver o
+racional completo e os trade-offs em `DECISIONS.md` (2026-08-18). Resumo:
 
-## Por que uma camada abstrata (não acoplar a um fornecedor)
+- Chatwoot é open source, licença MIT, self-hostable (Docker — Rails + Postgres + Redis +
+  Sidekiq), e integra nativamente com WhatsApp Cloud API / 360dialog / Twilio — resolve a parte
+  mais cara de construir do zero (aprovação Meta continua sendo necessária de qualquer forma,
+  mas o tratamento de mensagem, status de entrega, mídia e templates fica por conta dele).
+- Webhooks assinados via HMAC-SHA256 (`X-Chatwoot-Signature` = `sha256=` + HMAC do
+  `{timestamp}.{corpo bruto}`, mais `X-Chatwoot-Timestamp`) — mesmo princípio de "nunca confiar
+  em payload não assinado" já exigido em `SECURITY.md`.
+- **Gabi continua nunca saindo do STIMMA OS.** Chatwoot roda "headless": o STIMMA OS chama a
+  Application API do Chatwoot para enviar mensagens e recebe os webhooks dele para popular
+  `conversations`/`messages` — a interface de Chatwoot em si nunca é exposta à equipe (isso
+  preserva a exigência do prompt mestre §10 de nunca alternar entre telas).
+- **Em aberto, não decidido aqui**: onde hospedar a instância Chatwoot (VPS própria, região
+  Brasil por preferência de LGPD, custo mensal) — isso é uma decisão de infraestrutura/custo do
+  usuário, não uma decisão técnica reversível de código. Enquanto isso não existir, o
+  `MockWhatsAppProvider` continua sendo o padrão (`WHATSAPP_PROVIDER=mock`).
 
-A API oficial do WhatsApp Business exige aprovação Meta, número dedicado e (normalmente) um BSP
-(Business Solution Provider — ex. Twilio, 360dialog, Gupshup, Zenvia). Qual BSP a clínica vai
-usar é uma decisão de custo/negócio do usuário, não técnica. A interface abaixo garante que essa
-escolha não trava o desenvolvimento do CRM.
+## Por que uma camada abstrata (não acoplar a um fornecedor, nem ao próprio Chatwoot)
+
+A API oficial do WhatsApp Business exige aprovação Meta, número dedicado e (normalmente) um BSP.
+Chatwoot resolve boa parte disso, mas mesmo assim o `WhatsAppProvider` continua sendo a única
+porta de entrada usada pelo resto do código — se um dia fizer sentido trocar Chatwoot por outra
+coisa (ou usar a API oficial diretamente), é uma nova implementação da mesma interface, não uma
+reescrita do CRM.
 
 ## Interface `WhatsAppProvider`
 
@@ -53,24 +66,46 @@ para uma paciente de verdade. Seleção de provider por variável de ambiente
 (`WHATSAPP_PROVIDER=mock|<nome-do-bsp-real>`), mesmo padrão de `NEXT_PUBLIC_SUPABASE_URL` ausente
 → modo demonstração já usado no cockpit.
 
+## `ChatwootProvider` (implementação concreta, atrás do `WhatsAppProvider`)
+
+`stimma-os/lib/whatsapp/chatwoot-provider.ts`. Endpoints da Application API do Chatwoot usados
+(confirmados na documentação oficial, `developers.chatwoot.com`, não inventados):
+
+```text
+GET  /api/v1/accounts/{account_id}/contacts/search?q={telefone}   — localizar contato por telefone
+POST /api/v1/accounts/{account_id}/contacts                       — criar contato (inbox_id, phone_number)
+GET  /api/v1/accounts/{account_id}/contacts/{id}/conversations    — conversas do contato
+POST /api/v1/accounts/{account_id}/conversations                  — criar conversa (source_id, inbox_id, contact_id)
+POST /api/v1/accounts/{account_id}/conversations/{id}/messages    — enviar mensagem (content, message_type)
+GET  /api/v1/accounts/{account_id}/conversations/{id}/messages    — listar mensagens (fetchMessages)
+```
+
+Autenticação: header `api_access_token`. `sendText`/`sendTemplate` resolvem contato → conversa
+(criando o que faltar) → postam a mensagem; `template_params` é usado para envio de template
+aprovado pelo WhatsApp. `sendMedia` e `markAsRead` **não têm endpoint de Application API
+confirmado na documentação nesta rodada** — implementados lançando um erro explícito
+("não implementado — ver docs/WHATSAPP_ARCHITECTURE.md") em vez de fingir que funcionam; entram
+quando confirmados. `getStatus` lê o campo `status` da mensagem via `fetchMessages` (Chatwoot não
+expõe um endpoint dedicado de status por mensagem na Application API).
+
 ## Webhook de mensagem recebida (fluxo, seção 76 do prompt original)
 
 ```text
-POST /api/whatsapp/webhook
-  1. validar assinatura do provider (nunca confiar em payload não assinado)
-  2. identificar numero (telefone normalizado)
-  3. localizar patients via telefone; se nao existir, criar patients + patient_journeys(stage='new_lead')
-  4. upsert conversations (por phone), inserir em messages (direction='inbound')
-  5. atualizar patients.last_interaction_at / patient_journeys
-  6. (assincrono) IA analisa conteudo -> atualiza interaction_summaries (nunca sobrescreve a
-     motivation_quote original, so adiciona/atualiza a interpretacao)
-  7. motor de automacao avalia trigger_event correspondente (ex. lead.created)
-  8. se acao recomendada existir, cria Task ou Alert -- nunca responde sozinho em nivel 2/3
+POST /api/webhooks/chatwoot
+  1. validar assinatura HMAC-SHA256 (X-Chatwoot-Signature / X-Chatwoot-Timestamp) — nunca confiar
+     em payload nao assinado
+  2. tratar apenas event=message_created com message_type=incoming (mensagens da paciente)
+  3. identificar numero (telefone normalizado a partir de conversation.contact_inbox / sender)
+  4. localizar patients via telefone; se nao existir, criar patients + patient_journeys(stage='new_lead')
+     via lib/pipeline/change-stage.ts (nunca um update solto)
+  5. upsert conversations (por chatwoot_conversation_id), inserir em messages (direction='inbound')
+  6. atualizar patients.last_interaction_at
+  7. (assincrono, fase futura) IA analisa conteudo -> atualiza interaction_summaries
+  8. (fase futura) motor de automacao avalia trigger_event correspondente (ex. lead.created)
 ```
 
-Rota real (`app/api/whatsapp/webhook/route.ts`) ainda não implementada nesta rodada — a
-prioridade foi fechar o contrato de dados (`conversations`/`messages`/`interaction_summaries`,
-já na migration `0009`) antes de escrever a rota, para não ter que migrar schema duas vezes.
+Implementado nesta rodada: verificação de assinatura, passos 2–6 (`app/api/webhooks/chatwoot/route.ts`).
+Passos 7–8 (IA e motor de automação) ainda não existem — ver `ROADMAP.md` Fases 10 e 12.
 
 ## Inbox (layout, seção 10 do prompt original)
 
