@@ -22,7 +22,7 @@ export default async function HojePage() {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar current="Hoje" />
       <main className="mx-auto w-full max-w-cockpit flex-1 px-6 py-8 md:px-10">
         {source === "demo" && (
           <div className="mb-6 rounded-md border border-important bg-important-bg px-4 py-2 text-sm text-important">

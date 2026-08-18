@@ -74,14 +74,32 @@ Agendador de Tarefas do Windows) esbarrou em dois bloqueios reais e documentados
 ver `docs/COWORK_RUNBOOK.md` ("Estado real da automação"). Solução entregue por enquanto:
 gatilho manual intuitivo (`/sync-agenda`), com supervisão normal, idempotente.
 
-## Fase 8 — CRM: fundação do pipeline (em andamento — 2026-08-17)
+## Fase 8 — CRM: fundação do pipeline (2026-08-18 — board funcional)
 
-Ver `CRM_MASTER_SPEC.md`, `DATABASE_SCHEMA.md`, `CRM_RULES.md`. Escopo: enum de pipeline
-expandido para 18 estágios, `pipeline_history` (histórico imutável), regra de ouro implementada
-no `RuleEngine`, tags/origem/indicação, planejamento (`treatment_plans`/`items`), biblioteca de
-casos, objeções, satisfação, manutenção/revisão anual — schema criado via `0009_crm_foundation.sql`.
-Reaproveita `patients`/`tasks`/`opportunities`/`alerts`/`automation_runs` já existentes em vez de
-recriar (ver `DATABASE_SCHEMA.md` §Reconciliação).
+Ver `CRM_MASTER_SPEC.md`, `DATABASE_SCHEMA.md`, `CRM_RULES.md`. Schema: enum de pipeline
+expandido para 18 estágios, `pipeline_history` (histórico imutável), tags/origem/indicação,
+planejamento (`treatment_plans`/`items`), biblioteca de casos, objeções, satisfação,
+manutenção/revisão anual — `0009_crm_foundation.sql`. Reaproveita `patients`/`tasks`/
+`opportunities`/`alerts`/`automation_runs` já existentes em vez de recriar (ver
+`DATABASE_SCHEMA.md` §Reconciliação).
+
+**Board funcional em `/pipeline`** (`app/pipeline/`, `components/pipeline/`): 18 colunas,
+arrastar-e-soltar nativo (sem dependência nova) ou clique no card abrem o mesmo formulário —
+próxima ação + data obrigatórias (ou motivo de perda estruturado quando o destino é "Perdida"),
+nunca um `UPDATE` direto sem histórico. `POST /api/pipeline/change-stage` aplica via
+`lib/pipeline/change-stage.ts` (já testado) e grava `audit_logs`. Os 34 pacientes reais foram
+migrados de `patient_journeys` vazio para um estágio honesto derivado só de dado observável
+(agendamento → `confirmed`, recebível em aberto → `active_recurrence`, nunca inventado) — todos
+sem `next_action`, então aparecem corretamente como violação da regra de ouro
+("2 pacientes sem próxima ação" no demo vira, no banco real, 34 — é o ponto de partida esperado,
+não um bug).
+
+Verificado nesta sessão: grouping/labels/urgência (`lib/pipeline/board.test.ts`), formulário de
+mudança de estágio com validação client-side + tratamento de erro (testado interativamente em
+modo demonstração — sem credencial de login para testar contra o banco real de dentro desta
+sessão). Arrastar-e-soltar não pôde ser simulado no navegador sandboxed (DnD nativo do HTML5 não
+é acionado por eventos de mouse sintéticos), mas o handler de drop e `changeStage` estão cobertos
+por teste unitário.
 
 ## Fase 9 — CRM: WhatsApp
 
@@ -117,7 +135,7 @@ produção configurada para este uso — contrato de ferramentas já definido, n
 - [ ] Fase 5 — Simples Dental (escrita)
 - [ ] Fase 6 — Automação operacional
 - [~] Fase 7 — Cowork / rotinas — gatilho manual (`/sync-agenda`) entregue; automação sem supervisão bloqueada
-- [~] Fase 8 — CRM: fundação do pipeline — docs e schema desta sessão; migration a aplicar
+- [~] Fase 8 — CRM: fundação do pipeline — schema aplicado, board funcional em `/pipeline`, 34 pacientes reais migrados; falta Modo FUP e Central de Exceções (Fase 10)
 - [ ] Fase 9 — CRM: WhatsApp
 - [ ] Fase 10 — CRM: motor de follow-up e Modo FUP
 - [ ] Fase 11 — CRM: execução, pós-procedimento, recorrência

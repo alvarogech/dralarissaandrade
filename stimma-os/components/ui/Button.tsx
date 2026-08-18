@@ -2,9 +2,10 @@ import clsx from "clsx";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
+  loadingText?: string;
 }
 
-export function Button({ loading, disabled, className, children, ...props }: ButtonProps) {
+export function Button({ loading, loadingText = "Entrando…", disabled, className, children, ...props }: ButtonProps) {
   return (
     <button
       className={clsx(
@@ -14,7 +15,7 @@ export function Button({ loading, disabled, className, children, ...props }: But
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? "Entrando…" : children}
+      {loading ? loadingText : children}
     </button>
   );
 }
