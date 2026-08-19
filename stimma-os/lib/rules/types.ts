@@ -37,6 +37,7 @@ export interface Patient {
   id: string;
   fullName: string;
   requiresContinuation: boolean;
+  phone?: string | null;
 }
 
 export interface PatientJourney {

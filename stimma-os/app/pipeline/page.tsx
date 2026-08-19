@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Badge } from "@/components/ui/Badge";
 import { PipelineBoardView } from "@/components/pipeline/PipelineBoardView";
@@ -27,9 +28,19 @@ export default async function PipelinePage() {
               Jornada da paciente — lead até recorrência (ver docs/CRM_MASTER_SPEC.md §5).
             </p>
           </div>
-          <Badge variant={missing > 0 ? "critical" : "opportunity"}>
-            {missing} paciente{missing === 1 ? "" : "s"} sem próxima ação
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant={missing > 0 ? "critical" : "opportunity"}>
+              {missing} paciente{missing === 1 ? "" : "s"} sem próxima ação
+            </Badge>
+            {missing > 0 && (
+              <Link
+                href="/pipeline/fup"
+                className="rounded-sm bg-accent px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90"
+              >
+                Modo FUP →
+              </Link>
+            )}
+          </div>
         </header>
 
         <PipelineBoardView board={board} />

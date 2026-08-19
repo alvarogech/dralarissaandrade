@@ -26,7 +26,7 @@ export async function getClinicSnapshot(): Promise<{
 
   const [{ data: patientsRows }, { data: journeysRows }, { data: appointmentsRows }, { data: receivablesRows }] =
     await Promise.all([
-      supabase.from("patients").select("id, full_name, requires_continuation"),
+      supabase.from("patients").select("id, full_name, requires_continuation, phone"),
       supabase.from("patient_journeys").select("patient_id, stage, next_action, next_action_due_at"),
       supabase
         .from("appointments")
@@ -44,6 +44,7 @@ export async function getClinicSnapshot(): Promise<{
     id: p.id,
     fullName: p.full_name,
     requiresContinuation: p.requires_continuation,
+    phone: p.phone ?? null,
   }));
 
   const journeys: PatientJourney[] = (journeysRows ?? []).map((j) => ({
