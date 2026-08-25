@@ -1,5 +1,10 @@
 # WhatsApp Architecture — STIMMA OS CRM
 
+> **⏸ Adiado por decisão do usuário (2026-08-25)** — ver `DECISIONS.md`. O código abaixo existe,
+> está testado, e continua dormente: `WHATSAPP_PROVIDER=mock` em produção, nenhuma variável
+> `CHATWOOT_*` configurada. Nada no resto do CRM depende disto para funcionar — leia este
+> documento como "pronto para quando for retomado", não como estado atual em uso.
+
 ## Decisão: Chatwoot como backend concreto do WhatsApp (2026-08-18)
 
 Avaliado a pedido do usuário. **Recomendação: sim, usar Chatwoot** — self-hosted, atrás da

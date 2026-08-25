@@ -138,6 +138,12 @@ como "quem preciso contatar hoje?", "quem marcou avaliação e não pagou?", "qu
 não fechou, qual foi a objeção?", "quem está sem próxima ação?". Se não responder isso com
 facilidade, não está pronto.
 
+**Ajuste de 2026-08-25**: WhatsApp foi adiado por decisão do usuário (ver `DECISIONS.md`) — o
+MVP em operação hoje cobre pipeline + responsável + próxima ação + tarefas por entrada manual
+(Gabi/Larissa usando `/pipeline` e `/pipeline/fup`), sem depender de mensagem chegando sozinha.
+As perguntas do critério de sucesso acima já são respondidas nesse modo; WhatsApp automatiza a
+*captura* de lead e o *envio* de mensagem quando for retomado, não é bloqueador do pipeline em si.
+
 ## 15. Guardrails de IA (resumo — detalhe em `AI_ARCHITECTURE.md`)
 
 A IA nunca inventa informação, procedimento, valor ou agendamento; nunca diagnostica, prescreve

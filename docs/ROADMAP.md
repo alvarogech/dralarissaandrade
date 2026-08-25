@@ -101,18 +101,31 @@ sessão). Arrastar-e-soltar não pôde ser simulado no navegador sandboxed (DnD 
 é acionado por eventos de mouse sintéticos), mas o handler de drop e `changeStage` estão cobertos
 por teste unitário.
 
-## Fase 9 — CRM: WhatsApp
+## Fase 9 — CRM: WhatsApp (⏸ adiada por decisão do usuário, 2026-08-25)
 
 `WhatsAppProvider` (interface + mock + `ChatwootProvider` — ver `WHATSAPP_ARCHITECTURE.md` e
 decisão de 2026-08-18 em `DECISIONS.md`), webhook assinado do Chatwoot, Inbox de 3 colunas.
-Código pronto e testado (`lib/whatsapp/`, `app/api/webhooks/chatwoot/`); falta apenas a instância
-Chatwoot real existir (decisão de hospedagem/custo do usuário) e a conta WhatsApp Business/Meta
-para sair do modo mock — desenvolvido e testável com o mock enquanto isso.
+Código pronto e testado (`lib/whatsapp/`, `app/api/webhooks/chatwoot/`) e **permanece dormente de
+propósito** — o usuário decidiu não usar o Chatwoot por enquanto (ver decisão de 2026-08-25 em
+`DECISIONS.md`). `WHATSAPP_PROVIDER` continua `mock` (padrão), nenhuma variável `CHATWOOT_*`
+configurada no Netlify. Isso não bloqueia nada do resto do CRM: pipeline, Modo FUP e regra de
+ouro operam inteiramente por entrada manual (Gabi/Larissa usando a UI), sem depender de mensagem
+de WhatsApp chegando sozinha. Retomar esta fase é ativar variáveis de ambiente + testar — sem
+mudança de código esperada.
 
-## Fase 10 — CRM: motor de follow-up e Modo FUP
+## Fase 10 — CRM: motor de follow-up e Modo FUP (parcial — 2026-08-18)
 
-`AUTOMATION_ENGINE.md` (regras 1–18), tela "Modo FUP" (uma paciente por vez, mensagem pronta,
-adiar exige data), Central de Exceções.
+**Modo FUP construído e no ar** (`/pipeline/fup`, `lib/pipeline/fup-queue.ts`): fila de uma
+paciente por vez para zerar quem está sem próxima ação, reaproveitando o mesmo
+`POST /api/pipeline/change-stage` do board. Contexto de cada card vem só de dado observável
+(recebível em aberto, agendamento futuro) — nunca resumo de conversa, já que o WhatsApp está
+adiado (Fase 9).
+
+**Falta**: `AUTOMATION_ENGINE.md` propriamente dito (as 18 regras com trigger/condição/delay
+configurável) e a Central de Exceções como tela própria — hoje as violações de regra aparecem
+espalhadas entre o cockpit "Hoje" e o board do pipeline, não um painel único. Nenhuma das duas
+depende de WhatsApp para existir — são o próximo passo natural com o CRM 100% operado por entrada
+manual.
 
 ## Fase 11 — CRM: execução, pós-procedimento, recorrência
 
@@ -135,8 +148,8 @@ produção configurada para este uso — contrato de ferramentas já definido, n
 - [ ] Fase 5 — Simples Dental (escrita)
 - [ ] Fase 6 — Automação operacional
 - [~] Fase 7 — Cowork / rotinas — gatilho manual (`/sync-agenda`) entregue; automação sem supervisão bloqueada
-- [~] Fase 8 — CRM: fundação do pipeline — schema aplicado, board funcional em `/pipeline`, 34 pacientes reais migrados; falta Modo FUP e Central de Exceções (Fase 10)
-- [ ] Fase 9 — CRM: WhatsApp
-- [ ] Fase 10 — CRM: motor de follow-up e Modo FUP
+- [x] Fase 8 — CRM: fundação do pipeline — schema aplicado, board funcional em `/pipeline`, 34 pacientes reais migrados
+- [⏸] Fase 9 — CRM: WhatsApp — código pronto, adiada por decisão do usuário (2026-08-25); `WHATSAPP_PROVIDER=mock`
+- [~] Fase 10 — CRM: motor de follow-up e Modo FUP — Modo FUP no ar; falta motor de automação configurável e Central de Exceções
 - [ ] Fase 11 — CRM: execução, pós-procedimento, recorrência
 - [ ] Fase 12 — CRM: inteligência e IA gerencial

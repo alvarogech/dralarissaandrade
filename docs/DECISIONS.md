@@ -208,6 +208,32 @@ validar de verdade — isso vira o próximo passo concreto (backfill de `patient
 pacientes reais existentes, ao implementar `lib/rules/golden-rule.ts`), não um problema da
 migration em si.
 
+## 2026-08-25 — WhatsApp/Chatwoot adiado por decisão do usuário
+
+O usuário criou a conta no Chatwoot Cloud e chegou a pedir o prompt de vinculação (Account ID,
+Access Token, Inbox do WhatsApp Cloud API, webhook — ver decisão de 2026-08-18 abaixo), mas
+decidiu **não seguir com a integração agora**: "não usarei o Chatwoot no momento".
+
+**O que isso muda tecnicamente**: nada precisou ser desfeito. `WHATSAPP_PROVIDER` já tinha
+`mock` como padrão desde que o código foi escrito (ver decisão de 2026-08-18) — nenhuma variável
+`CHATWOOT_*` chegou a ser configurada no Netlify, então o sistema já estava, na prática, rodando
+sem a integração. O ajuste desta decisão foi só de expectativa/documentação: `ROADMAP.md` marca
+a Fase 9 (WhatsApp) como adiada em vez de "próxima", e a Fase 10 (Modo FUP/motor de follow-up)
+deixa claro que opera inteiramente por entrada manual — nenhuma tela do CRM hoje pressupõe
+mensagem de WhatsApp chegando sozinha.
+
+**Por que isso não é um problema para o MVP**: `CRM_MASTER_SPEC.md` §14 lista WhatsApp como parte
+do MVP original do prompt mestre, mas o pipeline (`/pipeline`) e o Modo FUP (`/pipeline/fup`) já
+respondem às perguntas centrais do MVP (seção 106 do prompt mestre — "quem preciso contatar
+hoje?", "quem está sem próxima ação?") com dado inserido manualmente por Gabi/Larissa. WhatsApp
+automatiza a *entrada* de leads e o *envio* de mensagem; não é pré-requisito para o pipeline
+funcionar como sistema de acompanhamento.
+
+**Retomar no futuro**: todo o código já escrito (`lib/whatsapp/`, `app/api/webhooks/chatwoot/`)
+continua no repositório, testado, sem custo de manutenção (não roda, não é chamado). Reativar é
+configurar as variáveis de ambiente quando/se o usuário decidir — não deve exigir reescrever
+nada, a menos que a decisão de usar Chatwoot mude para outro provider.
+
 ## 2026-08-18 — Avaliação e adoção do Chatwoot como backend do WhatsApp
 
 **Pedido do usuário**: avaliar se faz sentido usar o Chatwoot no CRM e, se sim, adicionar ao
