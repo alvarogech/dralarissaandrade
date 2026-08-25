@@ -8,6 +8,11 @@ Andrade / Clínica Stimma. Antes de qualquer trabalho, identifique em qual proje
   `README.md` com instruções completas de setup.
 - `stimma-os/` — **STIMMA OS**, o foco principal de desenvolvimento contínuo daqui em diante.
   Tem seu próprio `package.json`, seu próprio projeto Supabase, seu próprio deploy Netlify.
+- `anamnese-app/` **é um repositório Git próprio** (`alvarogech/anamnese-larissa-andrade`,
+  deploy e projeto Supabase próprios — não confundir com o Supabase do STIMMA OS) que só existe
+  como pasta irmã aqui por conveniência local; não é parte deste repositório. Ver
+  `docs/ANAMNESE_INTAKE.md` para como os dois se conectam (chamada HTTP com segredo
+  compartilhado, sem banco cruzado).
 
 ## O que é o STIMMA OS (resumo — contexto completo em `docs/`)
 
@@ -29,12 +34,14 @@ Leia nesta ordem antes de mexer em algo:
 6. [`docs/AUTOMATION_ENGINE.md`](./docs/AUTOMATION_ENGINE.md) — motor de eventos/automações configuráveis.
 7. [`docs/WHATSAPP_ARCHITECTURE.md`](./docs/WHATSAPP_ARCHITECTURE.md) — inbox, provider abstrato, estado real (mock).
 8. [`docs/AI_ARCHITECTURE.md`](./docs/AI_ARCHITECTURE.md) — ferramentas de IA, guardrails.
-9. [`docs/SIMPLES_DENTAL_MAP.md`](./docs/SIMPLES_DENTAL_MAP.md) — o que o Simples Dental já
-   faz nativamente (não duplicar — agenda/ficha/Kanban de orçamento/financeiro básico; o
-   pipeline de relacionamento e o WhatsApp são território novo, não duplicação).
-10. [`docs/SECURITY.md`](./docs/SECURITY.md) — limites absolutos, LGPD, audit log.
-11. [`docs/DECISIONS.md`](./docs/DECISIONS.md) — por que as coisas são como são.
-12. [`docs/ROADMAP.md`](./docs/ROADMAP.md) — em que fase o projeto está agora.
+9. [`docs/ANAMNESE_INTAKE.md`](./docs/ANAMNESE_INTAKE.md) — como o `anamnese-app` (repositório
+   separado) cria/atualiza pacientes aqui automaticamente.
+10. [`docs/SIMPLES_DENTAL_MAP.md`](./docs/SIMPLES_DENTAL_MAP.md) — o que o Simples Dental já
+    faz nativamente (não duplicar — agenda/ficha/Kanban de orçamento/financeiro básico; o
+    pipeline de relacionamento e o WhatsApp são território novo, não duplicação).
+11. [`docs/SECURITY.md`](./docs/SECURITY.md) — limites absolutos, LGPD, audit log.
+12. [`docs/DECISIONS.md`](./docs/DECISIONS.md) — por que as coisas são como são.
+13. [`docs/ROADMAP.md`](./docs/ROADMAP.md) — em que fase o projeto está agora.
 
 ## Regras de execução deste projeto
 
