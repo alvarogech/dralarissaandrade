@@ -3,90 +3,571 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dra. Larissa Andrade | Arquitetura do Olhar</title>
+    <title>Dra. Larissa Andrade | Estética Facial, Pele e Sorriso em Goiânia</title>
     <meta
       name="description"
-      content="Experiência digital de orientação facial da Dra. Larissa Andrade, estética facial estratégica na Clínica Stimma."
+      content="Diagnóstico, planejamento e naturalidade em estética facial, tratamentos de pele e cuidado do sorriso com a Dra. Larissa Andrade, em Goiânia."
     />
+    <link rel="canonical" href="https://larissaandrade.com.br/" />
+
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Dra. Larissa Andrade | Arquitetura do Olhar" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="https://larissaandrade.com.br/" />
+    <meta property="og:site_name" content="Dra. Larissa Andrade" />
+    <meta property="og:title" content="Dra. Larissa Andrade | Estética Facial, Pele e Sorriso em Goiânia" />
     <meta
       property="og:description"
-      content="Conheça o olhar, os resultados e as possibilidades de tratamento da Dra. Larissa Andrade."
+      content="Antes de tratar, é preciso enxergar. Diagnóstico, planejamento e naturalidade com a Dra. Larissa Andrade."
     />
-    <meta property="og:image" content="assets/foto-larissa.jpg" />
+    <meta property="og:image" content="https://larissaandrade.com.br/assets/foto-larissa.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Dra. Larissa Andrade | Estética Facial, Pele e Sorriso em Goiânia" />
+    <meta
+      name="twitter:description"
+      content="Diagnóstico, planejamento e naturalidade em estética facial, pele e sorriso com a Dra. Larissa Andrade."
+    />
+    <meta name="twitter:image" content="https://larissaandrade.com.br/assets/foto-larissa.jpg" />
+
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "HealthAndBeautyBusiness",
+        "name": "Dra. Larissa Andrade",
+        "url": "https://larissaandrade.com.br/",
+        "image": "https://larissaandrade.com.br/assets/foto-larissa.jpg",
+        "description": "Estética facial, pele e sorriso com diagnóstico, planejamento e naturalidade.",
+        "areaServed": "Goiânia, GO"
+      }
+    </script>
   </head>
-  <body>
-    <main class="chat-shell" id="chatShell">
-      <header class="chat-header">
-        <button id="backButton" class="icon-button" type="button" hidden aria-label="Voltar uma etapa">
-          <span aria-hidden="true">‹</span>
-        </button>
+  <body class="js-disabled">
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
-        <div class="avatar-wrap">
-          <img
-            class="avatar-photo"
-            src="assets/foto-larissa.jpg"
-            alt="Foto da Dra. Larissa Andrade"
-            data-fallback-initials="LA"
-          />
-          <span class="avatar-fallback" aria-hidden="true">LA</span>
-        </div>
+    <header class="site-header" id="siteHeader">
+      <div class="container">
+        <a href="#inicio" class="brand">
+          <img class="brand-mark brand-mark--cream" src="assets/logo-mark-cream.svg" alt="" />
+          <img class="brand-mark brand-mark--ink" src="assets/logo-mark-ink.svg" alt="" />
+          <span>Larissa Andrade</span>
+        </a>
 
-        <div class="header-info">
-          <h1>Dra. Larissa Andrade</h1>
-          <p class="header-status">
-            <span class="status-dot" aria-hidden="true"></span>
-            orientação facial estratégica
-          </p>
-        </div>
+        <nav class="main-nav" aria-label="Navegação principal">
+          <a href="#sobre">Sobre</a>
+          <a href="#abordagem">Abordagem</a>
+          <a href="#tratamentos">Tratamentos</a>
+          <a href="#resultados">Resultados</a>
+          <a href="#contato">Contato</a>
+        </nav>
 
         <div class="header-actions">
-          <button id="restartButton" class="icon-button" type="button" aria-label="Recomeçar experiência">
-            <span aria-hidden="true">↺</span>
-          </button>
-          <button
-            class="text-action"
-            type="button"
+          <a
+            class="btn btn-primary"
+            href="#"
+            data-whatsapp-cta="header"
             data-event="whatsapp_header"
-            data-whatsapp="general"
-            aria-label="Falar com a equipe"
+          >Agendar avaliação</a>
+          <button
+            class="menu-toggle"
+            id="menuToggle"
+            type="button"
+            aria-label="Abrir menu"
+            aria-expanded="false"
+            aria-controls="mobileNav"
           >
-            <span class="text-action-icon" aria-hidden="true">💬</span>
-            <span class="text-action-label">Falar com a equipe</span>
+            <span></span><span></span><span></span>
           </button>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <div class="chat-scroll">
-        <section id="conversation" class="conversation" aria-live="polite" aria-relevant="additions"></section>
+    <nav class="mobile-nav" id="mobileNav" aria-label="Navegação mobile">
+      <a href="#sobre">Sobre</a>
+      <a href="#abordagem">Abordagem</a>
+      <a href="#tratamentos">Tratamentos</a>
+      <a href="#resultados">Resultados</a>
+      <a href="#contato">Contato</a>
+      <a class="btn btn-primary" href="#" data-whatsapp-cta="menu_mobile" data-event="whatsapp_menu_mobile">Agendar avaliação</a>
+    </nav>
 
-        <footer class="site-footer">
-          <strong>Dra. Larissa Andrade</strong>
-          <span>Estética facial estratégica</span>
-          <span>Clínica Stimma</span>
-          <div class="footer-links">
-            <a href="#" aria-label="Instagram provisório">Instagram</a>
-            <a href="#" data-event="whatsapp_footer" data-whatsapp="general">WhatsApp</a>
-            <a href="#">Localização</a>
-            <a href="#">Política de privacidade</a>
+    <main id="conteudo">
+      <!-- HERO -->
+      <section class="hero" id="inicio">
+        <div class="hero-media">
+          <img src="assets/foto-larissa.jpg" alt="Dra. Larissa Andrade" data-fallback-hide />
+        </div>
+        <div class="container hero-content">
+          <p class="eyebrow">Estética facial · Pele · Sorriso</p>
+          <h1 class="hero-title">Antes de tratar, é preciso enxergar.</h1>
+          <p class="hero-lede">
+            Um olhar clínico e integrado para compreender seu rosto, planejar cada escolha e
+            construir resultados naturais, sem apagar a sua identidade.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#" data-whatsapp-cta="hero" data-event="whatsapp_hero">Agendar minha avaliação</a>
+            <a class="btn btn-secondary btn-secondary--on-dark" href="#tratamentos">Conhecer os tratamentos</a>
           </div>
-        </footer>
-      </div>
+          <p class="hero-manifesto">“Meu trabalho não começa quando eu pego uma seringa. Começa quando eu aprendo a enxergar.”</p>
+        </div>
+      </section>
 
-      <div class="chat-composer">
-        <p id="composerHint" class="composer-hint">Escolha uma opção para continuar</p>
-      </div>
+      <!-- ABORDAGEM -->
+      <section class="section--surface" id="abordagem">
+        <div class="container split reveal">
+          <div class="split-media">
+            <img src="assets/foto-larissa.jpg" alt="Dra. Larissa Andrade em avaliação" loading="lazy" />
+          </div>
+          <div class="split-body">
+            <p class="eyebrow">A abordagem</p>
+            <h2 class="section-heading" style="margin: 0.75rem 0 1.25rem;">O que você percebe no espelho nem sempre revela onde o processo começou.</h2>
+            <p>
+              Antes de indicar qualquer procedimento, Larissa observa a estrutura do rosto, a
+              sustentação, os volumes, os movimentos, a qualidade da pele e a relação entre cada
+              elemento. É a partir dessa leitura que nasce um plano individual, cuidadoso e
+              coerente com a identidade de cada paciente.
+            </p>
+            <blockquote class="callout-quote">Duas pessoas podem apresentar a mesma queixa e precisar de caminhos completamente diferentes.</blockquote>
+            <p class="tag-list">Diagnóstico · Individualidade · Planejamento · Naturalidade</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- UM OLHAR INTEGRADO -->
+      <section class="section--dark" id="tratamentos">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Um olhar integrado</p>
+            <h2 class="section-heading section-heading--on-dark" style="margin-top: 0.75rem;">Cada detalhe faz parte de uma mesma leitura.</h2>
+          </div>
+          <div class="pillars reveal">
+            <div class="pillar">
+              <span class="pillar-index">01</span>
+              <span class="pillar-name">Estrutura e proporções</span>
+              <p class="pillar-desc">A forma como os diferentes elementos do rosto se relacionam.</p>
+            </div>
+            <div class="pillar">
+              <span class="pillar-index">02</span>
+              <span class="pillar-name">Sustentação e contorno</span>
+              <p class="pillar-desc">Alterações que interferem na definição e na percepção de um rosto cansado.</p>
+            </div>
+            <div class="pillar">
+              <span class="pillar-index">03</span>
+              <span class="pillar-name">Volumes e movimentos</span>
+              <p class="pillar-desc">O equilíbrio entre expressão, dinâmica muscular e distribuição dos volumes.</p>
+            </div>
+            <div class="pillar">
+              <span class="pillar-index">04</span>
+              <span class="pillar-name">Qualidade da pele</span>
+              <p class="pillar-desc">Textura, firmeza, luminosidade, manchas e estímulo de colágeno.</p>
+            </div>
+            <div class="pillar">
+              <span class="pillar-index">05</span>
+              <span class="pillar-name">Rosto e sorriso</span>
+              <p class="pillar-desc">A integração entre estética facial, função e harmonia do sorriso.</p>
+            </div>
+          </div>
+          <p class="method-badge">Nenhuma dessas dimensões é analisada de forma isolada. <strong>O plano nasce da maneira como elas se relacionam em cada pessoa.</strong></p>
+        </div>
+      </section>
+
+      <!-- HARMONIZAÇÃO FACIAL -->
+      <section>
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Harmonização facial</p>
+            <h2 class="section-heading" style="margin-top: 0.75rem;">Refinamento que respeita a sua identidade.</h2>
+            <p class="section-lede mt-lg">
+              Harmonizar não é transformar um rosto em outro. É compreender o que está causando a
+              mudança percebida e buscar equilíbrio, sustentação e leveza, sem apagar a expressão
+              de quem você é.
+            </p>
+          </div>
+          <div class="tags-grid reveal">
+            <span>Aparência cansada</span>
+            <span>Perda de contorno</span>
+            <span>Olheiras profundas</span>
+            <span>Flacidez</span>
+            <span>Papada</span>
+            <span>Alterações de proporção</span>
+            <span>Perda de sustentação</span>
+            <span>Definição dos lábios</span>
+          </div>
+          <blockquote class="callout-box reveal">A mesma queixa pode ter causas diferentes. Por isso, o tratamento não é definido antes da avaliação.</blockquote>
+        </div>
+      </section>
+
+      <!-- SERVIÇOS DE HARMONIZAÇÃO FACIAL -->
+      <section class="section--surface">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Recursos de harmonização</p>
+            <h2 class="section-heading" style="margin-top: 0.75rem;">Ferramentas escolhidas depois do diagnóstico.</h2>
+          </div>
+          <div class="tools-grid reveal">
+            <div class="tool-card">
+              <h3>Toxina botulínica</h3>
+              <p>Utilizada de forma individualizada para equilibrar a dinâmica muscular e suavizar marcas de expressão, preservando naturalidade e movimento.</p>
+            </div>
+            <div class="tool-card">
+              <h3>Preenchedores faciais</h3>
+              <p>Recursos utilizados para trabalhar proporções, sustentação e contorno conforme as necessidades identificadas na avaliação.</p>
+            </div>
+            <div class="tool-card">
+              <h3>Preenchimento labial</h3>
+              <p>Planejamento de contorno, proporção e definição dos lábios com respeito às características individuais.</p>
+            </div>
+            <div class="tool-card">
+              <h3>Abordagem full face</h3>
+              <p>Leitura integrada das diferentes regiões do rosto para construir um planejamento coerente, que pode ser realizado progressivamente.</p>
+            </div>
+            <div class="tool-card">
+              <h3>Bioestimuladores de colágeno</h3>
+              <p>Estratégias voltadas ao estímulo gradual de colágeno, firmeza e qualidade da pele.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PELE E TECNOLOGIAS -->
+      <section>
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Pele e tecnologias</p>
+            <h2 class="section-heading" style="margin-top: 0.75rem;">Cada tecnologia é escolhida por uma razão.</h2>
+            <p class="section-lede mt-lg">
+              Não existe um único recurso adequado para todas as peles. A escolha depende da
+              queixa, da região tratada, das características da pele e do momento de cada
+              planejamento.
+            </p>
+          </div>
+          <div class="tech-layout reveal">
+            <div class="tech-feature">
+              <span class="eyebrow">Principal destaque</span>
+              <h3>Plasma IQ</h3>
+              <p>Flacidez, região dos olhos e renovação localizada da textura da pele, com precisão e indicação criteriosa.</p>
+            </div>
+            <div class="tech-list">
+              <div class="tech-item">
+                <h4>Lavieen</h4>
+                <p>Tecnologia voltada à renovação cutânea, luminosidade, textura e uniformidade da pele.</p>
+              </div>
+              <div class="tech-item">
+                <h4>Ultrafocus</h4>
+                <p>Recurso direcionado à firmeza e sustentação em planos mais profundos.</p>
+              </div>
+              <div class="tech-item">
+                <h4>Radiofrequência</h4>
+                <p>Tecnologia para estímulo de colágeno e melhora gradual da firmeza e da qualidade da pele.</p>
+              </div>
+            </div>
+          </div>
+          <p class="section-footnote reveal">A tecnologia não substitui o diagnóstico. Ela é uma ferramenta escolhida dentro de um planejamento.</p>
+        </div>
+      </section>
+
+      <!-- ESTÉTICA DO SORRISO -->
+      <section class="section--surface">
+        <div class="container split reveal">
+          <div class="split-media">
+            <img src="assets/foto-larissa.jpg" alt="Dra. Larissa Andrade" loading="lazy" />
+          </div>
+          <div class="split-body">
+            <p class="eyebrow">Estética do sorriso</p>
+            <h2 class="section-heading" style="margin: 0.75rem 0 1.25rem;">O sorriso também faz parte da harmonia do rosto.</h2>
+            <p>
+              Saúde, função e estética caminham juntas. O cuidado odontológico complementa a
+              leitura facial e contribui para um resultado mais equilibrado, natural e coerente.
+            </p>
+            <ul class="checklist">
+              <li>Avaliação odontológica</li>
+              <li>Limpeza</li>
+              <li>Clareamento</li>
+              <li>Restaurações estéticas</li>
+              <li>Próteses</li>
+              <li>Implantes</li>
+              <li>Ortodontia</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- CUIDADOS COMPLEMENTARES -->
+      <section>
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Cuidados complementares</p>
+          </div>
+          <div class="care-grid reveal">
+            <div class="care-item">
+              <h3>Limpeza de pele</h3>
+              <p>Higienização profunda que prepara, renova e pode complementar determinados planos de cuidado.</p>
+            </div>
+            <div class="care-item">
+              <h3>Massagem relaxante</h3>
+              <p>Uma experiência de pausa e bem-estar que complementa o atendimento.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RESULTADOS -->
+      <section class="section--surface" id="resultados">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Resultados reais</p>
+            <h2 class="section-heading" style="margin-top: 0.75rem;">Mudanças percebidas. Identidade preservada.</h2>
+          </div>
+          <p class="results-disclaimer reveal">
+            Imagens reais, com autorização de uso. Resultados individuais — cada caso é avaliado e
+            planejado de forma personalizada e não constitui promessa de resultado.
+          </p>
+
+          <div class="results-grid reveal" id="resultsGrid">
+            <article class="result-card">
+              <img src="assets/caso-01-antes-depois.jpg" alt="Caso 1 — antes e depois" loading="lazy" />
+              <div class="result-card-body">
+                <span class="eyebrow">Contorno e aparência mais descansada</span>
+                <h3>Caso 01</h3>
+                <p>Planejamento progressivo com foco na queixa inicial da paciente.</p>
+              </div>
+            </article>
+            <article class="result-card">
+              <img src="assets/caso-02-antes-depois.jpeg" alt="Caso 2 — antes e depois" loading="lazy" />
+              <div class="result-card-body">
+                <span class="eyebrow">Refinamento dos lábios</span>
+                <h3>Caso 02</h3>
+                <p>Contorno e definição labial com respeito às proporções do rosto.</p>
+              </div>
+            </article>
+            <article class="result-card">
+              <img src="assets/caso-03-antes-depois.jpg" alt="Caso 3 — antes e depois" loading="lazy" />
+              <div class="result-card-body">
+                <span class="eyebrow">Sustentação e definição facial</span>
+                <h3>Caso 03</h3>
+                <p>Diagnóstico global conduzindo a um plano em etapas.</p>
+              </div>
+            </article>
+            <article class="result-card">
+              <img src="assets/caso-04-antes-depois.jpg" alt="Caso 4 — antes e depois" loading="lazy" />
+              <div class="result-card-body">
+                <span class="eyebrow">Contorno e perfil</span>
+                <h3>Caso 04</h3>
+                <p>Ajustes sutis de perfil, com preservação da expressão natural.</p>
+              </div>
+            </article>
+            <article class="result-card">
+              <img src="assets/caso-05-antes-depois.jpeg" alt="Caso 5 — antes e depois" loading="lazy" />
+              <div class="result-card-body">
+                <span class="eyebrow">Sustentação e definição facial</span>
+                <h3>Caso 05</h3>
+                <p>Planejamento acompanhado, com revisão e refinamento.</p>
+              </div>
+            </article>
+            <article class="result-card">
+              <img src="assets/caso-06-antes-depois.jpeg" alt="Caso 6 — antes e depois" loading="lazy" />
+              <div class="result-card-body">
+                <span class="eyebrow">Refinamento dos lábios</span>
+                <h3>Caso 06</h3>
+                <p>Resultado construído com estratégia e progressão.</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="results-carousel reveal">
+            <div class="results-track" id="resultsTrack">
+              <article class="result-card">
+                <img src="assets/caso-01-antes-depois.jpg" alt="Caso 1 — antes e depois" loading="lazy" />
+                <div class="result-card-body"><span class="eyebrow">Contorno e aparência mais descansada</span><h3>Caso 01</h3><p>Planejamento progressivo com foco na queixa inicial da paciente.</p></div>
+              </article>
+              <article class="result-card">
+                <img src="assets/caso-02-antes-depois.jpeg" alt="Caso 2 — antes e depois" loading="lazy" />
+                <div class="result-card-body"><span class="eyebrow">Refinamento dos lábios</span><h3>Caso 02</h3><p>Contorno e definição labial com respeito às proporções do rosto.</p></div>
+              </article>
+              <article class="result-card">
+                <img src="assets/caso-03-antes-depois.jpg" alt="Caso 3 — antes e depois" loading="lazy" />
+                <div class="result-card-body"><span class="eyebrow">Sustentação e definição facial</span><h3>Caso 03</h3><p>Diagnóstico global conduzindo a um plano em etapas.</p></div>
+              </article>
+              <article class="result-card">
+                <img src="assets/caso-04-antes-depois.jpg" alt="Caso 4 — antes e depois" loading="lazy" />
+                <div class="result-card-body"><span class="eyebrow">Contorno e perfil</span><h3>Caso 04</h3><p>Ajustes sutis de perfil, com preservação da expressão natural.</p></div>
+              </article>
+              <article class="result-card">
+                <img src="assets/caso-05-antes-depois.jpeg" alt="Caso 5 — antes e depois" loading="lazy" />
+                <div class="result-card-body"><span class="eyebrow">Sustentação e definição facial</span><h3>Caso 05</h3><p>Planejamento acompanhado, com revisão e refinamento.</p></div>
+              </article>
+              <article class="result-card">
+                <img src="assets/caso-06-antes-depois.jpeg" alt="Caso 6 — antes e depois" loading="lazy" />
+                <div class="result-card-body"><span class="eyebrow">Refinamento dos lábios</span><h3>Caso 06</h3><p>Resultado construído com estratégia e progressão.</p></div>
+              </article>
+            </div>
+            <div class="results-nav">
+              <span class="results-counter" id="resultsCounter">1 de 6</span>
+              <div class="results-nav-buttons">
+                <button class="carousel-btn" type="button" id="resultsPrev" aria-label="Resultado anterior">‹</button>
+                <button class="carousel-btn" type="button" id="resultsNext" aria-label="Próximo resultado">›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SOBRE -->
+      <section id="sobre">
+        <div class="container split split--reverse reveal">
+          <div class="about-photo">
+            <img src="assets/foto-larissa.jpg" alt="Dra. Larissa Andrade" loading="lazy" />
+          </div>
+          <div class="split-body">
+            <p class="eyebrow">Sobre Larissa</p>
+            <h2 class="section-heading" style="margin: 0.75rem 0 1.25rem;">Existe um olhar, uma estrutura e uma inteligência antes de cada decisão.</h2>
+            <p>
+              Para Larissa, o tratamento começa pela escuta e pela observação. Cada rosto possui
+              uma história, uma estrutura e uma forma própria de expressar identidade. Por isso,
+              sua atuação integra estética facial, qualidade da pele e sorriso em planejamentos
+              construídos com critério, clareza e naturalidade.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- A EXPERIÊNCIA -->
+      <section class="section--surface">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">A experiência</p>
+            <h2 class="section-heading" style="margin-top: 0.75rem;">A experiência também faz parte do tratamento.</h2>
+            <p class="section-lede mt-lg">
+              Cada detalhe é pensado para que o cuidado aconteça com tranquilidade, clareza e
+              acolhimento — da avaliação ao acompanhamento dos resultados.
+            </p>
+          </div>
+          <div class="steps steps--five reveal">
+            <div class="step">
+              <span class="step-number">01</span>
+              <h3>Avaliação</h3>
+            </div>
+            <div class="step">
+              <span class="step-number">02</span>
+              <h3>Diagnóstico</h3>
+            </div>
+            <div class="step">
+              <span class="step-number">03</span>
+              <h3>Planejamento</h3>
+            </div>
+            <div class="step">
+              <span class="step-number">04</span>
+              <h3>Tratamento por etapas</h3>
+            </div>
+            <div class="step">
+              <span class="step-number">05</span>
+              <h3>Acompanhamento</h3>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section id="duvidas">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Perguntas frequentes</p>
+            <h2 class="section-heading" style="margin-top: 0.75rem;">Dúvidas antes de agendar.</h2>
+          </div>
+          <div class="faq-list reveal">
+            <details class="faq-item">
+              <summary>Como funciona a avaliação?</summary>
+              <p>A consulta começa pela escuta da sua queixa e do seu momento, seguida de um diagnóstico completo da face, com análise das relações entre estrutura, contorno, expressão, pele e sorriso.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Preciso saber qual procedimento quero realizar?</summary>
+              <p>Não. Você pode chegar apenas com uma percepção ou incômodo — o papel da avaliação é justamente entender o que está por trás dele e quais caminhos fazem sentido.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Posso começar pela minha principal queixa?</summary>
+              <p>Sim. A prioridade é sempre acolhida. O restante do rosto também é avaliado, mas o tratamento pode começar pelo que mais incomoda você.</p>
+            </details>
+            <details class="faq-item">
+              <summary>O planejamento precisa ser realizado de uma vez?</summary>
+              <p>Não. O plano pode ser dividido em etapas, respeitando prioridades, tempo e desejo da paciente.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Como Larissa preserva a naturalidade?</summary>
+              <p>Preservando identidade e movimento facial como critério central de cada indicação — o objetivo nunca é mudar quem você é, mas sustentar e refinar o que já existe.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Quais áreas são avaliadas?</summary>
+              <p>Estrutura e proporções, sustentação e contorno, volumes e movimentos, qualidade da pele, e a relação entre rosto e sorriso — sempre de forma integrada, nunca isolada.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Quais tratamentos estão disponíveis?</summary>
+              <p>Harmonização facial, tecnologias para pele e estética do sorriso, além de cuidados complementares como limpeza de pele e massagem relaxante. Cada indicação depende da avaliação.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Como faço para agendar?</summary>
+              <p>Pelo WhatsApp — use o botão "Agendar minha avaliação" em qualquer parte desta página.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA FINAL -->
+      <section class="section--dark cta-final" id="contato">
+        <div class="container reveal">
+          <h2 class="section-heading section-heading--on-dark">Vamos entender o que faz sentido para você.</h2>
+          <p class="section-lede section-lede--on-dark">
+            Tudo começa por uma avaliação cuidadosa. É nesse momento que Larissa compreende o que
+            você percebe, o que o seu rosto realmente precisa e quais caminhos fazem sentido para
+            o seu momento.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#" data-whatsapp-cta="cta_final" data-event="whatsapp_cta_final">Agendar minha avaliação</a>
+          </div>
+        </div>
+      </section>
     </main>
 
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-col">
+            <p class="footer-brand">Dra. Larissa Andrade</p>
+            <p>Estética facial, pele e sorriso.</p>
+            <p>Goiânia, Goiás.</p>
+          </div>
+          <div class="footer-col">
+            <h4>Contato</h4>
+            <ul>
+              <li><a href="#" data-whatsapp-cta="footer" data-event="whatsapp_footer">WhatsApp</a></li>
+              <li><a href="#" id="instagramLink">Instagram</a></li>
+              <li><a href="#" id="locationLink">Localização</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Institucional</h4>
+            <ul>
+              <li><a href="#" id="privacyLink">Política de privacidade</a></li>
+              <li><a href="#" id="cookiesLink">Cookies</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>Resultados individuais. Cada caso é avaliado e planejado de forma personalizada.</span>
+          <span>© <span id="currentYear"></span> Dra. Larissa Andrade. Todos os direitos reservados.</span>
+        </div>
+      </div>
+    </footer>
+
+    <a class="whatsapp-float" href="#" data-whatsapp-cta="float" data-event="whatsapp_float" aria-label="Falar no WhatsApp">💬</a>
+
+    <script src="config.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

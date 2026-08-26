@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="lmCreamTitle">
+  <title id="lmCreamTitle">Dra. Larissa Andrade — monograma</title>
+  <path d="M7 21 V7 H21" fill="none" stroke="#f1ede5" stroke-width="1.2"/>
+  <path d="M43 57 H57 V43" fill="none" stroke="#f1ede5" stroke-width="1.2"/>
+  <text x="13" y="41" font-family="'Cormorant Garamond', Georgia, 'Times New Roman', serif" font-size="29" fill="#f1ede5">L</text>
+  <text x="29" y="41" font-family="'Cormorant Garamond', Georgia, 'Times New Roman', serif" font-size="29" font-style="italic" fill="#f1ede5">A</text>
+  <circle cx="46.5" cy="46.5" r="1.4" fill="#c2b29f"/>
+</svg>
