@@ -155,8 +155,8 @@
   }
 
   /* ----------------------------------------------------------------------
-     Fallback de imagem: se assets/foto-larissa.jpg não existir, evita
-     quebra visual (mantém o overlay do hero e o card "Sobre" utilizáveis).
+     Fallback de imagem: se a foto de fundo do hero não existir, evita
+     quebra visual (mantém o overlay do hero utilizável).
      ---------------------------------------------------------------------- */
   document.querySelectorAll("img[data-fallback-hide]").forEach(function (img) {
     img.addEventListener("error", function () {

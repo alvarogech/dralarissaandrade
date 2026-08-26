@@ -2,9 +2,13 @@
 
 Este repositório reúne os projetos digitais da operação da Dra. Larissa Andrade:
 
-- **`/` (este diretório)** — home page pública em HTML/CSS/JS puro, publicada em
-  `https://larissaandrade.com.br` via Netlify (site `dralarissaandrade`, deploy contínuo a
-  partir do branch `main`) (documentado abaixo).
+- **`/` (este diretório)** — home page pública em HTML/CSS/JS puro (documentada abaixo). **Atenção:**
+  o domínio `larissaandrade.com.br` **não** está conectado ao deploy Netlify deste repositório
+  (site `dralarissaandrade`, que só responde em `dralarissaandrade.netlify.app`). O domínio real
+  está no site Netlify `stimma`, que deploya do repositório `alvarogech/alvarosia` — **um
+  repositório diferente, sem relação de git com este**. Este repositório é mantido como espelho/
+  staging da mesma home; toda publicação em produção precisa também ir para `alvarosia`. Ver
+  "Site de produção real" abaixo antes de qualquer deploy.
 - **[`anamnese-app/`](./anamnese-app/README.md)** — app Next.js + Supabase para anamnese digital
   (HOF e Odontologia) enviada ao paciente antes da consulta, com painel de revisão da equipe.
 - **[`stimma-os/`](./stimma-os/README.md)** — **STIMMA OS**: camada de inteligência e automação
@@ -27,10 +31,25 @@ publicada em `https://larissaandrade.com.br`. Abordagem diagnóstica, um olhar i
 rosto, harmonização facial, pele e tecnologias, estética do sorriso, cuidados complementares,
 resultados reais, sobre, experiência, FAQ e contato — com conversão principal pelo WhatsApp.
 
-A versão anterior do site era centrada em uma ferramenta de "análise facial online" com
-identidade visual e branding da Clínica Stimma. Essa ferramenta e o branding da Stimma já não
-existem no código deste repositório (foram removidos em versões anteriores, antes desta sessão) —
-não há nenhuma automação de análise facial para migrar ou desligar.
+A versão anterior deste repositório já não tinha mais a ferramenta de "análise facial online" nem
+o branding da Clínica Stimma (removidos antes desta sessão) — mas isso **não** significava que a
+versão pública em produção estivesse atualizada: era um repositório diferente. Ver a seção
+abaixo.
+
+## Site de produção real (`larissaandrade.com.br`)
+
+Até 2026-08-26, o domínio `larissaandrade.com.br` estava conectado ao site Netlify `stimma`, que
+deploya de `github.com/alvarogech/alvarosia` — um repositório separado, de um único arquivo
+(`index.html` autocontido de ~1MB + `assets/` + `netlify.toml`), que **era exatamente** a versão
+antiga "análise facial online / Clínica Stimma" descrita no início deste documento. Esse
+repositório também tem um redirect em `netlify.toml` (`/chat/*` → o subdomínio Netlify deste
+repositório) que não foi alterado.
+
+Nesta sessão, a reformulação foi implementada aqui primeiro e depois replicada para o repositório
+`alvarosia` (incluindo duas fotos editoriais reais e um 7º caso de resultado que só existiam lá,
+e que foram trazidos para este repositório também). Os dois repositórios devem ficar em paridade
+de conteúdo a partir de agora — se `alvarosia` for descontinuado em favor de conectar o domínio
+diretamente a este repositório (`dralarissaandrade`), atualize este aviso.
 
 ## Como abrir localmente
 
@@ -69,16 +88,19 @@ const SITE_CONFIG = {
 
 Nenhum outro arquivo deveria precisar mudar só para atualizar esses dados.
 
-## Como substituir a foto da Dra. Larissa
+## Como substituir as fotos da Dra. Larissa
 
-Coloque a foto em:
+O site usa duas fotos editoriais reais (vieram do repositório de produção `alvarogech/alvarosia`,
+que é quem hoje serve `larissaandrade.com.br` — ver "Divergências encontradas"):
 
 ```text
-assets/foto-larissa.jpg
+assets/dra-larissa-editorial.jpeg   (preto e branco, usada no hero)
+assets/dra-larissa-hero.jpeg        (colorida, usada em "Abordagem" e "Sobre")
 ```
 
-Se o arquivo não existir, a imagem some silenciosamente (`data-fallback-hide` em `script.js`) em
-vez de quebrar o layout — não há avatar de fallback.
+Substitua mantendo os mesmos nomes de arquivo. Se `dra-larissa-editorial.jpeg` não existir, a
+imagem de fundo do hero some silenciosamente (`data-fallback-hide` em `script.js`) em vez de
+quebrar o layout — não há avatar de fallback.
 
 ## Como substituir o logotipo
 
@@ -105,11 +127,12 @@ assets/caso-03-antes-depois.jpg
 assets/caso-04-antes-depois.jpg
 assets/caso-05-antes-depois.jpeg
 assets/caso-06-antes-depois.jpeg
+assets/caso-07-antes-depois.jpg
 ```
 
 Antes da publicação, use apenas casos reais com autorização de uso de imagem. Cada imagem já reúne antes e depois em um único arquivo — a interface exibe a imagem inteira (`object-fit: contain`), sem cortes.
 
-No celular, os resultados aparecem em um carrossel horizontal (`#resultsTrack`, com `scroll-snap`), com contador "X de 6" e botões "‹" / "›". No desktop (≥860px), os resultados aparecem em grade de duas colunas (`#resultsGrid`). Os dois conjuntos de cards ficam duplicados no HTML (um por breakpoint) — ao trocar um caso, atualize os dois.
+No celular, os resultados aparecem em um carrossel horizontal (`#resultsTrack`, com `scroll-snap`), com contador "X de 7" (calculado dinamicamente por `script.js` a partir do número de cards) e botões "‹" / "›". No desktop (≥860px), os resultados aparecem em grade de duas colunas (`#resultsGrid`). Os dois conjuntos de cards ficam duplicados no HTML (um por breakpoint) — ao trocar um caso, atualize os dois.
 
 ## Como alterar textos das seções
 
@@ -128,9 +151,10 @@ identificando a autorização.
 
 ## Como publicar
 
-O domínio `larissaandrade.com.br` já está conectado ao site Netlify `dralarissaandrade`, com
-deploy contínuo a partir do branch `main` deste repositório — basta dar push que o Netlify
-publica automaticamente. Não é necessário `netlify.toml` (configuração feita pelo painel).
+Este repositório tem deploy contínuo Netlify (site `dralarissaandrade`) a partir do branch
+`main` — basta dar push. Mas isso **não** publica em `larissaandrade.com.br` (ver "Site de
+produção real" acima): para isso, o mesmo conteúdo precisa ser levado ao repositório
+`alvarogech/alvarosia`, que é quem o domínio real usa.
 
 ## Divergências encontradas entre a versão anterior do site e o portfólio
 
