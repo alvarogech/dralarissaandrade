@@ -18,8 +18,9 @@ const SITE_CONFIG = {
 
   instagramUrl: "https://www.instagram.com/dralarissadeandrade/",
 
+  locationUrl: "https://share.google/11WOC5o76bUK0yV6W",
+
   // PENDENTE — preencher com dados reais antes da publicação definitiva.
-  locationUrl: "",
   privacyUrl: "",
   cookiesUrl: "",
 

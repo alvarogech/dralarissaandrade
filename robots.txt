@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://larissaandrade.com.br/sitemap.xml
+Sitemap: https://www.larissaandrade.com.br/sitemap.xml

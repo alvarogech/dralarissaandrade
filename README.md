@@ -120,31 +120,48 @@ existiam como parte da identidade "Arquitetura do Olhar". O rodapé também usa 
 
 ## Como inserir imagens reais de antes e depois
 
-Substitua ou adicione imagens autorizadas nos seguintes caminhos. Nesta versão, cada arquivo pode ser uma imagem já montada com antes e depois lado a lado:
+A home usa 5 dos 7 casos disponíveis em `assets/` (curadoria de 2026-08-26 — ver comentário no
+`index.html` acima da seção `#resultados`):
 
 ```text
-assets/caso-01-antes-depois.jpg
-assets/caso-02-antes-depois.jpeg
-assets/caso-03-antes-depois.jpg
-assets/caso-04-antes-depois.jpg
-assets/caso-05-antes-depois.jpeg
-assets/caso-06-antes-depois.jpeg
-assets/caso-07-antes-depois.jpg
+assets/caso-04-antes-depois.jpg    (usado — 1º, span-6)
+assets/caso-02-antes-depois.jpeg   (usado — span-3)
+assets/caso-05-antes-depois.jpeg   (usado — span-3)
+assets/caso-07-antes-depois.jpg    (usado — span-3)
+assets/caso-06-antes-depois.jpeg   (usado — span-3)
+assets/caso-01-antes-depois.jpg    (fora da home — antes/depois com luz e ângulo inconsistentes)
+assets/caso-03-antes-depois.jpg    (fora da home — mesmo motivo)
 ```
+
+Os arquivos de `caso-01` e `caso-03` continuam no repositório (não foram apagados) caso a Larissa
+prefira usá-los mesmo assim, ou como material de referência.
 
 Antes da publicação, use apenas casos reais com autorização de uso de imagem. Cada imagem já reúne antes e depois em um único arquivo.
 
-Os 7 casos formam uma única grade editorial assimétrica (`.results-editorial`, grid de 6 colunas com classes `.span-6` / `.span-3` / `.span-2` por `<figure>`, e `.ratio-wide` / `.ratio-landscape` / `.ratio-portrait` para o enquadramento). É responsiva por CSS puro — abaixo de 720px todo `<figure>` ocupa a largura cheia automaticamente, sem JavaScript. Ao adicionar ou remover um caso, ajuste os spans dos vizinhos para manter o ritmo (ex.: um span-6 sozinho, três span-2 lado a lado, outro span-6, dois span-3).
+Os casos usados formam uma única grade editorial assimétrica (`.results-editorial`, grid de 6 colunas com classes `.span-6` / `.span-3` / `.span-2` por `<figure>`, e `.ratio-wide` / `.ratio-landscape` / `.ratio-portrait` para o enquadramento). É responsiva por CSS puro — abaixo de 720px todo `<figure>` ocupa a largura cheia automaticamente, sem JavaScript. Ao adicionar ou remover um caso, ajuste os spans dos vizinhos para manter o ritmo.
 
 ## Como alterar textos das seções
 
-Todo o texto das seções (hero, manifesto, I. abordagem + um olhar integrado, II. tratamentos
-(harmonização facial), III. pele e tecnologias (com cuidados complementares como item do
-accordion), IV. estética do sorriso, V. resultados, VI. sobre — com a jornada de atendimento
-embutida —, FAQ, CTA final, rodapé) fica diretamente em `index.html`, em português, organizado
-em `<section>` comentadas por nome. As seções I–VI usam um numeral romano (`.heading-num`) e
-compartilham o mesmo componente de accordion (`.accordion` / `.accordion-item`, baseado em
-`<details>`/`<summary>` nativos — sem JavaScript de estado) também usado no FAQ.
+**A partir de 2026-08-26, a estrutura e a copy seguem `kit-redesign-larissa/02-ARQUITETURA-E-COPY.md`**
+(ver nota de nomes de arquivo trocados na conversa da sessão — o conteúdo real desse documento
+teve que ser identificado por conteúdo, não pelo nome do arquivo recebido). Não reescreva essa
+copy livremente; ajustes pequenos de extensão/quebra de linha são permitidos, mudanças de
+sentido devem ser sinalizadas ao usuário.
+
+Ordem das seções em `index.html` (Blocos do kit): hero → manifesto → **I** Método LA™ (nome
+final pendente, ver "Dados pendentes") → **II** resultados desejados/queixas → **III** resultados
+reais (identificadores neutros "Caso 01"–"07", sem legenda descritiva — mapeamento de casos
+pendente) → **IV** jornada (da queixa ao planejamento) → **V** recursos e tratamentos (3 grupos:
+expressão/proporção/contorno, qualidade e firmeza da pele, sorriso) → face/pele/sorriso (bloco
+curto, sem numeral) → **VI** Dra. Larissa → FAQ (6 perguntas, conforme o kit) → CTA final →
+rodapé. Não existe seção "Sobre" nem "Abordagem" separadas — foram substituídas pela estrutura
+acima.
+
+Componentes reaproveitados: `.accordion`/`.accordion-item` (`<details>`/`<summary>` nativos, sem
+JS) para o accordion de recursos e o FAQ; `.sequence`/`.sequence-item` (lista numerada sempre
+visível, sem esconder atrás de clique) para o Método LA™ e a Jornada — o kit pede explicitamente
+que esses dois blocos não virem "mais um accordion". Marcadores de pendência ficam como
+comentários HTML no próprio `index.html`, logo acima do bloco afetado.
 
 ## Depoimentos
 
