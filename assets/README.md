@@ -1,13 +1,13 @@
 # Assets esperados
 
-Substitua estes arquivos antes da publicação, mantendo os nomes:
+Substitua estes arquivos antes da publicação, mantendo os nomes (ver README.md na raiz do
+repositório para detalhes de cada um):
 
-- `foto-larissa.jpg`
-- `caso-01-antes-depois.jpg`
-- `caso-02-antes-depois.jpeg`
-- `caso-03-antes-depois.jpg`
-- `caso-04-antes-depois.jpg`
-- `caso-05-antes-depois.jpeg`
-- `caso-06-antes-depois.jpeg`
+- `dra-larissa-editorial.jpeg` (foto do hero, preto e branco)
+- `dra-larissa-hero.jpeg` (foto usada em "Sobre", colorida)
+- `caso-01-antes-depois.jpg` até `caso-07-antes-depois.jpg`
+- `logo-mark-ink.png` / `logo-mark-cream.png` (monograma real "L·A", cabeçalho e rodapé)
+- `favicon.svg`
 
-O piloto já possui fallback visual para quando as imagens ainda não existirem.
+Se `dra-larissa-editorial.jpeg` não existir, a imagem de fundo do hero some silenciosamente
+(`data-fallback-hide` em `script.js`) — não há avatar de fallback.

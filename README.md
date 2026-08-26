@@ -109,12 +109,14 @@ hero escuro, outra para quando o cabeçalho fica sólido ao rolar — `script.js
 `is-scrolled` e o CSS troca qual delas aparece). Substitua os dois arquivos, mantendo os nomes:
 
 ```text
-assets/logo-mark-cream.svg   (sobre fundo escuro/hero)
-assets/logo-mark-ink.svg     (sobre fundo claro/rolado)
+assets/logo-mark-cream.png   (sobre fundo escuro/hero)
+assets/logo-mark-ink.png     (sobre fundo claro/rolado)
 ```
 
-Os arquivos atuais são uma recriação vetorial feita a partir do moodboard da identidade
-"Arquitetura do Olhar" — ver "Dados pendentes de confirmação" abaixo.
+São os arquivos reais do monograma "L·A" (não uma recriação) — vieram de
+`anamnese-app/public/brand/logo-larissa-dark.png` e `logo-larissa.png` respectivamente, onde já
+existiam como parte da identidade "Arquitetura do Olhar". O rodapé também usa a variante ink
+(`assets/logo-mark-ink.png`) ao lado do nome "Larissa Andrade".
 
 ## Como inserir imagens reais de antes e depois
 
@@ -130,24 +132,27 @@ assets/caso-06-antes-depois.jpeg
 assets/caso-07-antes-depois.jpg
 ```
 
-Antes da publicação, use apenas casos reais com autorização de uso de imagem. Cada imagem já reúne antes e depois em um único arquivo — a interface exibe a imagem inteira (`object-fit: contain`), sem cortes.
+Antes da publicação, use apenas casos reais com autorização de uso de imagem. Cada imagem já reúne antes e depois em um único arquivo.
 
-No celular, os resultados aparecem em um carrossel horizontal (`#resultsTrack`, com `scroll-snap`), com contador "X de 7" (calculado dinamicamente por `script.js` a partir do número de cards) e botões "‹" / "›". No desktop (≥860px), os resultados aparecem em grade de duas colunas (`#resultsGrid`). Os dois conjuntos de cards ficam duplicados no HTML (um por breakpoint) — ao trocar um caso, atualize os dois.
+Os 7 casos formam uma única grade editorial assimétrica (`.results-editorial`, grid de 6 colunas com classes `.span-6` / `.span-3` / `.span-2` por `<figure>`, e `.ratio-wide` / `.ratio-landscape` / `.ratio-portrait` para o enquadramento). É responsiva por CSS puro — abaixo de 720px todo `<figure>` ocupa a largura cheia automaticamente, sem JavaScript. Ao adicionar ou remover um caso, ajuste os spans dos vizinhos para manter o ritmo (ex.: um span-6 sozinho, três span-2 lado a lado, outro span-6, dois span-3).
 
 ## Como alterar textos das seções
 
-Todo o texto das seções (hero, abordagem, um olhar integrado, harmonização facial, serviços de
-harmonização, pele e tecnologias, estética do sorriso, cuidados complementares, resultados,
-sobre, a experiência, FAQ, CTA final, rodapé) fica diretamente em `index.html`, em português,
-organizado em `<section>` comentadas por nome.
+Todo o texto das seções (hero, manifesto, I. abordagem + um olhar integrado, II. tratamentos
+(harmonização facial), III. pele e tecnologias (com cuidados complementares como item do
+accordion), IV. estética do sorriso, V. resultados, VI. sobre — com a jornada de atendimento
+embutida —, FAQ, CTA final, rodapé) fica diretamente em `index.html`, em português, organizado
+em `<section>` comentadas por nome. As seções I–VI usam um numeral romano (`.heading-num`) e
+compartilham o mesmo componente de accordion (`.accordion` / `.accordion-item`, baseado em
+`<details>`/`<summary>` nativos — sem JavaScript de estado) também usado no FAQ.
 
 ## Depoimentos
 
 Não existe seção de depoimentos na home — não há nenhum depoimento real e autorizado disponível
 no projeto, e a política de comunicação do site não permite depoimentos inventados. Ao receber
-depoimentos autorizados, adicione uma seção nova seguindo o mesmo padrão visual das demais
-(ver `.tool-card` ou `.care-item` em `styles.css` como ponto de partida), sempre com `<cite>`
-identificando a autorização.
+depoimentos autorizados, adicione uma seção nova seguindo o mesmo padrão visual das demais (uma
+`.split` com `.heading-row`/`.heading-num`, ou um `.accordion` — ver `styles.css`), sempre com
+`<cite>` identificando a autorização.
 
 ## Como publicar
 
@@ -177,11 +182,6 @@ produção real" acima): para isso, o mesmo conteúdo precisa ser levado ao repo
   "Dra. Larissa Andrade — Estética facial, pele e sorriso", sem citar "médica" ou uma
   especialidade específica.
 - Depoimentos reais de pacientes (ver seção acima).
-- Logotipo: `assets/logo-mark-ink.svg` e `assets/logo-mark-cream.svg` são uma recriação vetorial
-  do monograma "L·A" a partir da referência visual (moodboard) enviada nesta sessão — não são o
-  arquivo de origem (Illustrator/Figma) da identidade "Arquitetura do Olhar". Se esse arquivo
-  original existir, substitua os dois SVGs por uma exportação fiel dele.
-
 ## Checklist antes de tráfego público
 
 - [ ] Confirmar o WhatsApp `(62) 98169-3898` e o Instagram `@dralarissadeandrade` com a Dra.
@@ -190,7 +190,6 @@ produção real" acima): para isso, o mesmo conteúdo precisa ser levado ao repo
 - [ ] Confirmar autorização de uso de imagem de cada caso em "Resultados reais".
 - [ ] Adicionar depoimentos reais (ou manter a ausência da seção, que já é honesta).
 - [ ] Confirmar CRO/formação da Dra. Larissa para eventual seção de credenciais.
-- [ ] Substituir os SVGs do monograma por uma exportação oficial da identidade visual, se existir.
 - [ ] Testar a página completa no celular (360px a 430px) e em desktop.
 - [ ] Validar as mensagens de WhatsApp em cada CTA (cabeçalho, hero, menu mobile, CTA final, rodapé, botão flutuante).
 - [ ] Testar navegação por teclado (Tab, Enter, foco visível) e o FAQ/tratamentos em leitor de tela.

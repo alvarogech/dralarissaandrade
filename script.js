@@ -35,7 +35,7 @@
       el.setAttribute("target", "_blank");
       el.setAttribute("rel", "noopener");
     } else {
-      el.closest("li").style.display = "none";
+      el.style.display = "none";
     }
   }
 
@@ -112,49 +112,6 @@
   }
 
   /* ----------------------------------------------------------------------
-     Carrossel de resultados (mobile)
-     ---------------------------------------------------------------------- */
-  var track = document.getElementById("resultsTrack");
-  var counter = document.getElementById("resultsCounter");
-  var prevBtn = document.getElementById("resultsPrev");
-  var nextBtn = document.getElementById("resultsNext");
-
-  if (track && counter && prevBtn && nextBtn) {
-    var total = track.children.length;
-
-    function currentIndex() {
-      var cardWidth = track.children[0].getBoundingClientRect().width + 16;
-      return Math.round(track.scrollLeft / cardWidth);
-    }
-
-    function updateCounter() {
-      var index = Math.min(Math.max(currentIndex(), 0), total - 1);
-      counter.textContent = (index + 1) + " de " + total;
-    }
-
-    function scrollToIndex(index) {
-      var clamped = Math.min(Math.max(index, 0), total - 1);
-      var cardWidth = track.children[0].getBoundingClientRect().width + 16;
-      track.scrollTo({ left: clamped * cardWidth, behavior: "smooth" });
-    }
-
-    prevBtn.addEventListener("click", function () {
-      scrollToIndex(currentIndex() - 1);
-    });
-    nextBtn.addEventListener("click", function () {
-      scrollToIndex(currentIndex() + 1);
-    });
-    track.addEventListener(
-      "scroll",
-      function () {
-        window.requestAnimationFrame(updateCounter);
-      },
-      { passive: true }
-    );
-    updateCounter();
-  }
-
-  /* ----------------------------------------------------------------------
      Fallback de imagem: se a foto de fundo do hero não existir, evita
      quebra visual (mantém o overlay do hero utilizável).
      ---------------------------------------------------------------------- */
@@ -163,4 +120,37 @@
       img.style.display = "none";
     });
   });
+
+  /* ----------------------------------------------------------------------
+     Parallax sutil no hero (respeita prefers-reduced-motion)
+     ---------------------------------------------------------------------- */
+  var prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var parallaxTargets = document.querySelectorAll("[data-parallax]");
+
+  if (!prefersReducedMotion && parallaxTargets.length) {
+    var ticking = false;
+
+    function updateParallax() {
+      var vh = window.innerHeight;
+      parallaxTargets.forEach(function (el) {
+        var rect = el.getBoundingClientRect();
+        if (rect.bottom < -200 || rect.top > vh + 200) return;
+        var factor = parseFloat(el.getAttribute("data-parallax")) || 0.12;
+        var center = rect.top + rect.height / 2 - vh / 2;
+        el.style.transform = "translate3d(0, " + (-center * factor).toFixed(2) + "px, 0)";
+      });
+      ticking = false;
+    }
+
+    function requestParallaxUpdate() {
+      if (!ticking) {
+        window.requestAnimationFrame(updateParallax);
+        ticking = true;
+      }
+    }
+
+    updateParallax();
+    window.addEventListener("scroll", requestParallaxUpdate, { passive: true });
+    window.addEventListener("resize", requestParallaxUpdate);
+  }
 })();
