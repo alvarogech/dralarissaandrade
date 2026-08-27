@@ -853,8 +853,13 @@ section {
 }
 
 .result-figure img {
+  /* contain (não cover): as fotos de antes/depois são quadradas na origem — cover cortava
+     partes reais da comparação (ex.: queixo sumindo em containers largos). contain garante que
+     a imagem inteira sempre apareça; o fundo abaixo preenche a área que sobra na moldura. */
   width: 100%;
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
+  background: var(--marfim-soft);
 }
 
 .ratio-wide img {
