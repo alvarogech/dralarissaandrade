@@ -148,20 +148,20 @@ teve que ser identificado por conteúdo, não pelo nome do arquivo recebido). N�
 copy livremente; ajustes pequenos de extensão/quebra de linha são permitidos, mudanças de
 sentido devem ser sinalizadas ao usuário.
 
-Ordem das seções em `index.html` (Blocos do kit): hero → manifesto → **I** Método LA™ (nome
-final pendente, ver "Dados pendentes") → **II** resultados desejados/queixas → **III** resultados
-reais (identificadores neutros "Caso 01"–"07", sem legenda descritiva — mapeamento de casos
-pendente) → **IV** jornada (da queixa ao planejamento) → **V** recursos e tratamentos (3 grupos:
-expressão/proporção/contorno, qualidade e firmeza da pele, sorriso) → face/pele/sorriso (bloco
-curto, sem numeral) → **VI** Dra. Larissa → FAQ (6 perguntas, conforme o kit) → CTA final →
-rodapé. Não existe seção "Sobre" nem "Abordagem" separadas — foram substituídas pela estrutura
-acima.
+Ordem das seções em `index.html`: hero → manifesto → **I** Método LA™ — Leveza Autêntica (nome
+confirmado) → **II** resultados desejados/queixas → **III** resultados reais (identificadores
+neutros "Caso 02"/"04"/"05"/"06"/"07", sem legenda descritiva — mapeamento de casos pendente) →
+**IV** recursos e tratamentos (3 grupos: expressão/proporção/contorno, qualidade e firmeza da
+pele, sorriso) → face/pele/sorriso (bloco curto, sem numeral) → **V** Dra. Larissa → FAQ (6
+perguntas) → CTA final → rodapé. Não existe seção "Sobre", "Abordagem" nem "Jornada" (removida a
+pedido do usuário em 2026-08-26) — foram substituídas pela estrutura acima.
 
 Componentes reaproveitados: `.accordion`/`.accordion-item` (`<details>`/`<summary>` nativos, sem
 JS) para o accordion de recursos e o FAQ; `.sequence`/`.sequence-item` (lista numerada sempre
-visível, sem esconder atrás de clique) para o Método LA™ e a Jornada — o kit pede explicitamente
-que esses dois blocos não virem "mais um accordion". Marcadores de pendência ficam como
-comentários HTML no próprio `index.html`, logo acima do bloco afetado.
+visível, sem esconder atrás de clique) para o Método LA™ — o kit pede explicitamente que esse
+bloco não vire "mais um accordion". Marcadores de pendência ficam como comentários HTML no
+próprio `index.html`, logo acima do bloco afetado. Travessões (—) foram removidos de todo texto
+visível a pedido do usuário; sobrevivem só em comentários HTML internos (não renderizados).
 
 ## Depoimentos
 
