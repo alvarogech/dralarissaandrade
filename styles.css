@@ -824,60 +824,199 @@ section {
 
 .results-editorial {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: clamp(1.1rem, 2.4vw, 2.1rem);
+  grid-template-columns: 1fr;
+  gap: clamp(1.5rem, 4vw, 2.75rem);
+}
+
+@media (min-width: 768px) {
+  .results-editorial {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Nos dois destaques (01 e 09), ocupar a linha inteira no tablet. */
+  .result-figure:nth-child(1),
+  .result-figure:nth-child(9) {
+    grid-column: 1 / 3;
+  }
+}
+
+@media (min-width: 1024px) {
+  .results-editorial {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Composição assimétrica deliberada (não auto-flow): 01 e 09 são os dois destaques
+     grandes (2×2), que abrem e fecham a leitura; 02-08 preenchem ao redor em 1×1,
+     deixando uma célula vazia intencional (linha 4, coluna 2) para dar ritmo. */
+  .result-figure:nth-child(1) { grid-column: 1 / 3; grid-row: 1 / 3; }
+  .result-figure:nth-child(2) { grid-column: 3 / 4; grid-row: 1 / 2; }
+  .result-figure:nth-child(3) { grid-column: 4 / 5; grid-row: 1 / 2; }
+  .result-figure:nth-child(4) { grid-column: 3 / 4; grid-row: 2 / 3; }
+  .result-figure:nth-child(5) { grid-column: 4 / 5; grid-row: 2 / 3; }
+  .result-figure:nth-child(6) { grid-column: 1 / 2; grid-row: 3 / 4; }
+  .result-figure:nth-child(7) { grid-column: 2 / 3; grid-row: 3 / 4; }
+  .result-figure:nth-child(8) { grid-column: 1 / 2; grid-row: 4 / 5; }
+  .result-figure:nth-child(9) { grid-column: 3 / 5; grid-row: 3 / 5; }
 }
 
 .result-figure {
   margin: 0;
-  grid-column: span 6;
 }
 
-@media (min-width: 720px) {
-  .result-figure.span-2 {
-    grid-column: span 2;
-  }
-
-  .result-figure.span-3 {
-    grid-column: span 3;
-  }
-
-  .result-figure.span-6 {
-    grid-column: span 6;
-  }
-}
-
-.result-figure .frame {
-  overflow: hidden;
-  background: var(--marfim-soft);
-}
-
-.result-figure img {
-  /* contain (não cover): as fotos de antes/depois são quadradas na origem — cover cortava
-     partes reais da comparação (ex.: queixo sumindo em containers largos). contain garante que
-     a imagem inteira sempre apareça; o fundo abaixo preenche a área que sobra na moldura. */
+.result-frame {
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: var(--marfim-soft);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  transition: transform 220ms ease;
 }
 
-.ratio-wide img {
-  aspect-ratio: 16 / 7;
+.result-frame:hover,
+.result-frame:focus-visible {
+  transform: scale(1.01);
 }
 
-.ratio-portrait img {
-  aspect-ratio: 4 / 5;
-}
-
-.ratio-landscape img {
-  aspect-ratio: 3 / 2;
+.result-frame img {
+  /* Todos os 9 arquivos são quadrados na origem — aspect-ratio 1/1 exibe a foto inteira,
+     sem cortar, distorcer ou ampliar seletivamente nenhuma parte da comparação. */
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
 }
 
 .result-figure figcaption {
-  margin-top: 0.9rem;
-  font-size: 1.15rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.result-num {
+  flex: none;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--bronze);
+}
+
+.result-caption {
+  font-size: 1rem;
   color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-frame {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   LIGHTBOX — ampliação dos resultados (dialog nativo)
+   ========================================================================== */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  max-width: min(94vw, 880px);
+  max-height: 92vh;
+  background: var(--ink);
+  color: var(--text-on-dark);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.lightbox[open] {
+  opacity: 1;
+  display: flex;
+}
+
+.lightbox::backdrop {
+  background: rgba(21, 19, 17, 0.92);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox {
+    transition: none;
+  }
+}
+
+.lightbox-figure {
+  margin: 0;
+  padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 5vw, 3.5rem) clamp(1.5rem, 4vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.lightbox-img {
+  display: block;
+  max-width: 100%;
+  max-height: 68vh;
+  width: auto;
+  height: auto;
+}
+
+.lightbox-figure figcaption {
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.lightbox-num {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--bronze-soft);
+}
+
+.lightbox-caption {
+  font-size: 1.1rem;
+  color: var(--text-on-dark);
+}
+
+.lightbox-close,
+.lightbox-nav {
+  position: absolute;
+  background: rgba(242, 238, 231, 0.1);
+  color: var(--text-on-dark);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: background-color 180ms ease;
+}
+
+.lightbox-close:hover,
+.lightbox-nav:hover {
+  background: rgba(242, 238, 231, 0.2);
+}
+
+.lightbox-close {
+  top: 0.85rem;
+  right: 0.85rem;
+}
+
+.lightbox-prev {
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lightbox-next {
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* ==========================================================================

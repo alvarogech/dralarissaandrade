@@ -153,4 +153,87 @@
     window.addEventListener("scroll", requestParallaxUpdate, { passive: true });
     window.addEventListener("resize", requestParallaxUpdate);
   }
+
+  /* ----------------------------------------------------------------------
+     Lightbox de resultados (dialog nativo — foco preso e Esc já vêm do
+     navegador via showModal(); aqui só populamos conteúdo, navegação e
+     devolução de foco)
+     ---------------------------------------------------------------------- */
+  var lightbox = document.getElementById("resultsLightbox");
+  var resultButtons = Array.prototype.slice.call(document.querySelectorAll(".result-frame"));
+
+  if (lightbox && resultButtons.length && typeof lightbox.showModal === "function") {
+    var lightboxImg = lightbox.querySelector(".lightbox-img");
+    var lightboxNum = lightbox.querySelector(".lightbox-num");
+    var lightboxCaption = lightbox.querySelector(".lightbox-caption");
+    var closeBtn = lightbox.querySelector(".lightbox-close");
+    var prevBtn = lightbox.querySelector(".lightbox-prev");
+    var nextBtn = lightbox.querySelector(".lightbox-next");
+    var currentIndex = 0;
+    var lastTrigger = null;
+
+    function renderLightbox(index) {
+      currentIndex = (index + resultButtons.length) % resultButtons.length;
+      var btn = resultButtons[currentIndex];
+      var img = btn.querySelector("img");
+      var captionEl = btn.closest(".result-figure").querySelector(".result-caption");
+      lightboxImg.src = img.src;
+      lightboxImg.alt = img.alt;
+      lightboxNum.textContent = String(currentIndex + 1).length < 2 ? "0" + (currentIndex + 1) : String(currentIndex + 1);
+      lightboxCaption.textContent = captionEl ? captionEl.textContent : "";
+    }
+
+    function openLightbox(index, trigger) {
+      lastTrigger = trigger || null;
+      renderLightbox(index);
+      lightbox.showModal();
+      document.body.style.overflow = "hidden";
+    }
+
+    // Cleanup fica só aqui dentro (não depende do evento "close" do <dialog>, que em
+    // alguns ambientes não dispara de forma confiável): todo caminho de fechamento
+    // (botão, clique fora, Esc) chama closeLightbox() diretamente.
+    function closeLightbox() {
+      if (lightbox.open) lightbox.close();
+      document.body.style.overflow = "";
+      if (lastTrigger) {
+        lastTrigger.focus();
+        lastTrigger = null;
+      }
+    }
+
+    resultButtons.forEach(function (btn, index) {
+      btn.addEventListener("click", function () {
+        openLightbox(index, btn);
+      });
+    });
+
+    closeBtn.addEventListener("click", closeLightbox);
+    prevBtn.addEventListener("click", function () {
+      renderLightbox(currentIndex - 1);
+    });
+    nextBtn.addEventListener("click", function () {
+      renderLightbox(currentIndex + 1);
+    });
+
+    // Clique fora do conteúdo (no próprio elemento dialog, fora da figure) fecha.
+    lightbox.addEventListener("click", function (event) {
+      if (event.target === lightbox) closeLightbox();
+    });
+
+    lightbox.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        renderLightbox(currentIndex - 1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        renderLightbox(currentIndex + 1);
+      } else if (event.key === "Escape") {
+        // Fecha explicitamente em vez de depender só do comportamento nativo do
+        // <dialog>, para garantir que o cleanup (scroll, foco) sempre rode.
+        event.preventDefault();
+        closeLightbox();
+      }
+    });
+  }
 })();

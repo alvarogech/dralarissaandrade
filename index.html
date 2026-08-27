@@ -131,7 +131,7 @@
       <!-- BLOCO 2 · PRINCÍPIO AUTORAL -->
       <section class="section--dark manifesto reveal">
         <div class="container">
-          <blockquote>“Meu trabalho não começa quando eu pego uma seringa. Começa quando eu aprendo a enxergar.”</blockquote>
+          <blockquote>“Meu trabalho não começa pensando no que mudar. Começa enxergando o que deve ser preservado.”</blockquote>
           <cite>Dra. Larissa Andrade</cite>
         </div>
       </section>
@@ -148,7 +148,7 @@
               <span class="heading-num" aria-hidden="true">I</span>
               <div>
                 <p class="eyebrow">Método LA™ · Leveza Autêntica</p>
-                <h2 class="section-heading" style="margin-top: 0.5rem;">Meu trabalho não começa pensando no que mudar. Começa enxergando o que deve ser preservado.</h2>
+                <h2 class="section-heading" style="margin-top: 0.5rem;">Sua queixa é o ponto de partida. O diagnóstico enxerga o todo.</h2>
               </div>
             </div>
             <p class="lede-text">
@@ -215,8 +215,16 @@
            procedimentos exatos e intervalo entre fotos por paciente continuam pendentes — nada
            disso foi publicado, só o tema geral de cada caso. Caso 01, Caso 03 e as 2 fotos novas
            "atencao-luz" ficaram de fora por inconsistência de luz/ângulo/fundo entre as fotos de
-           antes e depois; arquivos continuam em assets/ caso sejam reaproveitados. object-fit
-           trocado para contain em 2026-08-27 (cover cortava conteúdo real das fotos quadradas). -->
+           antes e depois; arquivos continuam em assets/ caso sejam reaproveitados.
+           2026-08-27: galeria refeita como grid editorial 1:1 sem cortes (as 9 fotos são
+           quadradas na origem), sem molduras bege, com legenda numerada (01-09) e lightbox
+           nativo (<dialog>) para ampliação — ver styles.css e script.js. -->
+      <!-- IMPORTANTE: a ordem dos <figure> abaixo (01-09) é usada por script.js via
+           querySelectorAll(".result-frame") para popular o lightbox — não reordenar sem
+           atualizar também a numeração de cada figcaption. -->
+      <!-- Posicionamento do grid assimétrico no desktop (≥1024px) é feito por
+           nth-child em styles.css, não por classes no HTML — não adicionar/remover
+           figuras sem revisar essas regras. -->
       <section id="resultados">
         <div class="container">
           <div class="results-head reveal">
@@ -231,44 +239,72 @@
           </div>
 
           <div class="results-editorial reveal">
-            <figure class="result-figure span-6 ratio-wide">
-              <div class="frame"><img src="assets/caso-04-antes-depois.jpg" alt="Comparação antes e depois, perfil e definição do queixo" loading="lazy" /></div>
-              <figcaption>Perfil e definição do queixo</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 01, perfil e definição do queixo">
+                <img src="assets/caso-04-antes-depois.jpg" alt="Comparação antes e depois, perfil e definição do queixo" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">01</span><span class="result-caption">Perfil e definição do queixo</span></figcaption>
             </figure>
-            <figure class="result-figure span-3 ratio-portrait">
-              <div class="frame"><img src="assets/caso-02-antes-depois.jpeg" alt="Comparação antes e depois, definição natural dos lábios" loading="lazy" /></div>
-              <figcaption>Definição natural dos lábios</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 02, definição natural dos lábios">
+                <img src="assets/caso-02-antes-depois.jpeg" alt="Comparação antes e depois, definição natural dos lábios" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">02</span><span class="result-caption">Definição natural dos lábios</span></figcaption>
             </figure>
-            <figure class="result-figure span-3 ratio-portrait">
-              <div class="frame"><img src="assets/caso-05-antes-depois.jpeg" alt="Comparação antes e depois, sustentação e aparência mais descansada" loading="lazy" /></div>
-              <figcaption>Sustentação e aparência mais descansada</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 03, sustentação e aparência mais descansada">
+                <img src="assets/caso-05-antes-depois.jpeg" alt="Comparação antes e depois, sustentação e aparência mais descansada" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">03</span><span class="result-caption">Sustentação e aparência mais descansada</span></figcaption>
             </figure>
-            <figure class="result-figure span-3 ratio-portrait">
-              <div class="frame"><img src="assets/caso-08-antes-depois.jpg" alt="Comparação antes e depois, proporção e equilíbrio do rosto" loading="lazy" /></div>
-              <figcaption>Proporção e equilíbrio do rosto</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 04, proporção e equilíbrio do rosto">
+                <img src="assets/caso-08-antes-depois.jpg" alt="Comparação antes e depois, proporção e equilíbrio do rosto" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">04</span><span class="result-caption">Proporção e equilíbrio do rosto</span></figcaption>
             </figure>
-            <figure class="result-figure span-3 ratio-portrait">
-              <div class="frame"><img src="assets/caso-09-antes-depois.jpg" alt="Comparação antes e depois, suavização e luminosidade da pele" loading="lazy" /></div>
-              <figcaption>Suavização e luminosidade da pele</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 05, suavização e luminosidade da pele">
+                <img src="assets/caso-09-antes-depois.jpg" alt="Comparação antes e depois, suavização e luminosidade da pele" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">05</span><span class="result-caption">Suavização e luminosidade da pele</span></figcaption>
             </figure>
-            <figure class="result-figure span-3 ratio-landscape">
-              <div class="frame"><img src="assets/caso-07-antes-depois.jpg" alt="Comparação antes e depois, perfil e proporção nasal" loading="lazy" /></div>
-              <figcaption>Perfil e proporção nasal</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 06, perfil e proporção nasal">
+                <img src="assets/caso-07-antes-depois.jpg" alt="Comparação antes e depois, perfil e proporção nasal" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">06</span><span class="result-caption">Perfil e proporção nasal</span></figcaption>
             </figure>
-            <figure class="result-figure span-3 ratio-landscape">
-              <div class="frame"><img src="assets/caso-06-antes-depois.jpeg" alt="Comparação antes e depois, contorno e proporção labial" loading="lazy" /></div>
-              <figcaption>Contorno e proporção labial</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 07, contorno e proporção labial">
+                <img src="assets/caso-06-antes-depois.jpeg" alt="Comparação antes e depois, contorno e proporção labial" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">07</span><span class="result-caption">Contorno e proporção labial</span></figcaption>
             </figure>
-            <figure class="result-figure span-3 ratio-landscape">
-              <div class="frame"><img src="assets/caso-10-antes-depois.jpg" alt="Comparação antes e depois, perfil e contorno da mandíbula" loading="lazy" /></div>
-              <figcaption>Perfil e contorno da mandíbula</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 08, perfil e contorno da mandíbula">
+                <img src="assets/caso-10-antes-depois.jpg" alt="Comparação antes e depois, perfil e contorno da mandíbula" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">08</span><span class="result-caption">Perfil e contorno da mandíbula</span></figcaption>
             </figure>
-            <figure class="result-figure span-3 ratio-landscape">
-              <div class="frame"><img src="assets/caso-11-antes-depois.jpg" alt="Comparação antes e depois, perfil e leveza natural" loading="lazy" /></div>
-              <figcaption>Perfil e leveza natural</figcaption>
+            <figure class="result-figure">
+              <button class="result-frame" type="button" aria-label="Ampliar resultado 09, perfil e leveza natural">
+                <img src="assets/caso-11-antes-depois.jpg" alt="Comparação antes e depois, perfil e leveza natural" loading="lazy" />
+              </button>
+              <figcaption><span class="result-num" aria-hidden="true">09</span><span class="result-caption">Perfil e leveza natural</span></figcaption>
             </figure>
           </div>
         </div>
+
+        <dialog class="lightbox" id="resultsLightbox" aria-label="Visualização ampliada de resultado">
+          <button class="lightbox-close" type="button" aria-label="Fechar">✕</button>
+          <button class="lightbox-nav lightbox-prev" type="button" aria-label="Resultado anterior">‹</button>
+          <button class="lightbox-nav lightbox-next" type="button" aria-label="Próximo resultado">›</button>
+          <figure class="lightbox-figure">
+            <img class="lightbox-img" src="" alt="" />
+            <figcaption><span class="lightbox-num" aria-hidden="true"></span><span class="lightbox-caption"></span></figcaption>
+          </figure>
+        </dialog>
       </section>
 
       <!-- BLOCO 7 · RECURSOS E TRATAMENTOS -->
