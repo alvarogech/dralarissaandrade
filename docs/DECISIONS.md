@@ -280,3 +280,48 @@ evoluindo. `WHATSAPP_PROVIDER=mock` continua sendo o padrão até essa decisão 
 Next.js (App Router) + TypeScript + Tailwind + shadcn/ui no frontend; Supabase (Postgres + Auth
 + RLS) no backend; Netlify no deploy. Nenhuma incompatibilidade técnica foi encontrada que
 justificasse desviar do briefing.
+
+## 2026-10-20 — Fila da concierge vira a prioridade, construída dentro do STIMMA OS
+
+Plano completo: [`PLANO_FILA_CONCIERGE.md`](./PLANO_FILA_CONCIERGE.md). Decidido pelo usuário:
+
+- A fila da concierge (entrada da gestão → fila da Gabi → execução → fechamento automático)
+  substitui o `feedback-concierge.html` (arquivo local, `localStorage`). É **a prioridade atual**;
+  pipeline, cockpit, sync e WhatsApp do STIMMA OS ficam parados e serão desenvolvidos em volta da
+  fila depois.
+- Construída **dentro do STIMMA OS** (mesmo app, banco, login e domínio
+  `app.larissaandrade.com.br`), só com rotas novas (`/entrada`, `/fila`, `/fechamento`), para não
+  criar um segundo cadastro de pacientes nem exigir migração futura.
+- **Supabase no plano Free** (sem backup diário automático): compensado por exportação semanal
+  automática, botão de exportação para a gestão e `supabase db dump` mensal fora do Supabase.
+- Todo atendimento confirmado como realizado gera, automaticamente e de forma atômica, os marcos de
+  30 dias, 90 dias e 6 meses (`unique(appointment_id, kind)`). Gestão e Gabi podem confirmar
+  "realizado" (autoria registrada); anular é só da gestão.
+- Fila agrupa por paciente com janela de 14 dias; um contato só contempla marcos/tarefas por vínculo
+  explícito. A Gabi vê os valores das tarefas de cobrança dela.
+- Comercial externa e Dra. Larissa entram depois do MVP. HTML aposentado após 2 semanas de uso
+  paralelo, ao fim da migração.
+
+## 2026-10-20 — Fila: store dupla (Supabase/memória), gestão = papel `admin`, modo demonstração isolado
+
+- A regra de negócio da fila (`stimma-os/lib/fila/servico.ts`) fala com uma interface `FilaStore`
+  com duas implementações: `store-supabase.ts` (service role, sempre filtrando por
+  `organization_id` porque o service role ignora RLS) e `store-memoria.ts` (testes e modo
+  demonstração). Assim o fluxo inteiro é testado no Vitest e no navegador sem nunca criar dado de
+  teste no banco real. A store em memória replica as funções atômicas do banco usando as mesmas
+  funções puras de `marcos.ts`; a fonte de verdade em produção continua sendo
+  `confirmar_atendimento_realizado` / `anular_atendimento` (migration 0012).
+- "Gestão" = usuário com o papel `admin` em `user_roles`. Só a gestão cola a entrada e anula
+  lançamentos; qualquer perfil ativo trabalha a fila e confirma atendimento realizado.
+- `npm run dev:demo` (porta 3101) sobe o app com as chaves do Supabase **vazias**: o `@next/env`
+  não sobrescreve variável que já existe no ambiente, então o `.env.local` (que aponta para
+  produção) não tem efeito sobre elas e tudo cai na store em memória, com aviso visível de
+  demonstração. Uma primeira tentativa usando `__NEXT_PROCESSED_ENV` não funcionou (o Next ainda
+  carregou o `.env.local`); a falha foi detectada antes de qualquer escrita.
+- Cobrança vencida entra na fila com a data real de vencimento (aparece como atrasada), não com a
+  data do dia.
+- A migration 0012 ganhou `tasks.updated_at` (a tabela não tinha) e `grant execute ... to
+  service_role` explícito nas duas funções, além do `revoke` de `public/anon/authenticated`.
+- Pendente para depois do MVP: anular atendimento já confirmado a partir de um card de marco (hoje
+  a anulação aparece no item "conferir atendimento"), exportação/backup e importador do JSON do
+  `feedback-concierge.html`.

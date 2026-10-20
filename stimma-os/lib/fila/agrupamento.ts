@@ -1,0 +1,97 @@
+import { somarDias } from "./datas";
+
+/**
+ * Fila única da concierge: cartões por paciente, em quatro seções.
+ * Itens da mesma paciente que vencem em até 14 dias aparecem como "pode ser tratado junto" —
+ * desmarcados por padrão; tratar junto é sempre uma escolha da concierge, nunca automática.
+ */
+export const JANELA_JUNTO_DIAS = 14;
+
+export type Secao = "hoje" | "aguardando" | "proximas" | "concluidas";
+
+export interface ItemFila {
+  id: string;
+  pacienteId: string;
+  pacienteNome: string;
+  tipo: string;
+  titulo: string;
+  status: "aberta" | "aguardando" | "concluida";
+  /** Data em que a ação deve acontecer (AAAA-MM-DD). */
+  due: string;
+  concluidaEm?: string;
+  valor?: number;
+  detalhe?: string;
+  aConferir?: string[];
+  alvo?: { tipo: "marco" | "tarefa" | "atendimento"; id: string };
+}
+
+export interface ItemJunto {
+  item: ItemFila;
+  marcado: false;
+}
+
+export interface CartaoPaciente {
+  pacienteId: string;
+  pacienteNome: string;
+  itens: ItemFila[];
+  junto: ItemJunto[];
+  /** Dias de atraso do item mais antigo (0 = vence hoje). */
+  atrasoDias: number;
+}
+
+export type Fila = Record<Secao, CartaoPaciente[]>;
+
+function diasEntre(de: string, ate: string): number {
+  const [a, b] = [de, ate].map((s) => {
+    const [y, m, d] = s.split("-").map(Number) as [number, number, number];
+    return Date.UTC(y, m - 1, d);
+  });
+  return Math.round((b! - a!) / 86_400_000);
+}
+
+export function secaoDoItem(it: ItemFila, hoje: string): Secao | null {
+  if (it.status === "concluida") return it.concluidaEm === hoje ? "concluidas" : null;
+  if (it.status === "aguardando") return "aguardando";
+  return it.due <= hoje ? "hoje" : "proximas";
+}
+
+export function montarFila(itens: ItemFila[], hoje: string): Fila {
+  const fila: Fila = { hoje: [], aguardando: [], proximas: [], concluidas: [] };
+  const porSecao = new Map<Secao, Map<string, CartaoPaciente>>();
+  const limiteJunto = somarDias(hoje, JANELA_JUNTO_DIAS);
+
+  for (const it of itens) {
+    const secao = secaoDoItem(it, hoje);
+    if (!secao) continue;
+    const mapa = porSecao.get(secao) ?? new Map<string, CartaoPaciente>();
+    porSecao.set(secao, mapa);
+    const cartao = mapa.get(it.pacienteId) ?? { pacienteId: it.pacienteId, pacienteNome: it.pacienteNome, itens: [], junto: [], atrasoDias: 0 };
+    mapa.set(it.pacienteId, cartao);
+    cartao.itens.push(it);
+  }
+
+  // Em "hoje", puxa as próximas da mesma paciente dentro da janela como sugestão; elas saem de "próximas".
+  const hojeMapa = porSecao.get("hoje");
+  const proxMapa = porSecao.get("proximas");
+  if (hojeMapa && proxMapa) {
+    for (const [pid, cartao] of hojeMapa) {
+      const prox = proxMapa.get(pid);
+      if (!prox) continue;
+      const dentro = prox.itens.filter((i) => i.due <= limiteJunto);
+      cartao.junto = dentro.sort((a, b) => a.due.localeCompare(b.due)).map((item) => ({ item, marcado: false }));
+      prox.itens = prox.itens.filter((i) => i.due > limiteJunto);
+      if (!prox.itens.length) proxMapa.delete(pid);
+    }
+  }
+
+  for (const secao of Object.keys(fila) as Secao[]) {
+    const cartoes = [...(porSecao.get(secao)?.values() ?? [])];
+    for (const c of cartoes) {
+      c.itens.sort((a, b) => a.due.localeCompare(b.due));
+      c.atrasoDias = secao === "hoje" ? Math.max(0, diasEntre(c.itens[0]!.due, hoje)) : 0;
+    }
+    cartoes.sort((a, b) => a.itens[0]!.due.localeCompare(b.itens[0]!.due) || a.pacienteNome.localeCompare(b.pacienteNome, "pt-BR"));
+    fila[secao] = cartoes;
+  }
+  return fila;
+}
