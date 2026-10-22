@@ -68,12 +68,26 @@ export function LoginForm() {
     });
   }
 
+  /**
+   * Traduz a falha de envio. Só "e-mail sem acesso" vira resposta genérica (não revela quem tem
+   * conta); qualquer outra falha aparece — nunca mostrar "enviamos" quando o envio foi recusado.
+   */
+  function falhaDeEnvio(mensagem: string): string | null {
+    if (/signups? not allowed|user not found/i.test(mensagem)) return null;
+    if (/rate|limit|seconds/i.test(mensagem)) return "Muitos envios em pouco tempo. Aguarde alguns minutos e tente de novo.";
+    if (/not authorized|authorized/i.test(mensagem)) {
+      return "O envio de e-mail do sistema ainda não está liberado para este endereço (o servidor de e-mail padrão do Supabase só entrega para a equipe do projeto). Avise a administração.";
+    }
+    return `Não foi possível enviar o e-mail: ${mensagem}`;
+  }
+
   async function enviarCodigo(event: FormEvent) {
     event.preventDefault();
     await comCliente(async (supabase) => {
       const { error: otpError } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-      if (otpError && /rate|limit|seconds/i.test(otpError.message)) {
-        setError("Muitos envios em pouco tempo. Aguarde alguns minutos e tente de novo.");
+      const falha = otpError ? falhaDeEnvio(otpError.message) : null;
+      if (falha) {
+        setError(falha);
         return;
       }
       setCodigoEnviado(true);
@@ -99,8 +113,9 @@ export function LoginForm() {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/set-password`,
       });
-      if (resetError && /rate|limit|seconds/i.test(resetError.message)) {
-        setError("Muitos envios em pouco tempo. Aguarde alguns minutos e tente de novo.");
+      const falha = resetError ? falhaDeEnvio(resetError.message) : null;
+      if (falha) {
+        setError(falha);
         return;
       }
       setAviso("Se este e-mail tiver acesso, enviamos um link para criar uma senha nova. Abra o link uma vez só, neste mesmo navegador.");
