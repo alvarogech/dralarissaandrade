@@ -389,3 +389,19 @@ vencidos deixam de se repetir em três áreas (detalhe no Financeiro, um item na
 com valor/data, atalho para a Fila; itens de menu não implementados marcados "em breve".
 Outras rotas que usam service role (`/api/intake/anamnese`, `/api/sync/*`, `/api/pipeline/*`)
 também dependem da mesma variável.
+
+## 2026-10-22 — Primeira versão concentrada na rotina da concierge; financeiro por paciente suspenso
+
+- **Módulo financeiro por paciente suspenso** (`lib/rules/modulos.ts`, `MODULO_FINANCEIRO_ATIVO =
+  false`): recebíveis, saldos, parcelas, alertas de inadimplência/pagamento e prioridades geradas a
+  partir deles não aparecem no `/hoje`, no Modo FUP (selo "débito em aberto") nem alimentam
+  prioridades. Nada foi apagado do banco; o motor de regras continua calculando e o filtro fica na
+  saída para a interface. Tarefas manuais de cobrança criadas pela gestão seguem na fila.
+- **Feedback e tela da concierge sem totais financeiros**: saem a seção Financeiro, o caixa e os
+  totais de cobranças/recebimentos; uma cobrança aparece como ação realizada e um recebimento só
+  quando a concierge o registrou. Valores de caixa já gravados são reenviados intactos ao salvar a
+  agenda (não aparecem, não são apagados).
+- **Página principal = `/fila`** (Feedback diário); login e definição de senha levam para lá.
+- **Botão "Sair"** no topo do menu lateral (computador) e na barra de abas (celular): `signOut()`
+  no Supabase Auth + `location.replace("/login")`. O middleware passa a proteger `/` e marca as
+  páginas protegidas com `Cache-Control: private, no-store`, para o "Voltar" não reexibir dados.

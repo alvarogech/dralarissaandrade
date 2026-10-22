@@ -3,13 +3,14 @@ import { Sidebar } from "@/components/shell/Sidebar";
 import { FupQueueView } from "@/components/fup/FupQueueView";
 import { buildFupQueue } from "@/lib/pipeline/fup-queue";
 import { getClinicSnapshot } from "@/lib/data/clinic-snapshot";
+import { MODULO_FINANCEIRO_ATIVO } from "@/lib/rules/modulos";
 
 export default async function FupPage() {
   const { snapshot, source } = await getClinicSnapshot();
   const queue = buildFupQueue(
     snapshot.patients,
     snapshot.journeys,
-    snapshot.receivables,
+    MODULO_FINANCEIRO_ATIVO ? snapshot.receivables : [], // módulo financeiro suspenso: sem selo "débito em aberto"
     snapshot.appointments
   );
 

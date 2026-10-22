@@ -27,9 +27,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Páginas com dados de pacientes nunca ficam em cache do navegador: depois do "Sair",
+  // o botão Voltar refaz a requisição e cai no login.
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
   return response;
 }
 
 export const config = {
-  matcher: ["/hoje/:path*", "/pipeline/:path*", "/fila/:path*", "/entrada/:path*", "/fechamento/:path*"],
+  matcher: ["/", "/hoje/:path*", "/pipeline/:path*", "/fila/:path*", "/entrada/:path*", "/fechamento/:path*"],
 };

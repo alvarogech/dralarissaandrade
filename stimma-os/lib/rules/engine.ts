@@ -241,31 +241,6 @@ export function sortAlertsByPriority(alerts: GeneratedAlert[]): GeneratedAlert[]
 }
 
 /**
- * Recebíveis vencidos viram UM item agregado em "Precisa de você"/prioridades (a lista detalhada
- * fica só no Financeiro) — evita repetir o mesmo recebível em três áreas do /hoje.
- */
-export function agruparRecebiveisVencidos(alerts: GeneratedAlert[]): GeneratedAlert[] {
-  const vencidos = alerts.filter((a) => a.ruleId === "receivable_overdue");
-  if (vencidos.length <= 1) return alerts;
-  const total = vencidos.reduce((s, a) => s + (a.financialImpact ?? 0), 0);
-  const maior = [...vencidos].sort((a, b) => (b.financialImpact ?? 0) - (a.financialImpact ?? 0))[0]!;
-  const agregado: GeneratedAlert = {
-    id: "receivable-overdue-agregado",
-    ruleId: "receivable_overdue",
-    category: "financeiro",
-    priority: "critical",
-    patientId: null,
-    patientName: null,
-    title: `${vencidos.length} recebíveis vencidos — ${brl(total)}`,
-    recommendedAction: `Maior: ${maior.patientName ?? "paciente"}, ${brl(maior.financialImpact ?? 0)}${maior.dueAt ? ` desde ${dataBr(maior.dueAt)}` : ""}. Lista completa em Financeiro; a cobrança é registrada na Fila.`,
-    assignedToRole: "financeiro",
-    financialImpact: total,
-    dueAt: vencidos.map((a) => a.dueAt).filter((d): d is string => !!d).sort()[0] ?? null,
-  };
-  return [...alerts.filter((a) => a.ruleId !== "receivable_overdue"), agregado];
-}
-
-/**
  * Gera as "3 prioridades do dia" combinando alertas e oportunidades por
  * impacto financeiro estimado, urgencia e prioridade - nunca por ordem
  * cronologica simples (requisito explicito do briefing).
@@ -285,7 +260,7 @@ export function topPriorities(
   const urgencyWeight = { alta: 3, media: 2, baixa: 1 } as const;
   const fromOpportunities = result.opportunities.map((o) => ({
     title: o.title,
-    action: o.estimatedValue ? `Contatar ${o.patientName} — potencial estimado de ${brl(o.estimatedValue)}.` : `Contatar ${o.patientName} e propor o próximo passo.`,
+    action: `Contatar ${o.patientName} e propor o próximo passo.`,
     score: urgencyWeight[o.urgency] * 80 + (o.estimatedValue ?? 0) / 100,
   }));
 

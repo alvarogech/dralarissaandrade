@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SairButton } from "@/components/auth/SairButton";
 
 const PRIMARY_NAV = [
   { label: "Feedback diário", href: "/fila" },
@@ -25,6 +26,7 @@ export function Sidebar({ current }: { current?: string }) {
         <p className="text-sm font-semibold tracking-wide text-text-primary">STIMMA OS</p>
         <p className="text-xs text-text-muted">Clínica Stimma</p>
       </div>
+      <SairButton className="-mt-4 w-full text-left" />
 
       <nav className="flex flex-col gap-0.5">
         {PRIMARY_NAV.map((item) => {

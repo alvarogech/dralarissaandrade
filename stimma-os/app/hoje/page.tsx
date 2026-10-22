@@ -3,21 +3,18 @@ import { NeedsYou } from "@/components/cockpit/NeedsYou";
 import { PriorityList } from "@/components/cockpit/PriorityList";
 import { TodayInClinic } from "@/components/cockpit/TodayInClinic";
 import { OpportunitiesPreview } from "@/components/cockpit/OpportunitiesPreview";
-import { FinancialSummary } from "@/components/cockpit/FinancialSummary";
 import Link from "next/link";
-import { agruparRecebiveisVencidos, runRuleEngine, topPriorities } from "@/lib/rules/engine";
-import { summarizeFinancials } from "@/lib/rules/financial-summary";
+import { runRuleEngine, topPriorities } from "@/lib/rules/engine";
+import { semFinanceiroSuspenso } from "@/lib/rules/modulos";
 import { getClinicSnapshot } from "@/lib/data/clinic-snapshot";
 
 export default async function HojePage() {
   const { snapshot, source } = await getClinicSnapshot();
 
   const result = runRuleEngine(snapshot);
-  // Recebíveis vencidos: detalhe só no Financeiro; nas prioridades, no máximo um item agregado.
-  // "Precisa de você" não os repete.
-  const alertas = agruparRecebiveisVencidos(result.alerts);
+  // Módulo financeiro por paciente suspenso: alertas financeiros não chegam à tela nem às prioridades.
+  const alertas = semFinanceiroSuspenso(result.alerts);
   const priorities = topPriorities({ ...result, alerts: alertas }, 3);
-  const financials = summarizeFinancials(snapshot);
   const patientNameById = new Map(snapshot.patients.map((p) => [p.id, p.fullName]));
 
   const firstName = "Álvaro";
@@ -47,13 +44,12 @@ export default async function HojePage() {
         </Link>
 
         <div className="flex flex-col gap-10">
-          <NeedsYou alerts={alertas.filter((a) => a.ruleId !== "receivable_overdue")} />
+          <NeedsYou alerts={alertas} />
           <PriorityList priorities={priorities} />
           <TodayInClinic
             appointments={snapshot.appointments}
             patientNameById={patientNameById}
           />
-          <FinancialSummary summary={financials} patientNameById={patientNameById} />
           <OpportunitiesPreview opportunities={result.opportunities} />
         </div>
       </main>

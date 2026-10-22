@@ -36,7 +36,7 @@ export function LoginForm() {
   }
 
   function entrou() {
-    router.push("/hoje");
+    router.push("/fila");
     router.refresh();
   }
 

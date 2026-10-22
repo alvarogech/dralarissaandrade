@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import type { CartaoPaciente, ItemFila } from "@/lib/fila/agrupamento";
 import type { Fechamento } from "@/lib/fila/fechamento";
 import type { FilaCarregada } from "@/lib/fila/servico";
-import { Campo, brl, chamarApi, dataBr, numeroBr } from "./comum";
+import { Campo, chamarApi, dataBr, numeroBr } from "./comum";
 import { Cartao } from "./FilaView";
 
 /**
@@ -83,6 +83,8 @@ export function FeedbackDiarioView({ dados, fechamento, gestao, usuario }: Props
   const [aberto, setAberto] = useState<string | null>(null);
   const [filtroMarco, setFiltroMarco] = useState<"todos" | "d30" | "d90" | "m6">("todos");
   const n0 = f.numeros;
+  // Caixa: módulo financeiro suspenso — não aparece, mas o valor já gravado é reenviado intacto
+  // ao salvar a agenda (nunca apagado).
   const [numeros, setNumeros] = useState({
     agendaPrevista: txt(n0?.agendaPrevista), agendaRealizada: txt(n0?.agendaRealizada),
     caixaPrevisto: txt(n0?.caixaPrevisto), caixaRecebido: txt(n0?.caixaRecebido), caixaSituacao: n0?.caixaSituacao ?? "",
@@ -96,7 +98,6 @@ export function FeedbackDiarioView({ dados, fechamento, gestao, usuario }: Props
   const abertos = itens.filter((i) => i.status !== "concluida");
   const comparecimentosFuturos = agruparPorPaciente(abertos.filter((i) => i.subtipo === "comparecimento" && i.status === "aberta" && i.due > hoje));
   const marcos = abertos.filter((i) => i.tipo === "marco" && (filtroMarco === "todos" || i.subtipo === filtroMarco));
-  const cobrancas = abertos.filter((i) => i.tipo === "cobranca");
   const aConferir = abertos.filter((i) => i.tipo === "conferir_atendimento");
   // Em "Próximos dias" ficam só as tarefas comuns: marcos e comparecimentos têm grupo próprio.
   const proximasComuns = fila.proximas
@@ -197,37 +198,15 @@ export function FeedbackDiarioView({ dados, fechamento, gestao, usuario }: Props
             {botaoSalvar}
           </Secao>
 
-          <Secao n="2" titulo="Financeiro" resumo={`${cobrancas.length} cobrança(s) em aberto`}>
-            <div className="mt-2 flex flex-col gap-1 text-sm">
-              {cobrancas.length === 0 && <p className="text-text-muted">Nenhuma cobrança em aberto na fila.</p>}
-              {cobrancas.map((c) => (
-                <p key={c.id} className="text-text-secondary">
-                  <span className="text-text-primary">{c.pacienteNome}</span> — {c.titulo}{c.valor !== undefined ? ` · ${brl(c.valor)}` : ""} · prazo {dataBr(c.due)}
-                </p>
-              ))}
-              {f.recebimentos.length > 0 && (
-                <p className="mt-1 text-opportunity">Recebido hoje: {brl(f.contagens.valorRecebido)} ({f.recebimentos.length} registro(s))</p>
-              )}
-            </div>
-            <p className="mt-3 text-sm text-text-secondary">Caixa do dia (opcional, do Simples Dental):</p>
-            <div className="mt-2 grid gap-3 sm:grid-cols-2">
-              {campoNumero("caixaPrevisto", "Caixa previsto (R$)", "decimal")}
-              {campoNumero("caixaRecebido", "Caixa recebido (R$)", "decimal")}
-              <div className="sm:col-span-2">{campoNumero("caixaSituacao", "Situação do caixa", "text")}</div>
-            </div>
-            {botaoSalvar}
-          </Secao>
-
-          <Secao n="3" titulo="Pendências e alertas" resumo={`${f.atrasados} atrasada(s)`}>
+          <Secao n="2" titulo="Pendências e alertas" resumo={`${f.atrasados} atrasada(s)`}>
             <ul className="mt-2 list-disc pl-5 text-sm text-text-secondary">
               <li>Para hoje ainda sem ação: {f.pendentesHoje}{f.atrasados ? ` (${f.atrasados} atrasadas)` : ""}</li>
               <li>Aguardando resposta: {f.aguardando.length}</li>
               <li>Atendimentos a conferir no Simples Dental: {f.aConferir}</li>
-              <li>Cobranças em aberto: {f.cobrancasAbertas.quantidade}{f.cobrancasAbertas.total ? ` (${brl(f.cobrancasAbertas.total)})` : ""}</li>
             </ul>
           </Secao>
 
-          <Secao n="4" titulo={`Prioridades para ${dataBr(f.proximoDia)}`} resumo={`${f.prioridades.length} item(ns)`}>
+          <Secao n="3" titulo={`Prioridades para ${dataBr(f.proximoDia)}`} resumo={`${f.prioridades.length} item(ns)`}>
             <ul className="mt-2 flex flex-col gap-1 text-sm text-text-secondary">
               {f.prioridades.length === 0 && <li className="text-text-muted">Nada vencendo.</li>}
               {f.prioridades.map((p) => (
@@ -253,7 +232,7 @@ export function FeedbackDiarioView({ dados, fechamento, gestao, usuario }: Props
             </div>
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               {([
-                ["Recebido", f.contagens.valorRecebido ? brl(f.contagens.valorRecebido) : "—"],
+                ["Concluídas hoje", String(nItens(fila.concluidas))],
                 ["Aguardando resposta", String(f.aguardando.length)],
                 ["Atrasadas", String(nItens(fila.atrasadas))],
                 ["Para hoje", String(nItens(fila.hoje))],

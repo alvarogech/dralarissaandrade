@@ -30,13 +30,14 @@ describe("fechamento", () => {
     const f = montarFechamento("2026-10-20", [
       ev("contato", { channel: "whatsapp", notes: "sem resposta" }),
       ev("recebimento_confirmado", { amount: 450, amountOrigin: "parcela" }),
-    ], fila, itens, { p1: "Mariana Exemplo" }, { agendaPrevista: 8, agendaRealizada: 7, caixaPrevisto: null, caixaRecebido: 950, caixaSituacao: null });
+    ], fila, itens, { p1: "Mariana Exemplo" }, { agendaPrevista: 8, agendaRealizada: 7, caixaPrevisto: null, caixaRecebido: 950, caixaSituacao: "ok" });
     expect(f).toMatchObject({ pendentesHoje: 1, atrasados: 1, aConferir: 1 });
     const t = textoWhatsapp(f);
     expect(t).toContain("*Fechamento — 20/10/2026 (terça)*");
     expect(t).toContain("8 previstos · 7 realizados");
     expect(t).toContain("Mariana E. — Cobrar parcela 3/6: contato por whatsapp: sem resposta [T-aaaaaa]");
-    expect(t).toMatch(/Recebimentos confirmados: 1 — R\$\s?450,00/);
+    expect(t).toMatch(/recebimento confirmado R\$\s?450,00 \(parcela\)/); // só como ação registrada
+    expect(t).not.toMatch(/Cobranças e recebimentos|Recebimentos confirmados|Caixa|em aberto na fila/); // sem totais financeiros
     expect(t).toContain("Beatriz F. — Recuperar falta [T-bbbbbb]");
     expect(t).toContain("*Prioridades para 21/10/2026 (quarta)*");
     expect(t).toContain("Carla D. — Continuar clareamento (desde 18/10/2026) [T-cccccc]");

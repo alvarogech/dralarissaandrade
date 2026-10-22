@@ -16,7 +16,8 @@ const txt = (v: number | null | undefined) => (v === null || v === undefined ? "
 
 /**
  * Fechamento do dia. "Gerar feedback" monta a mensagem a partir dos registros reais da fila;
- * agenda e caixa da clínica são campos manuais opcionais (não são calculados a partir de uma
+ * agenda da clínica é campo manual opcional (caixa suspenso nesta versão: valor gravado é
+ * reenviado intacto, sem aparecer) (não são calculados a partir de uma
  * lista parcial). O texto é copiado, nunca enviado.
  */
 export function FechamentoView({ dia, hoje, inicial }: { dia: string; hoje: string; inicial: Dados }) {
@@ -80,13 +81,10 @@ export function FechamentoView({ dia, hoje, inicial }: { dia: string; hoje: stri
       </header>
 
       <form onSubmit={salvar} className="grid gap-3 rounded-md border border-border p-4 sm:grid-cols-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-text-muted sm:col-span-2">Totais da clínica (opcionais, do Simples Dental)</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-text-muted sm:col-span-2">Agenda da clínica (opcional, do Simples Dental)</p>
         <Campo label="Agenda prevista"><Input inputMode="numeric" value={f.agendaPrevista} onChange={set("agendaPrevista")} /></Campo>
         <Campo label="Agenda realizada"><Input inputMode="numeric" value={f.agendaRealizada} onChange={set("agendaRealizada")} /></Campo>
-        <Campo label="Caixa previsto (R$)"><Input inputMode="decimal" value={f.caixaPrevisto} onChange={set("caixaPrevisto")} /></Campo>
-        <Campo label="Caixa recebido (R$)"><Input inputMode="decimal" value={f.caixaRecebido} onChange={set("caixaRecebido")} /></Campo>
-        <Campo label="Situação do caixa (opcional)" largo><Input value={f.caixaSituacao} onChange={set("caixaSituacao")} placeholder="ex.: conferido com a recepção" /></Campo>
-        <div className="sm:col-span-2"><Button type="submit" loading={carregando === "salvar"} loadingText="Salvando…">Salvar totais</Button></div>
+        <div className="sm:col-span-2"><Button type="submit" loading={carregando === "salvar"} loadingText="Salvando…">Salvar agenda</Button></div>
       </form>
 
       <section className="flex flex-col gap-3">

@@ -4,8 +4,9 @@ import type { EventoRow, NumerosDoDia } from "./store";
 
 /**
  * Fechamento do dia: montado a partir dos eventos registrados (nunca digitado de novo) + os
- * números manuais de agenda/caixa (opcionais — totais da clínica não são inventados a partir
- * de uma lista parcial). O texto é copiado pela concierge para o WhatsApp; nada é enviado.
+ * números manuais de agenda (opcionais — totais da clínica não são inventados a partir de uma
+ * lista parcial). Sem totais financeiros nesta versão (módulo financeiro suspenso): uma cobrança
+ * aparece só como ação realizada, e um recebimento só quando a concierge o registrou. O texto é copiado pela concierge para o WhatsApp; nada é enviado.
  *
  * Cada item leva uma referência curta ([T-1a2b3c] tarefa, [M-1a2b3c] marco): quando o feedback
  * é colado de volta na gestão, a referência liga a linha à tarefa sem depender de nome.
@@ -139,10 +140,6 @@ export function textoWhatsapp(f: Fechamento): string {
   if (n && (n.agendaPrevista !== null || n.agendaRealizada !== null)) {
     l.push(`*Agenda:* ${n.agendaPrevista ?? "—"} previstos · ${n.agendaRealizada ?? "—"} realizados`);
   }
-  if (n && (n.caixaPrevisto !== null || n.caixaRecebido !== null)) {
-    const sit = n.caixaSituacao ? ` — ${n.caixaSituacao}` : "";
-    l.push(`*Caixa:* ${n.caixaPrevisto !== null ? brl(n.caixaPrevisto) : "—"} previsto · ${n.caixaRecebido !== null ? brl(n.caixaRecebido) : "—"} recebido${sit}`);
-  }
   if (l.length > 2) l.push("");
 
   l.push(`*Ações do dia* (${f.acoes.length})`);
@@ -157,13 +154,6 @@ export function textoWhatsapp(f: Fechamento): string {
 
   l.push(`*Agendamentos obtidos* (${f.agendamentos.length})`);
   for (const a of f.agendamentos) l.push(`• ${a.paciente} — consulta em ${dataBr(a.data)} [${a.ref}]`);
-  l.push("");
-
-  const total = f.recebimentos.reduce((s, r) => s + r.valor, 0);
-  l.push("*Cobranças e recebimentos*");
-  l.push(`• Recebimentos confirmados: ${f.recebimentos.length}${f.recebimentos.length ? ` — ${brl(total)}` : ""}`);
-  for (const r of f.recebimentos) l.push(`   – ${r.paciente}: ${brl(r.valor)} (${r.origem.replace(/_/g, " ")}) [${r.ref}]`);
-  l.push(`• Cobranças em aberto na fila: ${f.cobrancasAbertas.quantidade}${f.cobrancasAbertas.total ? ` (${brl(f.cobrancasAbertas.total)})` : ""}`);
   l.push("");
 
   l.push("*Pendências*");

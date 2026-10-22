@@ -41,15 +41,6 @@ export function NeedsYou({ alerts }: { alerts: GeneratedAlert[] }) {
                 <div>
                   <p className="text-sm font-medium text-text-primary">{alert.title}</p>
                   <p className="mt-0.5 text-sm text-text-secondary">{alert.recommendedAction}</p>
-                  {alert.financialImpact !== null && (
-                    <p className="mt-1 text-xs text-text-muted">
-                      Impacto estimado:{" "}
-                      {alert.financialImpact.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </p>
-                  )}
                 </div>
               </div>
               <Badge variant={PRIORITY_VARIANT[alert.priority]}>{alert.assignedToRole}</Badge>

@@ -93,7 +93,8 @@ describe("ação executada ≠ objetivo resolvido; virada de dia", () => {
     expect(_dados.marcos).toHaveLength(0); // e não gera marcos
 
     const { texto } = await carregarFechamento(store, "2026-10-20");
-    expect(texto).toMatch(/Recebimentos confirmados: 0/);
+    expect(texto).toContain("cobrança enviada, sem resposta"); // ação realizada…
+    expect(texto).not.toMatch(/recebimento confirmado|Recebimentos confirmados/); // …sem presumir recebimento
     expect(texto).toContain("agendou consulta para 27/10/2026");
   });
 
@@ -146,7 +147,7 @@ describe("auditoria do fluxo completo", () => {
     const { texto } = await carregarFechamento(store, "2026-10-20");
     expect(texto).toContain("Lia E. — Remarcar falta: contato por whatsapp: sem resposta — próxima ação: tentar ligação");
     expect(texto).toMatch(/Joana T\. — Cobrar parcela 3\/6: recebimento confirmado R\$\s?450,00/);
-    expect(texto).toContain("Recebimentos confirmados: 1");
+    expect(texto).not.toMatch(/Recebimentos confirmados|Cobranças em aberto/); // sem totais financeiros
 
     // 6–7. colado de volta: consulta o registrado, não recria a concluída nem duplica a aberta
     const antes = _dados.tarefas.length;
