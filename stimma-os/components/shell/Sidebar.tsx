@@ -34,9 +34,11 @@ export function Sidebar({ current }: { current?: string }) {
             : "rounded-sm px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-raised";
 
           if (!item.href) {
+            // Ainda não implementado: visivelmente indisponível, sem simular um link.
             return (
-              <span key={item.label} className={className}>
+              <span key={item.label} aria-disabled="true" title="Ainda não disponível" className="flex cursor-not-allowed items-center justify-between rounded-sm px-3 py-1.5 text-sm text-text-muted opacity-70">
                 {item.label}
+                <span className="text-[10px] uppercase tracking-wide">em breve</span>
               </span>
             );
           }
@@ -51,11 +53,9 @@ export function Sidebar({ current }: { current?: string }) {
 
       <nav className="mt-auto flex flex-col gap-0.5 border-t border-border pt-4">
         {SECONDARY_NAV.map((item) => (
-          <span
-            key={item}
-            className="rounded-sm px-3 py-1.5 text-sm text-text-muted hover:bg-surface-raised"
-          >
+          <span key={item} aria-disabled="true" title="Ainda não disponível" className="flex cursor-not-allowed items-center justify-between rounded-sm px-3 py-1.5 text-sm text-text-muted opacity-70">
             {item}
+            <span className="text-[10px] uppercase tracking-wide">em breve</span>
           </span>
         ))}
       </nav>

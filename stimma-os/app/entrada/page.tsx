@@ -1,14 +1,23 @@
 import { redirect } from "next/navigation";
 import { FilaShell } from "@/components/fila/FilaShell";
 import { GestaoView } from "@/components/fila/GestaoView";
-import { contextoDaSessao } from "@/lib/fila/acesso";
+import { Indisponivel } from "@/components/fila/Indisponivel";
+import { sessaoDaPagina } from "@/lib/fila/acesso";
 import { iaConfigurada } from "@/lib/fila/ia";
 
 export const dynamic = "force-dynamic";
 
 export default async function EntradaPage() {
-  const ctx = await contextoDaSessao();
-  if (!ctx) redirect("/login");
+  const s = await sessaoDaPagina("/entrada");
+  if (s.tipo === "sem_sessao") redirect("/login");
+  if (s.tipo === "indisponivel") {
+    return (
+      <FilaShell atual="Gestão" demo={false} gestao={false}>
+        <Indisponivel titulo="Gestão da fila" motivo={s.motivo} />
+      </FilaShell>
+    );
+  }
+  const { ctx } = s;
   return (
     <FilaShell atual="Gestão" demo={ctx.demo} gestao={ctx.ator.gestao}>
       <header className="mb-6">

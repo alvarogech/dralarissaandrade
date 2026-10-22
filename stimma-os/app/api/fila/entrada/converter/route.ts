@@ -5,6 +5,9 @@ import { hojeSaoPaulo, isDiaIso } from "@/lib/fila/datas";
 import { converterLevantamento, iaConfigurada } from "@/lib/fila/ia";
 import { ErroRegra } from "@/lib/fila/servico";
 
+// Sempre por requisição: depende da sessão (cookies) e nunca pode ser servida de cache.
+export const dynamic = "force-dynamic";
+
 /**
  * Converte o texto colado em um lote `stimma-entrada-v1` para a prévia editável. JSON no formato
  * do contrato passa direto; texto/Markdown vai para a IA no servidor. Nada é gravado aqui.

@@ -4,7 +4,8 @@ import { PriorityList } from "@/components/cockpit/PriorityList";
 import { TodayInClinic } from "@/components/cockpit/TodayInClinic";
 import { OpportunitiesPreview } from "@/components/cockpit/OpportunitiesPreview";
 import { FinancialSummary } from "@/components/cockpit/FinancialSummary";
-import { runRuleEngine, topPriorities } from "@/lib/rules/engine";
+import Link from "next/link";
+import { agruparRecebiveisVencidos, runRuleEngine, topPriorities } from "@/lib/rules/engine";
 import { summarizeFinancials } from "@/lib/rules/financial-summary";
 import { getClinicSnapshot } from "@/lib/data/clinic-snapshot";
 
@@ -12,7 +13,10 @@ export default async function HojePage() {
   const { snapshot, source } = await getClinicSnapshot();
 
   const result = runRuleEngine(snapshot);
-  const priorities = topPriorities(result, 3);
+  // Recebíveis vencidos: detalhe só no Financeiro; nas prioridades, no máximo um item agregado.
+  // "Precisa de você" não os repete.
+  const alertas = agruparRecebiveisVencidos(result.alerts);
+  const priorities = topPriorities({ ...result, alerts: alertas }, 3);
   const financials = summarizeFinancials(snapshot);
   const patientNameById = new Map(snapshot.patients.map((p) => [p.id, p.fullName]));
 
@@ -37,8 +41,13 @@ export default async function HojePage() {
           </h1>
         </header>
 
+        <Link href="/fila" className="mb-8 flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3 text-sm hover:bg-surface-raised">
+          <span className="text-text-secondary">A execução do dia (contatos, cobranças, agendamentos e o feedback) acontece no <strong className="text-text-primary">Feedback diário</strong>.</span>
+          <span className="shrink-0 text-accent">Abrir a fila →</span>
+        </Link>
+
         <div className="flex flex-col gap-10">
-          <NeedsYou alerts={result.alerts} />
+          <NeedsYou alerts={alertas.filter((a) => a.ruleId !== "receivable_overdue")} />
           <PriorityList priorities={priorities} />
           <TodayInClinic
             appointments={snapshot.appointments}

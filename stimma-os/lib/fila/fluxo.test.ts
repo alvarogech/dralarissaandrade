@@ -79,6 +79,40 @@ describe("continuidade automática", () => {
   });
 });
 
+describe("ação executada ≠ objetivo resolvido; virada de dia", () => {
+  it("cobrança sem resposta fica aberta, sem pagamento presumido; agendamento não presume comparecimento", async () => {
+    const { store, _dados } = criarStoreMemoria();
+    const cob = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Ana" }, kind: "cobranca", acao: "Cobrar parcela 2/5", prazo: "2026-10-20", valor: 300 });
+    const fal = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Bia" }, kind: "recuperacao_falta", acao: "Remarcar", prazo: "2026-10-20" });
+    await registrarAcao(store, GABI, { eventoId: randomUUID(), alvos: [{ tipo: "tarefa", id: cob }], acao: "contato", canal: "whatsapp", notas: "cobrança enviada, sem resposta", novaData: "2026-10-22", proximaAcao: "ligar" });
+    expect(_dados.tarefas.find((t) => t.id === cob)).toMatchObject({ status: "open", due: "2026-10-22", nextAction: "ligar" });
+    expect(_dados.eventos.some((e) => e.kind === "recebimento_confirmado")).toBe(false);
+
+    await registrarAcao(store, GABI, { eventoId: randomUUID(), alvos: [{ tipo: "tarefa", id: fal }], acao: "agendamento", agendadoPara: "2026-10-27" });
+    expect(_dados.atendimentos).toHaveLength(0); // agendado não é atendido
+    expect(_dados.marcos).toHaveLength(0); // e não gera marcos
+
+    const { texto } = await carregarFechamento(store, "2026-10-20");
+    expect(texto).toMatch(/Recebimentos confirmados: 0/);
+    expect(texto).toContain("agendou consulta para 27/10/2026");
+  });
+
+  it("virada de dia: pendências continuam e tarefas futuras entram na data certa (fuso de Brasília)", async () => {
+    const { store } = criarStoreMemoria();
+    await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Caio" }, kind: "continuidade", acao: "Agendar fase 2", prazo: "2026-10-23" });
+    await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Duda" }, kind: "outro", acao: "Retornar orçamento", prazo: "2026-10-20" });
+    let f = await carregarFila(store);
+    expect(f.fila.hoje.map((c) => c.pacienteNome)).toEqual(["TESTE DE AUDITORIA Duda"]);
+    expect(f.fila.proximas.map((c) => c.pacienteNome)).toEqual(["TESTE DE AUDITORIA Caio"]);
+    // 23/10 às 00:30 em Brasília = 03:30 UTC
+    vi.setSystemTime(new Date("2026-10-23T03:30:00Z"));
+    f = await carregarFila(store);
+    expect(f.hoje).toBe("2026-10-23");
+    expect(f.fila.atrasadas.map((c) => c.pacienteNome)).toEqual(["TESTE DE AUDITORIA Duda"]);
+    expect(f.fila.hoje.map((c) => c.pacienteNome)).toEqual(["TESTE DE AUDITORIA Caio"]);
+  });
+});
+
 describe("auditoria do fluxo completo", () => {
   it("levantamento → fila → ações → feedback → colado de volta sem duplicar; marcos exatos", async () => {
     const { store, _dados } = criarStoreMemoria();

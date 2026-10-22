@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/service";
 import { COOKIE_PAPEL_DEMO } from "@/lib/fila/acesso";
 
+// Sempre por requisição: depende da sessão (cookies) e nunca pode ser servida de cache.
+export const dynamic = "force-dynamic";
+
 /** Só no modo demonstração (sem Supabase): alterna a visão entre gestão e concierge. */
 export async function GET(request: NextRequest) {
   if (isSupabaseConfigured()) return NextResponse.json({ error: "not found" }, { status: 404 });

@@ -3,6 +3,9 @@ import { rotaFila } from "@/lib/fila/acesso";
 import { converterFeedback, iaConfigurada, type PropostaContinuidade } from "@/lib/fila/ia";
 import { analisarFeedback, tarefasAbertasResumo } from "@/lib/fila/servico";
 
+// Sempre por requisição: depende da sessão (cookies) e nunca pode ser servida de cache.
+export const dynamic = "force-dynamic";
+
 /**
  * Analisa o feedback colado: primeiro compara com o que já está registrado (determinístico);
  * se pedido e configurado, a IA propõe continuidade só para as linhas sem referência.

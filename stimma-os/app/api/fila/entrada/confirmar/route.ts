@@ -2,6 +2,9 @@ import { NextRequest } from "next/server";
 import { rotaFila } from "@/lib/fila/acesso";
 import { confirmarEntrada, ErroRegra, type Resolucao } from "@/lib/fila/servico";
 
+// Sempre por requisição: depende da sessão (cookies) e nunca pode ser servida de cache.
+export const dynamic = "force-dynamic";
+
 /**
  * Confirma a entrada: a prévia é recalculada aqui no servidor (o que o navegador mostrou não é
  * confiado) e só itens novos/atualizações ou decididos explicitamente pela gestão são aplicados.

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Indisponivel } from "./Indisponivel";
 import { Campo, Historico, ROTULO_TIPO, brl, chamarApi, classeInput, dataBr, numeroBr } from "./comum";
 
 /** Gestão manual: criar, editar, atribuir, reagendar e cancelar tarefas — tudo com histórico. */
@@ -46,7 +47,7 @@ export function TarefasGestaoView() {
     void carregar();
   }, [carregar]);
 
-  if (erro) return <p role="alert" className="text-sm text-critical">{erro}</p>;
+  if (erro) return <Indisponivel titulo="Lista de tarefas" motivo={erro} onTentar={() => { setErro(null); void carregar(); }} />;
   if (!dados) return <p className="text-sm text-text-muted">Carregando tarefas…</p>;
   const lista = dados.tarefas.filter((t) => verEncerradas || !["completed", "cancelled"].includes(t.status));
   const nomePerfil = (id: string | null) => dados.perfis.find((p) => p.id === id)?.nome ?? "—";

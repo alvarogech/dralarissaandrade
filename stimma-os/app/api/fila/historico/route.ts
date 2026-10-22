@@ -2,6 +2,9 @@ import { NextRequest } from "next/server";
 import { rotaFila } from "@/lib/fila/acesso";
 import { ErroRegra, historico } from "@/lib/fila/servico";
 
+// Sempre por requisição: depende da sessão (cookies) e nunca pode ser servida de cache.
+export const dynamic = "force-dynamic";
+
 /** Histórico de um item (eventos com autor e data). */
 export async function GET(request: NextRequest) {
   return rotaFila(async ({ store }) => {

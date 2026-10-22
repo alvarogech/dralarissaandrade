@@ -2,6 +2,9 @@ import { NextRequest } from "next/server";
 import { rotaFila } from "@/lib/fila/acesso";
 import { criarTarefaManual, ErroRegra, listarTarefasGestao, type NovaTarefa } from "@/lib/fila/servico";
 
+// Sempre por requisição: depende da sessão (cookies) e nunca pode ser servida de cache.
+export const dynamic = "force-dynamic";
+
 /** Lista (gestão) e criação manual de tarefas. */
 export async function GET() {
   return rotaFila(async ({ ator, store }) => {

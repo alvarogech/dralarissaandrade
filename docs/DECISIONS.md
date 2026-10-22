@@ -370,3 +370,22 @@ existia:
   como campos manuais opcionais.
 - **Modo demonstração**: papel alternável (gestão/concierge) por cookie, só sem Supabase; usado na
   auditoria com duas sessões (localhost e 127.0.0.1) contra o mesmo servidor.
+
+## 2026-10-22 — Causa das exceções em /entrada, /fila e /fechamento em produção
+
+Logs do Netlify (digests 1891141404, 544180059, 2039825317): as três rotas falhavam com
+`SUPABASE_SERVICE_ROLE_KEY ou NEXT_PUBLIC_SUPABASE_URL não configuradas` — **a variável
+`SUPABASE_SERVICE_ROLE_KEY` não existe no ambiente do site `stimma-os-gestor` no Netlify**. Causa
+única: as três passam por `contextoDaSessao()` (service role); `/hoje` não usa e por isso abria.
+As consultas de leitura da fila foram validadas contra o banco real com a chave do `.env.local`
+(`npm run fila:verificar-leitura`, só leitura): todas funcionam.
+
+Correções de código (não dispensam a variável): páginas nunca mais derrubam — sem sessão vão ao
+login, falha de configuração/consulta vira tela "indisponível" com "tentar novamente" e detalhe só
+no log; `error.tsx` por rota; APIs respondem 503 "nada foi salvo" em vez de 500 sem corpo; 401 com
+"sessão expirou". Sinais internos do Next (DYNAMIC_SERVER_USAGE/NEXT_*) são repassados e as rotas
+`/api/fila/*` são `force-dynamic` (o try/catch novo engolia o sinal no build). `/hoje`: recebíveis
+vencidos deixam de se repetir em três áreas (detalhe no Financeiro, um item nas prioridades), ações
+com valor/data, atalho para a Fila; itens de menu não implementados marcados "em breve".
+Outras rotas que usam service role (`/api/intake/anamnese`, `/api/sync/*`, `/api/pipeline/*`)
+também dependem da mesma variável.

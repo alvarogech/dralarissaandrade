@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:demo": "node scripts/dev-demo.mjs",
+    "fila:verificar-leitura": "node --env-file=.env.local node_modules/vite-node/vite-node.mjs scripts/verificar-leitura-fila.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

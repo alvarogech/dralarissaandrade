@@ -22,6 +22,9 @@ function hoursSince(now: Date, iso: string): number {
   return (now.getTime() - new Date(iso).getTime()) / HOUR;
 }
 
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const dataBr = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+
 function patientName(snapshot: ClinicSnapshot, patientId: string): string | null {
   return snapshot.patients.find((p) => p.id === patientId)?.fullName ?? null;
 }
@@ -46,7 +49,7 @@ function ruleMissingPayment(snapshot: ClinicSnapshot, now: Date): GeneratedAlert
       patientId: appt.patientId,
       patientName: patientName(snapshot, appt.patientId),
       title: `Pagamento não localizado após atendimento de ${patientName(snapshot, appt.patientId) ?? "paciente"}`,
-      recommendedAction: "Conferir lançamento financeiro do atendimento e confirmar recebimento.",
+      recommendedAction: `Conferir no Simples Dental o lançamento do atendimento de ${dataBr(appt.completedAt)} e confirmar se houve recebimento.`,
       assignedToRole: "financeiro",
       financialImpact: null,
       dueAt: null,
@@ -135,7 +138,7 @@ function ruleReceivableOverdue(snapshot: ClinicSnapshot, now: Date): GeneratedAl
       patientId: r.patientId,
       patientName: patientName(snapshot, r.patientId),
       title: `Recebível vencido de ${patientName(snapshot, r.patientId) ?? "paciente"}`,
-      recommendedAction: "Acionar cobrança conforme política da clínica.",
+      recommendedAction: `Cobrar ${brl(r.amount)} vencido em ${dataBr(r.dueAt)} — registre o contato na Fila.`,
       assignedToRole: "financeiro",
       financialImpact: r.amount,
       dueAt: r.dueAt,
@@ -238,6 +241,31 @@ export function sortAlertsByPriority(alerts: GeneratedAlert[]): GeneratedAlert[]
 }
 
 /**
+ * Recebíveis vencidos viram UM item agregado em "Precisa de você"/prioridades (a lista detalhada
+ * fica só no Financeiro) — evita repetir o mesmo recebível em três áreas do /hoje.
+ */
+export function agruparRecebiveisVencidos(alerts: GeneratedAlert[]): GeneratedAlert[] {
+  const vencidos = alerts.filter((a) => a.ruleId === "receivable_overdue");
+  if (vencidos.length <= 1) return alerts;
+  const total = vencidos.reduce((s, a) => s + (a.financialImpact ?? 0), 0);
+  const maior = [...vencidos].sort((a, b) => (b.financialImpact ?? 0) - (a.financialImpact ?? 0))[0]!;
+  const agregado: GeneratedAlert = {
+    id: "receivable-overdue-agregado",
+    ruleId: "receivable_overdue",
+    category: "financeiro",
+    priority: "critical",
+    patientId: null,
+    patientName: null,
+    title: `${vencidos.length} recebíveis vencidos — ${brl(total)}`,
+    recommendedAction: `Maior: ${maior.patientName ?? "paciente"}, ${brl(maior.financialImpact ?? 0)}${maior.dueAt ? ` desde ${dataBr(maior.dueAt)}` : ""}. Lista completa em Financeiro; a cobrança é registrada na Fila.`,
+    assignedToRole: "financeiro",
+    financialImpact: total,
+    dueAt: vencidos.map((a) => a.dueAt).filter((d): d is string => !!d).sort()[0] ?? null,
+  };
+  return [...alerts.filter((a) => a.ruleId !== "receivable_overdue"), agregado];
+}
+
+/**
  * Gera as "3 prioridades do dia" combinando alertas e oportunidades por
  * impacto financeiro estimado, urgencia e prioridade - nunca por ordem
  * cronologica simples (requisito explicito do briefing).
@@ -257,7 +285,7 @@ export function topPriorities(
   const urgencyWeight = { alta: 3, media: 2, baixa: 1 } as const;
   const fromOpportunities = result.opportunities.map((o) => ({
     title: o.title,
-    action: "Avaliar e acionar oportunidade.",
+    action: o.estimatedValue ? `Contatar ${o.patientName} — potencial estimado de ${brl(o.estimatedValue)}.` : `Contatar ${o.patientName} e propor o próximo passo.`,
     score: urgencyWeight[o.urgency] * 80 + (o.estimatedValue ?? 0) / 100,
   }));
 
