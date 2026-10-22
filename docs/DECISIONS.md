@@ -325,3 +325,13 @@ Plano completo: [`PLANO_FILA_CONCIERGE.md`](./PLANO_FILA_CONCIERGE.md). Decidido
 - Pendente para depois do MVP: anular atendimento já confirmado a partir de um card de marco (hoje
   a anulação aparece no item "conferir atendimento"), exportação/backup e importador do JSON do
   `feedback-concierge.html`.
+
+## 2026-10-21 — Migration 0012 (fila da concierge) aplicada e verificada em produção
+
+Aplicada no projeto `stimma-os` (`fjxvseuopzhfwdraszvp`, conta `larissaandrade.odonto@gmail.com`)
+pelo SQL Editor via Claude in Chrome, com checagem prévia (nenhuma tabela da 0012 existia). As
+cinco consultas de verificação passaram: 7 tabelas novas, 2 funções
+(`confirmar_atendimento_realizado`, `anular_atendimento`), `31/08 + 6 meses = 2027-02-28`, colunas
+novas em `appointments`/`tasks` e RLS ligado nas 7 tabelas. Nenhum dado existente foi alterado.
+O código das telas (`/entrada`, `/fila`, `/fechamento`) continua só no branch `fila-concierge`,
+ainda não publicado.

@@ -1,6 +1,6 @@
 -- STIMMA OS — 0012: fila da concierge (entrada da gestão, marcos automáticos, eventos)
 -- Ver docs/PLANO_FILA_CONCIERGE.md e docs/DECISIONS.md (2026-10-20).
--- NÃO APLICADA. Aplicar pelo SQL Editor com a consulta de verificação ao final (regra do projeto).
+-- APLICADA em produção (stimma-os, fjxvseuopzhfwdraszvp) em 2026-10-21 pelo SQL Editor; verificação ao final conferida.
 --
 -- Conceitos separados:
 --   atendimento de referência  = appointments confirmado como realizado
