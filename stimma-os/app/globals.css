@@ -52,3 +52,36 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-sans);
 }
+
+/* Tema "Feedback diário" — mesmo padrão visual do feedback-concierge.html (tons claros, verde
+   discreto, títulos com serifa). Sempre claro, também no modo escuro do sistema. */
+.tema-feedback {
+  --color-ink: #1f2421;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fbfaf7;
+  --color-border: #e6e2d9;
+  --color-text-primary: #1f2421;
+  --color-text-secondary: #464c48;
+  --color-text-muted: #767b77;
+  --color-accent: #3d6b55;
+  --color-accent-soft: #e6efe9;
+  --color-critical: #8a3f3a;
+  --color-critical-bg: #f9eeeb;
+  --color-important: #86652a;
+  --color-important-bg: #f7f0e1;
+  --color-opportunity: #3d6b55;
+  --color-opportunity-bg: #e6efe9;
+  --color-informative: #4a5f6e;
+  --color-informative-bg: #eef2f4;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f6f4ef;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  color-scheme: light;
+}
+.tema-feedback .fb-card { background: #ffffff; border: 1px solid #e6e2d9; border-radius: 14px; }
+.tema-feedback .fb-eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #767b77; }
+.tema-feedback .fb-num { width: 28px; height: 28px; border-radius: 9999px; border: 1px solid #d5d0c5; display: grid; place-items: center; font-size: 13px; color: #464c48; flex: none; }
+.tema-feedback .fb-chip { height: 34px; padding: 0 14px; border-radius: 9999px; border: 1px solid #d5d0c5; background: #fff; font-size: 13.5px; }
+.tema-feedback .fb-chip[data-ativo="true"] { background: #3d6b55; border-color: #3d6b55; color: #fff; }

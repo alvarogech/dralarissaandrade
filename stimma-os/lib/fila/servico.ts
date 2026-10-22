@@ -440,7 +440,7 @@ export async function registrarAcao(store: FilaStore, ator: Ator, e: EntradaAcao
     if (e.acao === "contato") await store.atualizarTarefa(t.id, e.novaData ? { status: "open", due: e.novaData, nextAction: proxima } : { status: "waiting", waiting: true, nextAction: proxima });
     if (precisaNovaData) await store.atualizarTarefa(t.id, { status: "open", due: e.novaData!, nextAction: proxima });
     if (e.acao === "agendamento") await store.atualizarTarefa(t.id, { status: "completed", closedReason: `agendamento obtido para ${dataBr(e.agendadoPara!)}` });
-    if (e.acao === "recebimento") await store.atualizarTarefa(t.id, { status: "completed", closedReason: "recebimento_confirmado" });
+    if (e.acao === "recebimento") await store.atualizarTarefa(t.id, { status: "completed", closedReason: `recebimento confirmado: R$ ${e.valor!.toFixed(2).replace(".", ",")} (${e.origemValor!.replace(/_/g, " ")})` });
     if (e.acao === "encerrar") await store.atualizarTarefa(t.id, { status: desfecho === "resolvido" ? "completed" : "cancelled", closedReason: e.motivo!.trim() });
     if (e.acao === "comparecimento") await store.atualizarTarefa(t.id, { status: "completed", closedReason: e.compareceu ? "compareceu" : "faltou" });
   }
@@ -489,7 +489,7 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo()): Pro
   const itens: ItemFila[] = [
     ...marcos.map((m): ItemFila => ({
       id: `marco:${m.id}`, alvo: { tipo: "marco", id: m.id }, pacienteId: m.patientId, pacienteNome: nome(m.patientId), tipo: "marco",
-      titulo: `Acompanhamento de ${ROTULO_MARCO[m.kind]}`,
+      titulo: `Acompanhamento de ${ROTULO_MARCO[m.kind]}`, subtipo: m.kind,
       detalhe: m.dueCurrent !== m.dueOriginal ? `previsto para ${dataBr(m.dueOriginal)}, adiado` : undefined,
       proximaAcao: m.status === "previsto" || m.status === "contatado" ? m.statusReason ?? undefined : undefined,
       contexto: m.status === "contemplado" || m.status === "dispensado" ? m.statusReason ?? undefined : undefined,

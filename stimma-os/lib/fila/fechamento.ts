@@ -21,6 +21,7 @@ export interface LinhaAcao {
 export interface Fechamento {
   dia: string;
   acoes: LinhaAcao[];
+  contagens: { contatos: number; respostas: number; agendamentos: number; recebimentos: number; valorRecebido: number; encerrados: number; adiados: number };
   aguardando: { ref: string; paciente: string; item: string }[];
   agendamentos: { ref: string; paciente: string; data: string }[];
   recebimentos: { ref: string; paciente: string; valor: number; origem: string }[];
@@ -105,9 +106,14 @@ export function montarFechamento(dia: string, eventos: EventoRow[], fila: Fila, 
     .slice(0, 12)
     .map(({ i, nome: n }) => ({ ref: refDoItem(i.alvo!), paciente: nomeCurto(n), item: i.titulo, due: i.due }));
 
+  const conta = (k: EventoRow["kind"]) => eventos.filter((e) => e.kind === k).length;
   return {
     dia,
     acoes,
+    contagens: {
+      contatos: conta("contato"), respostas: conta("resposta"), agendamentos: conta("agendamento_obtido"), recebimentos: conta("recebimento_confirmado"),
+      valorRecebido: recebimentos.reduce((s, r) => s + r.valor, 0), encerrados: conta("encerramento"), adiados: conta("adiamento"),
+    },
     aguardando: fila.aguardando.flatMap((c) => c.itens.map((i) => ({ ref: refDoItem(i.alvo!), paciente: nomeCurto(c.pacienteNome), item: i.titulo }))),
     agendamentos,
     recebimentos,

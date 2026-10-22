@@ -7,16 +7,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { CartaoPaciente, ItemFila, Secao } from "@/lib/fila/agrupamento";
-import type { Acao, FilaCarregada } from "@/lib/fila/servico";
+import type { Acao } from "@/lib/fila/servico";
 import { Campo, Historico, ROTULO_TIPO, brl, chamarApi, classeInput, dataBr, numeroBr } from "./comum";
-
-const SECOES: { key: Secao; label: string; vazio: string }[] = [
-  { key: "atrasadas", label: "Atrasadas", vazio: "Nada atrasado." },
-  { key: "hoje", label: "Hoje", vazio: "Nada pendente para hoje." },
-  { key: "aguardando", label: "Aguardando resposta", vazio: "Ninguém aguardando resposta." },
-  { key: "proximas", label: "Próximos dias", vazio: "Nada nos próximos 30 dias." },
-  { key: "concluidas", label: "Concluídas hoje", vazio: "Nada concluído hoje ainda." },
-];
 
 const ORIGENS_VALOR = [
   { value: "parcela", label: "Parcela" },
@@ -26,46 +18,7 @@ const ORIGENS_VALOR = [
   { value: "outro", label: "Outro" },
 ];
 
-export function FilaView({ dados, gestao }: { dados: FilaCarregada; gestao: boolean }) {
-  const inicial: Secao = dados.fila.atrasadas.length ? "atrasadas" : "hoje";
-  const [secao, setSecao] = useState<Secao>(inicial);
-  const [aberto, setAberto] = useState<string | null>(null);
-  const cartoes = dados.fila[secao];
-  const n = (s: Secao) => dados.fila[s].length;
-
-  return (
-    <div>
-      <header className="mb-5">
-        <h1 className="font-serif text-2xl text-text-primary">Fila</h1>
-        <p className="text-sm text-text-secondary">
-          {n("hoje") + n("atrasadas")} {n("hoje") + n("atrasadas") === 1 ? "paciente" : "pacientes"} para hoje{n("atrasadas") ? `, ${n("atrasadas")} com atraso` : ""}.
-          {dados.maisTarde ? ` ${dados.maisTarde} itens previstos para depois de 30 dias.` : ""}
-        </p>
-      </header>
-
-      <div className="mb-4 flex flex-wrap gap-1">
-        {SECOES.map((s) => (
-          <button key={s.key} onClick={() => { setSecao(s.key); setAberto(null); }}
-            className={clsx("rounded-sm px-3 py-1.5 text-sm", s.key === secao ? "bg-accent-soft font-medium text-text-primary" : "text-text-secondary hover:bg-surface-raised", s.key === "atrasadas" && n("atrasadas") > 0 && s.key !== secao && "text-critical")}>
-            {s.label} <span className="text-text-muted">{n(s.key)}</span>
-          </button>
-        ))}
-      </div>
-
-      {cartoes.length === 0 ? (
-        <p className="rounded-md border border-border p-4 text-sm text-text-muted">{SECOES.find((s) => s.key === secao)!.vazio}</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {cartoes.map((c) => (
-            <Cartao key={c.pacienteId} cartao={c} secao={secao} gestao={gestao} aberto={aberto === c.pacienteId} onToggle={() => setAberto(aberto === c.pacienteId ? null : c.pacienteId)} />
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function LinhaItem({ item, secao }: { item: ItemFila; secao: Secao }) {
+export function LinhaItem({ item, secao }: { item: ItemFila; secao: Secao }) {
   return (
     <div className="flex flex-col gap-0.5 text-sm">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -85,10 +38,10 @@ function LinhaItem({ item, secao }: { item: ItemFila; secao: Secao }) {
   );
 }
 
-function Cartao({ cartao, secao, gestao, aberto, onToggle }: { cartao: CartaoPaciente; secao: Secao; gestao: boolean; aberto: boolean; onToggle: () => void }) {
+export function Cartao({ cartao, secao, gestao, aberto, onToggle }: { cartao: CartaoPaciente; secao: Secao; gestao: boolean; aberto: boolean; onToggle: () => void }) {
   const podeAgir = secao !== "concluidas";
   return (
-    <li className="rounded-md border border-border bg-surface-raised/60 p-4">
+    <li className="rounded-[12px] border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="font-medium text-text-primary">

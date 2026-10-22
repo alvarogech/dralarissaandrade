@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const PRIMARY_NAV = [
-  { label: "Fila", href: "/fila" },
+  { label: "Feedback diário", href: "/fila" },
   { label: "Fechamento", href: "/fechamento" },
   { label: "Gestão", href: "/entrada" },
   { label: "Hoje", href: "/hoje" },
