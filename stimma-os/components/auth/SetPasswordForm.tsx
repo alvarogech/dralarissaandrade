@@ -136,7 +136,14 @@ export function SetPasswordForm() {
     setLoading(false);
 
     if (updateError) {
-      setError("Não foi possível definir a senha. Peça um novo convite à administração.");
+      // Mostra o motivo real (requisito de senha, senha repetida, sessão expirada) em vez de genérico.
+      const msg = updateError.message ?? "";
+      const code = (updateError as { code?: string }).code ?? "";
+      if (code === "same_password" || /different from the old/i.test(msg)) setError("A nova senha precisa ser diferente da senha atual.");
+      else if (code === "weak_password" || /password should|weak/i.test(msg)) setError(`A senha não atende aos requisitos de segurança: ${msg}`);
+      else if (code === "reauthentication_needed" || /reauthentic/i.test(msg)) setError("Por segurança, entre de novo (código por e-mail) e defina a senha logo em seguida.");
+      else if (/session|jwt|expired/i.test(msg)) setError("Seu link expirou. Peça um novo em “Esqueci minha senha” e abra-o neste mesmo navegador.");
+      else setError(`Não foi possível definir a senha: ${msg || "erro desconhecido"}`);
       return;
     }
 
