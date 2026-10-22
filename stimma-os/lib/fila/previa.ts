@@ -31,10 +31,19 @@ export interface AtendimentoExistente {
   chave_origem?: string;
 }
 
+export interface TarefaAberta {
+  id: string;
+  pacienteId: string;
+  kind: string;
+  titulo: string;
+}
+
 export interface EstadoAtual {
   pacientes: PacienteConhecido[];
   registros: RegistroExistente[];
   atendimentos: AtendimentoExistente[];
+  /** Tarefas abertas: item sem chave do mesmo tipo e paciente vira possível duplicidade. */
+  tarefasAbertas?: TarefaAberta[];
 }
 
 export interface ItemPrevia {
@@ -136,6 +145,14 @@ export function montarPrevia(itens: ItemValidado[], estado: EstadoAtual): ItemPr
         return { ...comPaciente, classificacao: "possivel_duplicidade", motivo: "já existe atendimento desta paciente nesta data — confirme se é outro atendimento" };
       }
       vistosAtendimento.set(k, v.index);
+    }
+
+    // Tarefa sem chave: já existe tarefa aberta do mesmo tipo para a paciente?
+    if (it.tipo !== "atendimento_realizado" && !it.chave_origem && pacienteId) {
+      const parecida = (estado.tarefasAbertas ?? []).find((t) => t.pacienteId === pacienteId && t.kind === it.tipo);
+      if (parecida) {
+        return { ...comPaciente, classificacao: "possivel_duplicidade", motivo: `já existe tarefa aberta parecida: "${parecida.titulo}" — confirme se é outra pendência` };
+      }
     }
 
     return { ...comPaciente, classificacao: "novo", motivo: pacienteId ? "item novo para paciente existente" : "item novo; a paciente será cadastrada" };

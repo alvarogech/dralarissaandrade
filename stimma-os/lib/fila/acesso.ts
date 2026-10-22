@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { isAuthorized } from "@/lib/auth-guard";
-import { storeDemo } from "./store-memoria";
+import { PERFIS_DEMO, storeDemo } from "./store-memoria";
 import { criarStoreSupabase } from "./store-supabase";
 import { ErroRegra, type Ator } from "./servico";
+import { ErroIA } from "./ia";
 import type { FilaStore } from "./store";
 
 /**
  * Quem está agindo e com qual store. Sessão + perfil ativo (mesma barreira do middleware);
- * gestão = papel `admin` em user_roles. Sem Supabase configurado → modo demonstração em memória
- * (ator fictício com papel de gestão), nunca o banco real.
+ * gestão = papel `admin` em user_roles. Sem Supabase configurado → modo demonstração em memória,
+ * nunca o banco real; ali o papel (gestão/concierge) vem do cookie `fila-demo-papel`, para testar
+ * as duas visões em sessões separadas.
  */
 export interface Contexto {
   ator: Ator;
@@ -18,10 +21,14 @@ export interface Contexto {
   demo: boolean;
 }
 
+export const COOKIE_PAPEL_DEMO = "fila-demo-papel";
+
 export async function contextoDaSessao(): Promise<Contexto | null> {
   const supabase = createSupabaseServerClient();
   if (!supabase) {
-    return { ator: { id: "00000000-0000-4000-8000-000000000000", email: "demo@stimma.local", gestao: true }, store: storeDemo().store, demo: true };
+    const gabi = cookies().get(COOKIE_PAPEL_DEMO)?.value === "gabi";
+    const perfil = gabi ? PERFIS_DEMO[1]! : PERFIS_DEMO[0]!;
+    return { ator: { id: perfil.id, email: gabi ? "gabi@demo.local" : "gestao@demo.local", gestao: !gabi }, store: storeDemo().store, demo: true };
   }
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -36,14 +43,14 @@ export async function contextoDaSessao(): Promise<Contexto | null> {
   return { ator: { id: user.id, email: user.email ?? user.id, gestao }, store: criarStoreSupabase(service, profile.organization_id), demo: false };
 }
 
-/** Envelope comum dos Route Handlers da fila. */
+/** Envelope comum dos Route Handlers da fila: falha de gravação sempre volta como erro visível. */
 export async function rotaFila(fn: (ctx: Contexto) => Promise<unknown>) {
   const ctx = await contextoDaSessao();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   try {
     return NextResponse.json(await fn(ctx));
   } catch (e) {
-    if (e instanceof ErroRegra) return NextResponse.json({ error: e.message }, { status: e.status });
+    if (e instanceof ErroRegra || e instanceof ErroIA) return NextResponse.json({ error: e.message }, { status: e.status });
     console.error("[fila]", e);
     return NextResponse.json({ error: "Erro inesperado. Recarregue a página e confira o que entrou antes de tentar de novo." }, { status: 500 });
   }

@@ -3,7 +3,7 @@ import Link from "next/link";
 const PRIMARY_NAV = [
   { label: "Fila", href: "/fila" },
   { label: "Fechamento", href: "/fechamento" },
-  { label: "Entrada", href: "/entrada" },
+  { label: "Gestão", href: "/entrada" },
   { label: "Hoje", href: "/hoje" },
   { label: "Pipeline", href: "/pipeline" },
   { label: "Agenda", href: null },

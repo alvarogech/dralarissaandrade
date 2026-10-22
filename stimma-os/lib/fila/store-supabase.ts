@@ -36,12 +36,29 @@ function tarefaRow(t: Rec): TarefaRow {
     due: t.next_action_due ?? String(t.due_at ?? t.created_at).slice(0, 10), aConferir: t.a_conferir ?? [], payload: t.payload ?? {},
     financialImpact: t.financial_impact === null ? null : Number(t.financial_impact), closedReason: t.closed_reason, updatedAt: t.updated_at ?? t.created_at,
     temEventoVinculado: (t.event_links ?? []).length > 0,
+    assignedTo: t.assigned_to ?? null, nextAction: t.next_action ?? null, origem: t.origem ?? null,
   };
 }
 
 const COLS_ATEND = "id, patient_id, chave_origem, data_realizada, data_status, realizado_confirmado_em, anulado_em, created_at";
 const COLS_MARCO = "id, appointment_id, patient_id, kind, due_original, due_current, status, status_reason, updated_at, event_links(event_id)";
-const COLS_TAREFA = "id, patient_id, kind, title, chave_origem, status, next_action_due, due_at, a_conferir, payload, financial_impact, closed_reason, updated_at, created_at, event_links(event_id)";
+const COLS_TAREFA = "id, patient_id, kind, title, chave_origem, status, next_action_due, due_at, a_conferir, payload, financial_impact, closed_reason, updated_at, created_at, assigned_to, next_action, origem, event_links(event_id)";
+const COLS_EVENTO = "id, patient_id, kind, occurred_on, channel, notes, amount, amount_origin, scheduled_for, created_by, recorded_at, event_links(milestone_id, task_id)";
+
+function eventoRow(e: Rec): EventoRow {
+  return {
+    id: e.id, patientId: e.patient_id, kind: e.kind, occurredOn: e.occurred_on, channel: e.channel, notes: e.notes,
+    amount: e.amount === null ? null : Number(e.amount), amountOrigin: e.amount_origin, scheduledFor: e.scheduled_for, createdBy: e.created_by,
+    alvos: (e.event_links ?? []).map((l: Rec) => (l.milestone_id ? { marcoId: l.milestone_id } : { tarefaId: l.task_id })),
+  };
+}
+
+/** Faixa de UUIDs que começam com o prefixo (até 8 hex) — para resolver a referência curta do feedback. */
+function faixaUuid(prefixo: string): [string, string] | null {
+  if (!/^[0-9a-f]{4,8}$/i.test(prefixo)) return null;
+  const p = prefixo.toLowerCase();
+  return [`${p.padEnd(8, "0")}-0000-0000-0000-000000000000`, `${p.padEnd(8, "f")}-ffff-ffff-ffff-ffffffffffff`];
+}
 
 export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
   const store: FilaStore = {
@@ -144,15 +161,31 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       return !!data;
     },
     async eventosDoDia(dia) {
-      const { data, error } = await db.from("interaction_events")
-        .select("id, patient_id, kind, occurred_on, channel, notes, amount, amount_origin, scheduled_for, created_by, event_links(milestone_id, task_id)")
-        .eq("organization_id", org).eq("occurred_on", dia);
+      const { data, error } = await db.from("interaction_events").select(COLS_EVENTO).eq("organization_id", org).eq("occurred_on", dia).order("recorded_at");
       falhou(error, "eventosDoDia");
-      return (data ?? []).map((e: Rec): EventoRow => ({
-        id: e.id, patientId: e.patient_id, kind: e.kind, occurredOn: e.occurred_on, channel: e.channel, notes: e.notes,
-        amount: e.amount === null ? null : Number(e.amount), amountOrigin: e.amount_origin, scheduledFor: e.scheduled_for, createdBy: e.created_by,
-        alvos: (e.event_links ?? []).map((l: Rec) => (l.milestone_id ? { marcoId: l.milestone_id } : { tarefaId: l.task_id })),
-      }));
+      return (data ?? []).map(eventoRow);
+    },
+    async eventosDoAlvo(alvo) {
+      const col = alvo.marcoId ? "milestone_id" : "task_id";
+      const { data: links, error } = await db.from("event_links").select("event_id").eq(col, alvo.marcoId ?? alvo.tarefaId!);
+      falhou(error, "eventosDoAlvo/links");
+      const ids = (links ?? []).map((l: Rec) => l.event_id);
+      if (!ids.length) return [];
+      const { data, error: e2 } = await db.from("interaction_events").select(COLS_EVENTO).eq("organization_id", org).in("id", ids).order("recorded_at");
+      falhou(e2, "eventosDoAlvo");
+      return (data ?? []).map(eventoRow);
+    },
+    async resolverRef(tipo, prefixo) {
+      const faixa = faixaUuid(prefixo);
+      if (!faixa) return [];
+      const { data, error } = await db.from(tipo === "tarefa" ? "tasks" : "follow_up_milestones").select("id").eq("organization_id", org).gte("id", faixa[0]).lte("id", faixa[1]);
+      falhou(error, "resolverRef");
+      return (data ?? []).map((r: Rec) => r.id as string);
+    },
+    async perfis() {
+      const { data, error } = await db.from("profiles").select("id, full_name").eq("organization_id", org).eq("active", true).order("full_name");
+      falhou(error, "perfis");
+      return (data ?? []).map((p: Rec) => ({ id: p.id, nome: p.full_name }));
     },
     async numerosDoDia(dia) {
       const { data } = await db.from("daily_manual_figures").select("*").eq("organization_id", org).eq("day", dia).maybeSingle();
@@ -202,6 +235,7 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
         organization_id: org, patient_id: t.patientId, title: t.title, source: "fila_entrada", kind: t.kind, chave_origem: t.chaveOrigem,
         origem: t.origem, origem_data: t.origemData, a_conferir: t.aConferir, payload: t.payload, financial_impact: t.financialImpact,
         next_action_due: t.due, due_at: meioDia(t.due), updated_at: new Date().toISOString(),
+        assigned_to: t.assignedTo ?? null, next_action: t.nextAction ?? null,
       }).select("id").single();
       falhou(error, "criarTarefa");
       return data!.id as string;
@@ -234,7 +268,12 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
         patch.due_at = meioDia(t.due);
       }
       if (t.closedReason !== undefined) patch.closed_reason = t.closedReason;
-      patch.waiting_since = t.waiting ? new Date().toISOString() : null;
+      if (t.title !== undefined) patch.title = t.title;
+      if (t.nextAction !== undefined) patch.next_action = t.nextAction;
+      if (t.assignedTo !== undefined) patch.assigned_to = t.assignedTo;
+      if (t.payload !== undefined) patch.payload = t.payload;
+      if (t.financialImpact !== undefined) patch.financial_impact = t.financialImpact;
+      if (t.waiting !== undefined || t.status !== undefined) patch.waiting_since = t.waiting ? new Date().toISOString() : null;
       falhou((await db.from("tasks").update(patch).eq("organization_id", org).eq("id", id)).error, "atualizarTarefa");
     },
     async salvarNumeros(dia, n, ator) {

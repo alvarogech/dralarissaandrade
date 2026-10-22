@@ -52,6 +52,9 @@ export interface TarefaRow {
   closedReason: string | null;
   updatedAt: string;
   temEventoVinculado: boolean;
+  assignedTo: string | null;
+  nextAction: string | null;
+  origem: string | null;
 }
 
 export interface EventoRow {
@@ -93,6 +96,11 @@ export interface FilaStore {
   tarefa(id: string): Promise<TarefaRow | null>;
   nomesPacientes(ids: string[]): Promise<Record<string, string>>;
   eventoExiste(id: string): Promise<boolean>;
+  /** Eventos vinculados a um item, do mais antigo ao mais novo (histórico). */
+  eventosDoAlvo(alvo: { marcoId?: string; tarefaId?: string }): Promise<EventoRow[]>;
+  /** Ids de tarefas/marcos cujo id começa com o prefixo (referência curta do feedback). */
+  resolverRef(tipo: "tarefa" | "marco", prefixo: string): Promise<string[]>;
+  perfis(): Promise<{ id: string; nome: string }[]>;
   eventosDoDia(dia: string): Promise<EventoRow[]>;
   numerosDoDia(dia: string): Promise<NumerosDoDia | null>;
 
@@ -104,11 +112,11 @@ export interface FilaStore {
   /** Regra atômica do banco: marca realizado e cria/recalcula os 3 marcos (migration 0012). */
   confirmarAtendimento(id: string, data: string, ator: string): Promise<void>;
   anularAtendimento(id: string, motivo: string, ator: string): Promise<void>;
-  criarTarefa(t: { patientId: string; kind: TipoTarefa; title: string; chaveOrigem: string | null; due: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null; origem: string; origemData: string }): Promise<string>;
+  criarTarefa(t: { patientId: string; kind: TipoTarefa; title: string; chaveOrigem: string | null; due: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null; origem: string; origemData: string; assignedTo?: string | null; nextAction?: string | null }): Promise<string>;
   atualizarTarefaEntrada(id: string, t: { title: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null }): Promise<void>;
   registrarEvento(e: EventoRow): Promise<void>;
   atualizarMarco(id: string, m: { status?: StatusMarcoDb; statusReason?: string | null; dueCurrent?: string }): Promise<void>;
-  atualizarTarefa(id: string, t: { status?: StatusTarefaDb; due?: string; closedReason?: string | null; waiting?: boolean }): Promise<void>;
+  atualizarTarefa(id: string, t: { status?: StatusTarefaDb; due?: string; closedReason?: string | null; waiting?: boolean; title?: string; nextAction?: string | null; assignedTo?: string | null; payload?: Record<string, unknown>; financialImpact?: number | null }): Promise<void>;
   salvarNumeros(dia: string, n: NumerosDoDia, ator: string): Promise<void>;
   auditar(a: { actor: string; action: string; target: string; before?: unknown; after?: unknown; reason?: string | null }): Promise<void>;
 }

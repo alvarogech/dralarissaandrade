@@ -9,6 +9,11 @@ import type { AtendimentoRow, EventoRow, FilaStore, MarcoRow, NumerosDoDia, Tare
  * atômicas do banco (confirmar_atendimento_realizado / anular_atendimento) usando as mesmas
  * funções puras de marcos.ts. Nunca é usada com Supabase configurado.
  */
+export const PERFIS_DEMO = [
+  { id: "00000000-0000-4000-8000-000000000001", nome: "Gestão (demonstração)" },
+  { id: "00000000-0000-4000-8000-000000000002", nome: "Gabi (demonstração)" },
+];
+
 export function criarStoreMemoria() {
   const pacientes: { id: string; nome: string; telefone?: string; ids: Record<string, string> }[] = [];
   const atendimentos: AtendimentoRow[] = [];
@@ -83,6 +88,16 @@ export function criarStoreMemoria() {
     async eventoExiste(id) {
       return eventos.some((e) => e.id === id);
     },
+    async eventosDoAlvo(alvo) {
+      return eventos.filter((e) => e.alvos.some((a) => (alvo.marcoId && a.marcoId === alvo.marcoId) || (alvo.tarefaId && a.tarefaId === alvo.tarefaId)));
+    },
+    async resolverRef(tipo, prefixo) {
+      const p = prefixo.toLowerCase();
+      return (tipo === "tarefa" ? tarefas : marcos).filter((r) => r.id.toLowerCase().startsWith(p)).map((r) => r.id);
+    },
+    async perfis() {
+      return PERFIS_DEMO;
+    },
     async eventosDoDia(d) {
       return eventos.filter((e) => e.occurredOn === d);
     },
@@ -137,7 +152,11 @@ export function criarStoreMemoria() {
     },
     async criarTarefa(t) {
       const id = randomUUID();
-      tarefas.push({ id, patientId: t.patientId, kind: t.kind, title: t.title, chaveOrigem: t.chaveOrigem, status: "open", due: t.due, aConferir: t.aConferir, payload: t.payload, financialImpact: t.financialImpact, closedReason: null, updatedAt: agora() });
+      tarefas.push({
+        id, patientId: t.patientId, kind: t.kind, title: t.title, chaveOrigem: t.chaveOrigem, status: "open", due: t.due, aConferir: t.aConferir,
+        payload: t.payload, financialImpact: t.financialImpact, closedReason: null, updatedAt: agora(),
+        assignedTo: t.assignedTo ?? null, nextAction: t.nextAction ?? null, origem: t.origem,
+      });
       return id;
     },
     async atualizarTarefaEntrada(id, t) {

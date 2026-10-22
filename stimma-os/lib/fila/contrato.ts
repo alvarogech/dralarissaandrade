@@ -8,7 +8,7 @@ import { isDiaIso } from "./datas";
  * sem confirmação; `nota_ia` é só contexto (nunca fato clínico, dívida confirmada ou ação feita).
  */
 export const CONTRATO = "stimma-entrada-v1";
-export const TIPOS_ENTRADA = ["atendimento_realizado", "cobranca", "recuperacao_falta", "continuidade", "relacionamento", "encaminhamento"] as const;
+export const TIPOS_ENTRADA = ["atendimento_realizado", "cobranca", "recuperacao_falta", "continuidade", "relacionamento", "encaminhamento", "outro"] as const;
 export type TipoEntrada = (typeof TIPOS_ENTRADA)[number];
 export const MAX_ITENS = 500;
 
@@ -104,7 +104,16 @@ export function validarItem(bruto: unknown, index: number, cab: CabecalhoLote): 
   const dados: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(o)) if (!CAMPOS_COMUNS.includes(k)) dados[k] = v;
 
+  // Campos genéricos de qualquer tarefa: ação pedida, contexto e prazo explícito.
+  if (o.prazo !== undefined && o.prazo !== null && !isDiaIso(texto(o.prazo))) erros.push("prazo precisa ser uma data exata (AAAA-MM-DD)");
+  if (o.acao !== undefined && typeof o.acao !== "string") erros.push("acao precisa ser texto");
+  if (o.contexto !== undefined && typeof o.contexto !== "string") erros.push("contexto precisa ser texto");
+
   switch (tipo) {
+    case "outro": {
+      if (!texto(o.acao)) erros.push("acao é obrigatória para tarefas do tipo outro");
+      break;
+    }
     case "atendimento_realizado": {
       const d = texto(o.data_atendimento);
       if (!isDiaIso(d)) erros.push("data_atendimento exata (AAAA-MM-DD) é obrigatória — datas aproximadas não geram marcos");

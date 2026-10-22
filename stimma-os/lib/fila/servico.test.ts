@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { criarStoreMemoria } from "./store-memoria";
-import { anularAtendimento, carregarFila, confirmarAtendimentoPendente, confirmarEntrada, previaEntrada, registrarAcao, type Ator } from "./servico";
+import { analisarFeedback, anularAtendimento, carregarFechamento, carregarFila, confirmarAtendimentoPendente, confirmarEntrada, criarTarefaManual, editarTarefa, historico, previaEntrada, registrarAcao, type Ator } from "./servico";
 
 // Dados fictícios; store em memória — nunca o banco real.
 const GESTAO: Ator = { id: "u-gestao", email: "gestao@exemplo.test", gestao: true };
@@ -107,7 +107,7 @@ describe("ações na fila", () => {
   it("adiar exige data e motivo; preserva a data original do marco", async () => {
     const { store, _dados } = await comCobranca();
     const d30 = _dados.marcos.find((m) => m.kind === "d30")!;
-    await expect(registrarAcao(store, GABI, { eventoId: randomUUID(), alvos: [{ tipo: "marco", id: d30.id }], acao: "adiar", novaData: "2026-11-20" })).rejects.toThrow(/motivo/);
+    await expect(registrarAcao(store, GABI, { eventoId: randomUUID(), alvos: [{ tipo: "marco", id: d30.id }], acao: "adiar", novaData: "2026-11-20" })).rejects.toThrow(/justificativa/);
     await registrarAcao(store, GABI, { eventoId: randomUUID(), alvos: [{ tipo: "marco", id: d30.id }], acao: "adiar", novaData: "2026-11-20", motivo: "viajando" });
     expect(_dados.marcos.find((m) => m.id === d30.id)).toMatchObject({ dueOriginal: "2026-11-14", dueCurrent: "2026-11-20", status: "previsto" });
   });
@@ -141,11 +141,12 @@ describe("ações na fila", () => {
     await expect(registrarAcao(store, GABI, { eventoId: randomUUID(), alvos: [{ tipo: "tarefa", id: t.id }], acao: "contato" })).rejects.toThrow(/encerrado/);
   });
 
-  it("fila: cobrança vencida em hoje; marcos distantes ficam fora do horizonte", async () => {
+  it("fila: cobrança vencida aparece em atrasadas; marcos distantes ficam fora do horizonte", async () => {
     const { store } = await comCobranca();
     const f = await carregarFila(store);
-    expect(f.fila.hoje).toHaveLength(1);
-    expect(f.fila.hoje[0]!.itens[0]!.valor).toBe(450);
+    expect(f.fila.atrasadas).toHaveLength(1);
+    expect(f.fila.atrasadas[0]!.atrasoDias).toBe(2);
+    expect(f.fila.atrasadas[0]!.itens[0]!.valor).toBe(450);
     expect(f.fila.proximas[0]!.itens.map((i) => i.titulo)).toEqual(["Acompanhamento de 30 dias"]);
     expect(f.maisTarde).toBe(2);
   });

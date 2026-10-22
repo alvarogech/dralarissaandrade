@@ -335,3 +335,38 @@ cinco consultas de verificação passaram: 7 tabelas novas, 2 funções
 novas em `appointments`/`tasks` e RLS ligado nas 7 tabelas. Nenhum dado existente foi alterado.
 O código das telas (`/entrada`, `/fila`, `/fechamento`) continua só no branch `fila-concierge`,
 ainda não publicado.
+
+## 2026-10-22 — Fila: fluxo completo gestão → concierge → feedback → continuidade
+
+Auditoria pedida pelo usuário mostrou lacunas na primeira versão (entrada só JSON, sem prévia
+editável, sem importação de feedback, sem gestão manual de tarefas). Corrigido, aproveitando o que
+existia:
+
+- **Prévia editável** em /entrada (aba Levantamento): toda proposta pode ser corrigida (paciente,
+  tipo, ação, contexto, prazo, valores, datas, origem) e é reconferida no servidor (vínculo,
+  duplicidade) antes de publicar. Itens manuais no mesmo editor.
+- **Conversão de texto livre por IA**, só no servidor (`lib/fila/ia.ts`, `@anthropic-ai/sdk`,
+  modelo `claude-opus-5-5`, saída em JSON schema, `fallbacks: "default"`). O texto colado vai
+  delimitado como dado; a saída passa pelo validador do contrato e pela prévia; nunca vira tarefa
+  sem confirmação. Ref de tarefa inventada pela IA rebaixa a proposta para "revisar". Para a IA vão
+  só referência curta + primeiro nome e inicial das tarefas abertas (minimização). Chave em
+  `ANTHROPIC_API_KEY` (Netlify), **ainda não configurada**: sem ela a rota responde 503 com
+  mensagem clara e a interface oferece JSON/manual. Custo estimado: ~US$ 0,03–0,10 por conversão
+  (US$ 4/US$ 20 por milhão de tokens de entrada/saída).
+- **Feedback com referências curtas** (`[T-1a2b3c]` tarefa, `[M-…]` marco): o feedback gerado em
+  /fechamento, colado de volta na gestão, é lido sem IA (`lib/fila/feedback.ts`) e comparado com o
+  banco — concluído não é recriado, aberto segue na fila, nada é duplicado. Linhas sem referência
+  ficam para revisão manual ou sugestão da IA (com a data do próprio feedback como base).
+- **Gestão manual de tarefas** (aba Tarefas): criar, editar, atribuir, reagendar e cancelar; toda
+  mudança vira evento `correcao`/`encerramento` com autor e data (histórico visível) + audit log.
+  Tarefa encerrada pela concierge não é editada — o resultado dela é preservado.
+- **Continuidade automática**: agendamento cria "Confirmar comparecimento" na data da consulta;
+  compareceu → atendimento "a conferir" (marcos só após confirmação no SD); faltou → tarefa de
+  recuperação. Contato/resposta/adiamento guardam a próxima ação (texto) além da data.
+- **Fila com seção "Atrasadas"** separada de "Hoje". "Resolver / encerrar" distingue objetivo
+  resolvido (com resultado) de encerrar sem resolver.
+- **Fechamento**: botão "Gerar feedback" com ações, resultados, aguardando, agendamentos,
+  cobranças/recebimentos, pendências e prioridades do próximo dia útil; totais da clínica seguem
+  como campos manuais opcionais.
+- **Modo demonstração**: papel alternável (gestão/concierge) por cookie, só sem Supabase; usado na
+  auditoria com duas sessões (localhost e 127.0.0.1) contra o mesmo servidor.

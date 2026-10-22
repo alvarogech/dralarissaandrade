@@ -21,11 +21,12 @@ describe("montarFila", () => {
     expect(f.concluidas.map((c) => c.pacienteId)).toEqual(["p4"]);
   });
 
-  it("um cartão por paciente, atrasados primeiro, com dias de atraso", () => {
+  it("um cartão por paciente; vencidos vão para atrasadas com dias de atraso", () => {
     const f = montarFila([item("a", "p1", "2026-10-20"), item("b", "p2", "2026-10-15"), item("c", "p2", "2026-10-18")], HOJE);
-    expect(f.hoje.map((c) => c.pacienteId)).toEqual(["p2", "p1"]);
-    expect(f.hoje[0]!.itens.map((i) => i.id)).toEqual(["b", "c"]);
-    expect(f.hoje[0]!.atrasoDias).toBe(5);
+    expect(f.atrasadas.map((c) => c.pacienteId)).toEqual(["p2"]);
+    expect(f.hoje.map((c) => c.pacienteId)).toEqual(["p1"]);
+    expect(f.atrasadas[0]!.itens.map((i) => i.id)).toEqual(["b", "c"]);
+    expect(f.atrasadas[0]!.atrasoDias).toBe(5);
   });
 
   it("janela de 14 dias: sugere tratar junto, desmarcado, e tira das próximas", () => {
