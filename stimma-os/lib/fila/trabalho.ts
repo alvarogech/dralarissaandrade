@@ -73,7 +73,8 @@ export function filtrarBase(itens: ItemFila[], f: FiltrosTrabalho, p: Pessoas): 
   return itens.filter((i) => {
     const resp = responsavelEfetivo(i, p);
     if (f.dependeDeMim && !(resp === p.eu || (!resp && i.alvo?.tipo === "tarefa"))) return false;
-    if (f.responsavel === "eu" && resp !== p.eu) return false;
+    // A concierge continua vendo os casos dela que estão esperando a gestão (a próxima ação é da gestão, o caso segue dela).
+    if (f.responsavel === "eu" && resp !== p.eu && !(i.aguardando === "gestao" && p.eu === p.conciergeId)) return false;
     if (f.responsavel === "concierge" && (!p.conciergeId || resp !== p.conciergeId)) return false;
     if (f.responsavel === "gestor" && (!p.gestorId || resp !== p.gestorId)) return false;
     if (f.responsavel === "sem" && resp) return false;

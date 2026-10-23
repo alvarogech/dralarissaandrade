@@ -26,14 +26,14 @@ insert into fila_config (organization_id, concierge_id, concierge_nome, gestor_i
 select c.organization_id, c.id, 'Gabi',
   (select p.id from profiles p join user_roles ur on ur.user_id = p.id join roles r on r.id = ur.role_id
     where r.key = 'admin' and p.active and p.organization_id = c.organization_id
-    and (select count(*) from profiles p2 join user_roles ur2 on ur2.user_id = p2.id join roles r2 on r2.id = ur2.role_id
+    and (select count(1) from profiles p2 join user_roles ur2 on ur2.user_id = p2.id join roles r2 on r2.id = ur2.role_id
          where r2.key = 'admin' and p2.active and p2.organization_id = c.organization_id) = 1)
 from profiles c
 join auth.users u on u.id = c.id
 where lower(u.email) = 'clinica.stimma@gmail.com'
   and c.active
   and exists (select 1 from user_roles ur join roles r on r.id = ur.role_id where ur.user_id = c.id and r.key = 'reception')
-  and (select count(*) from auth.users u2 where lower(u2.email) = 'clinica.stimma@gmail.com') = 1
+  and (select count(1) from auth.users u2 where lower(u2.email) = 'clinica.stimma@gmail.com') = 1
 on conflict (organization_id) do nothing;
 
 -- ---------------------------------------------------------------- tarefas: quem espera quem, prioridade, adiamentos

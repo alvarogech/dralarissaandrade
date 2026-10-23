@@ -117,6 +117,8 @@ describe("7–10. continuidade, orientação, encaminhamento e adiamento", () =>
     let gestao = (await carregarFila(store, HOJE, GESTAO.id)).itens[0]!;
     expect(gestao).toMatchObject({ aguardando: "gestao", responsavelId: GESTAO.id, naoLido: true });
     expect(filtrarTrabalho([gestao], { ...FILTROS_PADRAO, situacoes: [], dependeDeMim: true }, PESSOAS_GESTAO, HOJE)).toHaveLength(1);
+    // a Gabi continua vendo o caso dela em "Aguardando gestão"
+    expect(filtrarTrabalho([gestao], { ...FILTROS_PADRAO, situacoes: ["aguardando_gestao"], responsavel: "eu" }, PESSOAS_GABI, HOJE)).toHaveLength(1);
     await store.marcarLido(id, GESTAO.id); // abriu o detalhe
     gestao = (await carregarFila(store, HOJE, GESTAO.id)).itens[0]!;
     expect(gestao.naoLido).toBeUndefined();
@@ -141,6 +143,12 @@ describe("7–10. continuidade, orientação, encaminhamento e adiamento", () =>
     expect(_dados.tarefas[0]).toMatchObject({ due: "2026-10-27", prazoOriginal: HOJE, adiamentos: 1 });
     await editarTarefa(store, GESTAO, id, { prazo: "2026-10-30", motivo: "aguardar retorno" });
     expect(_dados.tarefas[0]).toMatchObject({ due: "2026-10-30", prazoOriginal: HOJE, adiamentos: 2 });
+  });
+
+  it("agendamento segue em acompanhamento com o mesmo responsável", async () => {
+    const { store, id, _dados } = await tarefaDaGabi();
+    await registrarAtividade(store, GABI, reg({ alvos: [{ tipo: "tarefa", id }], categoria: "continuidade", contato: "sim", resposta: "sim", resultado: "agendou", situacao: "agendado", agendadoPara: "2026-10-30" }));
+    expect(_dados.tarefas.find((t) => t.payload.subtipo === "comparecimento")).toMatchObject({ assignedTo: GABI.id, due: "2026-10-30", status: "open" });
   });
 
   it("cobrança enviada não vira pagamento confirmado", async () => {

@@ -446,3 +446,53 @@ também dependem da mesma variável.
   - sobrecarga `confirmar_atendimento_realizado(..., p_marcos text[])`.
   - Precisa ser aplicada **antes** do deploy deste código, porque o store já seleciona as colunas
     novas.
+
+## 2026-10-24 — Auditoria dos acessos Álvaro × Gabi: trabalho por perfil, comunicação na tarefa, entrega formal e lote retomável
+
+Diagnóstico (consulta só leitura ao banco de produção em 2026-10-23):
+- **504 na entrada de 51 itens**: o lote foi salvo por inteiro (import_batches `confirmado`, 20 pacientes,
+  18 atendimentos → 54 marcos, 1 tarefa). O Netlify cortou a resposta, a função terminou; "Nada foi salvo"
+  era falso (vinha do cliente para qualquer 5xx). 25 itens ficaram "vínculo pendente" sem caminho de retomada.
+- **54 marcos abertos** = 18 atendimentos × 3, todos futuros; **34 pacientes sem próxima ação** no Pipeline é
+  outra entidade (paciente do CRM), não tarefa. **1 tarefa** na Gestão = a única tarefa executável.
+- **Nomes inconsistentes**: o perfil da recepção tem `full_name` = e-mail; a tela forçava "Gabi"; formulários
+  ofereciam "Ninguém".
+- **Cancelamento abrindo como falta**: o formulário ignorava `payload.ocorrencia` e presumia "falta".
+- **Código de acesso**: o provedor envia 8 dígitos; a interface dizia 6.
+
+Decisões:
+- **Configuração da fila** (`fila_config`, 0014): concierge = conta `clinica.stimma@gmail.com` com papel
+  reception (identificação confirmada pelo gestor em 2026-10-22), nome de exibição "Gabi", gestor = único admin
+  ativo. Sem identificação inequívoca fica null e a interface mostra "configuração pendente". Expediente começa
+  não configurado (sem cobrança de entrega nem atraso).
+- **Navegação por perfil**, sem itens "em breve". Gestão: Trabalho da Gabi · Entrada e tarefas · Feedbacks da
+  Gabi. Concierge: Meu trabalho · Feedback diário. `/` e `/hoje` → `/trabalho`; `/fila` da gestão → `/feedbacks`;
+  `/fechamento` → área unificada. Pipeline fica fora da navegação. Permissão real continua nas rotas (403).
+- **Visão de trabalho comum** (`lib/fila/trabalho.ts`): tarefas, marcos e conferências na mesma lista, sem
+  fundir tabelas; cada item em UMA situação (atrasada, hoje, aguardando paciente, aguardando gestão, próxima,
+  concluída), então os indicadores somam e abrem a mesma lista. Filtros na URL. Marcos além de 7 dias recolhidos.
+  Aguardando paciente com revisão vencida volta para hoje/atrasada.
+- **Comunicação na tarefa** (`lib/fila/conversa.ts`): eventos `nota` (orientação, pergunta/impedimento, resposta,
+  decisão) com autor e horário; pergunta da concierge → `aguardando = gestao` e próxima ação com o gestor;
+  resposta da gestão pode devolver a próxima ação com prazo. Não lido = registro de outra pessoa depois da última
+  abertura do detalhe (`task_reads`, gravado só ao abrir o detalhe).
+- **Responsável obrigatório** para publicar tarefa manual; importadas vão para a concierge configurada;
+  encaminhar à gestão transfere a próxima ação ao gestor; tarefas administrativas sem paciente (assunto).
+- **Continuidade**: aguardando paciente exige data de revisão; resolver exige resultado; mensagem sem resposta
+  não resolve; cobrança só resolve com pagamento confirmado; adiar sem contato exige motivo, preserva
+  `prazo_original` e conta `adiamentos`. "Sem atualização" = `dias_sem_atualizacao` (padrão 3, configurável).
+- **Marcos obrigatórios**: confirmar atendimento realizado sempre cria 30 dias, 90 dias e 6 meses (a sobrecarga
+  com `p_marcos` passa a ignorar a escolha). Regularização na 0014 cria só os ausentes (hoje: nenhum).
+  Registro agrupado: só o item aberto vem marcado; marco futuro exige justificativa; um evento por registro
+  (contadores separam contatos, pacientes e marcos trabalhados).
+- **Entrega formal do feedback** (`daily_feedbacks`, `lib/fila/entrega.ts`): rascunho (prévia ao vivo) → gerado
+  → entregue (ação explícita, idempotente); registros novos depois de gerar exigem gerar de novo; correção cria
+  nova versão e preserva a entregue; gestão comenta/pede ajuste; copiado e "enviado pelo WhatsApp" são marcas
+  separadas e nada é enviado automaticamente. O feedback respeita autoria: só registros e pendências da concierge.
+- **Lote retomável**: o lote é aberto antes de aplicar e cada item grava o resultado logo depois (`aplicado_em`);
+  o cliente publica em trechos de 5 itens; falha ou resposta perdida → consulta `/api/fila/entrada/estado` e
+  retoma só o que falta; propostas editadas ficam na tela (e num rascunho local do navegador).
+  "Nada foi salvo" só aparece quando o servidor afirma; resposta ausente = "resultado incerto".
+- **Código de acesso**: `lib/auth/otp.ts` (8 dígitos, texto, colagem com espaços/hífen).
+
+Migration 0014 (aditiva) precisa ser aplicada **antes** do deploy: o código seleciona as colunas e tabelas novas.

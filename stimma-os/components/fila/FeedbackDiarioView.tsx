@@ -134,7 +134,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
             <p className="text-xs font-semibold text-text-secondary">Data do relatório</p>
             <p className="text-text-primary">{dataBr(hoje)}</p>
           </div>
-          <a href="/fechamento" className="text-xs text-text-muted underline">ver outro dia</a>
+          <a href="#feedbacks-anteriores" className="text-xs text-text-muted underline">feedbacks anteriores</a>
         </div>
       </header>
 
@@ -352,7 +352,7 @@ function Entrega({ entrega, textoAoVivo, eventosAoVivo, hoje }: { entrega: Estad
 
 function HistoricoFeedbacks({ historico }: { historico: FeedbackComRegistros[] }) {
   return (
-    <section className="mt-6">
+    <section id="feedbacks-anteriores" className="mt-6">
       <h2 className="mb-2 font-serif text-[20px] text-text-primary">Feedbacks anteriores</h2>
       {!historico.length && <p className="text-sm text-text-muted">Nenhum feedback dos últimos 30 dias.</p>}
       <ul className="flex flex-col gap-2">

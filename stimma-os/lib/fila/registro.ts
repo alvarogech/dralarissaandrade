@@ -267,6 +267,8 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
         patientId, kind: "agenda", title: `Confirmar comparecimento — consulta de ${dataBr(e.agendadoPara!)}`, chaveOrigem: chave,
         due: e.agendadoPara!, aConferir: [], payload: { subtipo: "comparecimento", categoria: "agenda", agendado_para: e.agendadoPara, evento_origem: e.eventoId },
         financialImpact: null, origem: "agendamento", origemData: data,
+        // Acompanhar o comparecimento continua com quem cuida do caso (ou com a concierge).
+        assignedTo: tarefas[0]?.assignedTo ?? config.conciergeId ?? ator.id,
       });
     }
   }
@@ -282,7 +284,7 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
       await store.criarTarefa({
         patientId, kind: "recuperacao_falta", title: proxima ?? `Recuperar falta — consulta de ${dataBr(dataConsulta)}`, chaveOrigem: `falta:${t.id}`,
         due: e.prazo && isDiaIso(e.prazo) ? e.prazo : somarDias(hoje, 1), aConferir: [], payload: { categoria: "agenda", ocorrencia: "falta", data_ocorrencia: dataConsulta },
-        financialImpact: null, origem: "comparecimento", origemData: data, assignedTo, nextAction: proxima,
+        financialImpact: null, origem: "comparecimento", origemData: data, assignedTo: assignedTo ?? t.assignedTo ?? config.conciergeId, nextAction: proxima,
       });
     }
   }

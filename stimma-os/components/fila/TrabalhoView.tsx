@@ -52,18 +52,21 @@ export function TrabalhoView(p: PropsTrabalho) {
   const pessoas: Pessoas = { eu: p.eu, conciergeId: p.config.conciergeId, gestorId: p.config.gestorId };
   const nomeConcierge = p.config.conciergeNome ?? "concierge";
 
-  // Filtros na URL, sem recarregar a página.
+  // Filtros na URL, sem recarregar a página. Reaplica depois de cada atualização dos dados
+  // (router.refresh volta a URL ao estado interno do Next).
   useEffect(() => {
     const q = filtrosParaQuery(f);
     const alvo = q ? `${pathname}?${q}` : pathname;
-    if (`${window.location.pathname}${window.location.search}` !== alvo) window.history.replaceState(null, "", alvo);
-  }, [f, pathname]);
+    if (`${window.location.pathname}${window.location.search}` !== alvo) window.history.replaceState(window.history.state, "", alvo);
+  }, [f, pathname, p.itens]);
 
   const base = useMemo(() => filtrarBase(p.itens, f, pessoas), [p.itens, f, pessoas.eu, pessoas.conciergeId, pessoas.gestorId]); // eslint-disable-line react-hooks/exhaustive-deps
   const contagem = useMemo(() => contarPorSituacao(base, p.hoje), [base, p.hoje]);
   const lista = useMemo(() => filtrarTrabalho(p.itens, f, pessoas, p.hoje), [p.itens, f, p.hoje]); // eslint-disable-line react-hooks/exhaustive-deps
   const executaveis = lista.filter((i) => !marcoForaDaJanela(i, p.hoje));
   const marcosFuturos = lista.filter((i) => marcoForaDaJanela(i, p.hoje));
+  // Atualização nova (orientação, resposta, devolução) aparece mesmo fora da seleção atual.
+  const novidades = base.filter((i) => i.naoLido && i.status !== "concluida" && !lista.includes(i));
   const dependeDeMim = filtrarBase(p.itens, { ...f, dependeDeMim: true, responsavel: "todos" }, pessoas).filter((i) => situacaoTrabalho(i, p.hoje) !== "concluida");
   const semResponsavel = p.itens.filter((i) => i.status !== "concluida" && !responsavelEfetivo(i, pessoas));
   const naoLidos = p.itens.filter((i) => i.naoLido && i.status !== "concluida").length;
@@ -154,6 +157,14 @@ export function TrabalhoView(p: PropsTrabalho) {
         </div>
       </details>
 
+      {novidades.length > 0 && (
+        <section className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold text-accent">● Atualizações novas fora desta seleção ({novidades.length})</h2>
+          <ul className="flex flex-col gap-2.5">
+            {novidades.map((i) => <CartaoTrabalho key={i.id} item={i} {...p} pessoas={pessoas} aberto={aberto === i.id} onToggle={() => setAberto(aberto === i.id ? null : i.id)} />)}
+          </ul>
+        </section>
+      )}
       {executaveis.length === 0 && marcosFuturos.length === 0 ? (
         <div className="rounded-[12px] border border-dashed border-border p-5 text-sm text-text-secondary">
           {p.itens.length === 0 ? "Nenhuma tarefa cadastrada ainda." : `Nenhum item nesta seleção (${f.situacoes.map((s) => ROTULO_SITUACAO_TRABALHO[s]).join(", ") || "todas as situações"}).`}{" "}
