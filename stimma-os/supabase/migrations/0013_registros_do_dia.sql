@@ -58,14 +58,17 @@ alter table daily_manual_figures
 create or replace function confirmar_atendimento_realizado(p_appointment_id uuid, p_data date, p_actor uuid, p_marcos text[])
 returns void language plpgsql security definer set search_path = public as $$
 declare
-  a appointments%rowtype;
+  v_org uuid;
+  v_patient uuid;
+  v_anulado timestamptz;
   k text;
   d date;
 begin
   if p_marcos is null or not (p_marcos <@ array['d30','d90','m6']) then raise exception 'marcos inválidos'; end if;
-  select * into a from appointments where id = p_appointment_id for update;
+  select organization_id, patient_id, anulado_em into v_org, v_patient, v_anulado
+    from appointments where id = p_appointment_id for update;
   if not found then raise exception 'atendimento inexistente'; end if;
-  if a.anulado_em is not null then raise exception 'atendimento anulado não pode ser confirmado'; end if;
+  if v_anulado is not null then raise exception 'atendimento anulado não pode ser confirmado'; end if;
   if p_data is null then raise exception 'data exata do atendimento é obrigatória'; end if;
   if p_data > (now() at time zone 'America/Sao_Paulo')::date then raise exception 'data no futuro'; end if;
 
@@ -76,12 +79,12 @@ begin
     data_status = 'exata',
     realizado_confirmado_em = coalesce(realizado_confirmado_em, now()),
     realizado_confirmado_por = coalesce(realizado_confirmado_por, p_actor)
-  where id = a.id;
+  where id = p_appointment_id;
 
   foreach k in array p_marcos loop
     d := case k when 'd30' then p_data + 30 when 'd90' then p_data + 90 else (p_data + interval '6 months')::date end;
     insert into follow_up_milestones (organization_id, appointment_id, patient_id, kind, due_original, due_current)
-      values (a.organization_id, a.id, a.patient_id, k, d, d)
+      values (v_org, p_appointment_id, v_patient, k, d, d)
     on conflict (appointment_id, kind) do update
       set due_original = excluded.due_original, due_current = excluded.due_current, updated_at = now()
       where follow_up_milestones.status = 'previsto'
