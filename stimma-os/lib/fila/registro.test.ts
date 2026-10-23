@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { criarStoreMemoria, PERFIS_DEMO } from "./store-memoria";
 import { registrarAtividade, type EntradaRegistro } from "./registro";
-import { carregarFechamento, carregarFila, confirmarAtendimentoPendente, confirmarEntrada, criarTarefaManual, salvarEstadoDoDia, type Ator } from "./servico";
+import { carregarFechamento, carregarFila, confirmarEntrada, criarTarefaManual, salvarEstadoDoDia, type Ator } from "./servico";
 
 // Cenários de validação do registro do dia (dados fictícios, store em memória).
 const GESTAO: Ator = { id: PERFIS_DEMO[0]!.id, email: "gestao@exemplo.test", gestao: true };
@@ -43,7 +43,7 @@ describe("registro do dia", () => {
 
   it("ação em tarefa existente; contato sem resposta segue aberto; resposta posterior no mesmo caso", async () => {
     const { store, _dados } = criarStoreMemoria();
-    const id = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Bia" }, kind: "continuidade", acao: "Agendar fase 2", prazo: "2026-10-20" });
+    const id = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Bia" }, kind: "continuidade", acao: "Agendar fase 2", prazo: "2026-10-20", responsavel: GABI.id });
     await registrarAtividade(store, GABI, reg({ alvos: [{ tipo: "tarefa", id }], categoria: "continuidade", contato: "sim", canal: "whatsapp", resposta: "nao", feito: "mensagem com horários", situacao: "aguardando", proximaAcao: "Verificar se respondeu", responsavel: RESP, prazo: "2026-10-21" }));
     expect(_dados.tarefas[0]).toMatchObject({ status: "waiting", due: "2026-10-21" });
     // dia seguinte: paciente responde (não houve novo contato)
@@ -61,7 +61,7 @@ describe("registro do dia", () => {
 
   it("agendamento fica em acompanhamento até o comparecimento; não vira atendimento", async () => {
     const { store, _dados } = criarStoreMemoria();
-    const id = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Caio" }, kind: "continuidade", acao: "Agendar", prazo: "2026-10-20" });
+    const id = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Caio" }, kind: "continuidade", acao: "Agendar", prazo: "2026-10-20", responsavel: GABI.id });
     await registrarAtividade(store, GABI, reg({ alvos: [{ tipo: "tarefa", id }], categoria: "continuidade", contato: "sim", resposta: "sim", resultado: "aceitou", situacao: "agendado", agendadoPara: "2026-10-27" }));
     expect(_dados.atendimentos).toHaveLength(0);
     const comp = _dados.tarefas.find((t) => t.payload.subtipo === "comparecimento")!;
@@ -116,22 +116,5 @@ describe("registro do dia", () => {
     const { texto } = await carregarFechamento(store, "2026-10-20");
     expect(texto).toContain("• Confirmar agenda de quinta");
     expect(texto).toContain("*Recorrência e follow-up*\n• Sem ocorrências.");
-  });
-});
-
-describe("marcos escolhidos por atendimento", () => {
-  it("cria só os marcos indicados; reenvio não duplica; existentes preservados", async () => {
-    const { store, _dados } = criarStoreMemoria();
-    const lote = (marcos: string[]) => JSON.stringify({ contrato: "stimma-entrada-v1", lote: { origem: "teste", consultado_em: "2026-10-20" }, itens: [{ tipo: "atendimento_realizado", chave_origem: "a-1", paciente: { nome: "TESTE DE AUDITORIA Duda", sd_codigo: "9010" }, data_atendimento: "2026-08-31", status_no_sd: "Finalizado", marcos }] });
-    await confirmarEntrada(store, GESTAO, lote(["d30"]));
-    expect(_dados.marcos.map((m) => m.kind)).toEqual(["d30"]);
-    await confirmarEntrada(store, GESTAO, lote(["d30"]).replace("2026-10-20", "2026-10-20T10:00"));
-    expect(_dados.marcos).toHaveLength(1);
-    // atendimento pendente confirmado na fila com "6 meses" apenas
-    await confirmarEntrada(store, GESTAO, JSON.stringify({ contrato: "stimma-entrada-v1", lote: { origem: "teste", consultado_em: "2026-10-20" }, itens: [{ tipo: "atendimento_realizado", chave_origem: "a-2", paciente: { sd_codigo: "9010" }, data_atendimento: "2026-08-31", status_no_sd: "Atendido", a_conferir: ["status_no_sd"] }] }));
-    const pendente = _dados.atendimentos.find((a) => a.chaveOrigem === "a-2")!;
-    await expect(confirmarAtendimentoPendente(store, GABI, pendente.id, "2026-08-31", ["x" as never])).rejects.toThrow(/Marcos inválidos/);
-    await confirmarAtendimentoPendente(store, GABI, pendente.id, "2026-08-31", ["m6"]);
-    expect(_dados.marcos.filter((m) => m.appointmentId === pendente.id).map((m) => [m.kind, m.dueOriginal])).toEqual([["m6", "2027-02-28"]]);
   });
 });

@@ -30,14 +30,15 @@ export const TIPOS_REGISTRO = [
 export type TipoRegistro = (typeof TIPOS_REGISTRO)[number]["id"];
 
 const ROTULO_SITUACAO: Record<SituacaoRegistro, string> = {
-  aguardando: "Aguardando resposta",
-  pendente: "Pendente — tem próxima ação",
+  aguardando: "Aguardando paciente (resposta)",
+  pendente: "Próxima ação programada",
+  aguardando_gestao: "Aguardando gestão — preciso de orientação",
   agendado: "Agendado (acompanhar até o comparecimento)",
   compareceu: "Compareceu",
   faltou: "Faltou",
   encaminhado: "Encaminhado",
   resolvido: "Resolvido",
-  dispensado: "Encerrar sem resolver",
+  dispensado: "Cancelar com justificativa",
   informativo: "Só registro, sem pendência",
 };
 
@@ -74,15 +75,28 @@ interface Props {
   /** Itens da fila que este registro atualiza (vazio = registro espontâneo). */
   alvos: ItemFila[];
   tipoInicial?: TipoRegistro;
+  /** Há marco previsto para além da janela de trabalho entre os escolhidos. */
+  exigeJustificativa?: boolean;
   onSalvo?: () => void;
   onCancelar?: () => void;
 }
 
-export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props) {
+/** Responsável sugerido pelo destino do encaminhamento (a próxima ação vai para quem recebeu). */
+function responsavelDoDestino(para: string, conciergeId?: string | null): string | null {
+  if (/comercial/i.test(para)) return "comercial_externa";
+  if (/dra/i.test(para)) return "dra_larissa";
+  if (/gest/i.test(para)) return "gestao";
+  if (/gabi|concierge/i.test(para) && conciergeId) return `perfil:${conciergeId}`;
+  return null;
+}
+
+export function FormRegistro({ alvos, tipoInicial, exigeJustificativa, onSalvo, onCancelar }: Props) {
   const router = useRouter();
-  const { usuarioId, perfis, pacientes, itens, proximoDiaUtil, hoje } = useDadosFila();
+  const { usuarioId, perfis, pacientes, itens, proximoDiaUtil, hoje, conciergeId } = useDadosFila();
   const espontaneo = alvos.length === 0;
   const comparecimento = alvos.length > 0 && alvos.every((a) => a.subtipo === "comparecimento");
+  const ehCobranca = alvos.some((a) => a.tipo === "cobranca");
+  const prazoAtual = alvos.length ? alvos.map((a) => a.due).sort()[0]! : null;
 
   const [tipo, setTipo] = useState<TipoRegistro>(tipoInicial ?? tipoDoItem(alvos[0]));
   const categoria = TIPOS_REGISTRO.find((t) => t.id === tipo)!.categoria as Categoria;
@@ -106,7 +120,11 @@ export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props)
   const [prazo, setPrazo] = useState(proximoDiaUtil);
   const [agendadoPara, setAgendadoPara] = useState("");
   const [motivo, setMotivo] = useState("");
-  const [detalhes, setDetalhes] = useState<Record<string, string>>({});
+  // Ocorrência conhecida vem do caso (cancelamento abre como cancelamento); desconhecida fica em branco.
+  const [detalhes, setDetalhes] = useState<Record<string, string>>(() => (alvos[0]?.ocorrencia ? { ocorrencia: alvos[0].ocorrencia } : ({} as Record<string, string>)));
+  const [pergunta, setPergunta] = useState("");
+  const [justificativa, setJustificativa] = useState("");
+  const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
   const [atencao, setAtencao] = useState(false);
   const [mostrarEtapa, setMostrarEtapa] = useState(Boolean(alvos[0]?.etapa));
   const [etapa, setEtapa] = useState<{ definicao: string; situacao: string; data: string; motivo: string }>({
@@ -125,10 +143,15 @@ export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props)
   // Casos abertos da paciente escolhida: oferecidos para vincular, nunca unidos automaticamente.
   const casosAbertos = espontaneo && pacienteId ? itens.filter((i) => i.pacienteId === pacienteId && i.status !== "concluida" && i.alvo && i.alvo.tipo !== "atendimento") : [];
 
+  // Assunto administrativo (sem paciente): sem perguntas de contato com paciente.
+  const administrativo = espontaneo ? pacienteModo === "assunto" : alvos.every((a) => a.semPaciente);
   const situacoes: SituacaoRegistro[] = comparecimento
-    ? ["compareceu", "faltou", "aguardando", "pendente", "dispensado"]
-    : ["aguardando", "pendente", "agendado", ...(categoria === "encaminhamento" ? (["encaminhado"] as const) : []), "resolvido", "dispensado", ...(espontaneo && !vinculos.size ? (["informativo"] as const) : [])];
-  const pendente = situacao === "aguardando" || situacao === "pendente" || situacao === "encaminhado" || (situacao === "faltou");
+    ? ["compareceu", "faltou", "aguardando", "pendente", "aguardando_gestao", "dispensado"]
+    : [...(administrativo ? [] : (["aguardando"] as const)), "pendente", "aguardando_gestao", ...(administrativo ? [] : (["agendado"] as const)), ...(categoria === "encaminhamento" ? (["encaminhado"] as const) : []), "resolvido", "dispensado", ...(espontaneo && !vinculos.size ? (["informativo"] as const) : [])];
+  const pendente = situacao === "aguardando" || situacao === "pendente" || situacao === "encaminhado" || situacao === "faltou";
+  const paraGestao = situacao === "aguardando_gestao";
+  // Empurrar o prazo sem contato nem resposta é adiamento: pede motivo (o prazo original fica no histórico).
+  const adiando = pendente && !!prazoAtual && prazo > prazoAtual && contato !== "sim" && resposta !== "sim" && situacao !== "encaminhado";
   const sugereEtapa = ["continuidade", "pos_atendimento", "oportunidade", "agenda"].includes(categoria);
   const nomeAlvo = alvos[0]?.pacienteNome;
 
@@ -141,21 +164,24 @@ export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props)
       ? itens.filter((i) => vinculos.has(i.id) && i.alvo && i.alvo.tipo !== "atendimento").map((i) => ({ tipo: i.alvo!.tipo as "marco" | "tarefa", id: i.alvo!.id }))
       : alvos.map((a) => ({ tipo: a.alvo!.tipo as "marco" | "tarefa", id: a.alvo!.id }));
     const detalhesEnvio = Object.fromEntries(Object.entries(detalhes).filter(([, v]) => v.trim()));
-    if (tipo === "falta" && !detalhesEnvio.ocorrencia && !comparecimento) detalhesEnvio.ocorrencia = "falta";
+    if (ehCobranca && situacao === "resolvido" && pagamentoConfirmado) detalhesEnvio.pagamento_confirmado = "sim";
     const r = await chamarApi<{ duplicado: boolean }>("/api/fila/registro", "POST", {
       eventoId, alvos: alvosEnvio, categoria,
       pacienteId: espontaneo && !alvosEnvio.length && pacienteModo === "existente" ? pacienteId || null : undefined,
       novoPaciente: espontaneo && !alvosEnvio.length && pacienteModo === "nova" ? { nome: novaNome, sd_codigo: novaSd || undefined } : undefined,
       assunto: espontaneo && !alvosEnvio.length && pacienteModo === "assunto" ? assunto : undefined,
-      contexto, feito, contato, canal: contato === "sim" ? canal : undefined, resposta, resultado,
-      situacao: situacao === "faltou" ? "faltou" : situacao,
-      proximaAcao: pendente ? proxima : undefined, responsavel: pendente ? responsavel : undefined, prazo: pendente ? prazo : undefined,
-      agendadoPara: situacao === "agendado" ? agendadoPara : undefined, motivo: situacao === "dispensado" ? motivo : undefined,
+      contexto, feito, contato: administrativo ? "na" : contato, canal: contato === "sim" ? canal : undefined, resposta: administrativo ? "na" : resposta, resultado,
+      situacao,
+      proximaAcao: pendente ? proxima : paraGestao ? proxima || undefined : undefined, responsavel: pendente ? responsavel : undefined,
+      prazo: pendente || paraGestao ? prazo : undefined, pergunta: paraGestao ? pergunta : undefined,
+      agendadoPara: situacao === "agendado" ? agendadoPara : undefined, motivo: situacao === "dispensado" || adiando ? motivo : undefined,
+      justificativaFuturos: exigeJustificativa ? justificativa : undefined,
       detalhes: detalhesEnvio, atencao, etapa: mostrarEtapa ? etapa : undefined,
     });
     if (!r.ok) {
       setEstado("ocioso");
-      return setErro(r.erro); // nada é apagado do preenchimento
+      // Nada é apagado do preenchimento. Resultado incerto: reenviar usa o mesmo id e não duplica.
+      return setErro(r.incerto ? `${r.erro} Pode tocar em salvar de novo: este registro não será duplicado.` : r.erro);
     }
     setEstado("salvo");
     setEventoId(crypto.randomUUID());
@@ -235,7 +261,7 @@ export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props)
       {/* Campos específicos do tipo */}
       {tipo === "falta" && !comparecimento && (
         <div className="grid gap-3 sm:grid-cols-3">
-          <Campo label="Ocorrência"><select value={det("ocorrencia")} onChange={setDet("ocorrencia")} className={classeInput}><option value="">Falta</option><option value="cancelamento">Cancelamento</option></select></Campo>
+          <Campo label="Ocorrência"><select value={det("ocorrencia")} onChange={setDet("ocorrencia")} className={classeInput}><option value="">Não informada</option><option value="falta">Falta</option><option value="cancelamento">Cancelamento</option></select></Campo>
           <Campo label="Horário"><input type="time" value={det("horario")} onChange={setDet("horario")} className={classeInput} /></Campo>
           <Campo label="Motivo (se conhecido)"><input value={det("motivo_falta")} onChange={setDet("motivo_falta")} className={classeInput} /></Campo>
         </div>
@@ -277,21 +303,25 @@ export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props)
       )}
       {tipo === "encaminhamento" && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Campo label="Encaminhado para"><select value={det("para")} onChange={setDet("para")} className={classeInput}><option value="">Escolha…</option><option>Comercial Externa</option><option>Gabi</option><option>Gestão</option><option>Dra. Larissa</option></select></Campo>
+          <Campo label="Encaminhado para">
+            <select value={det("para")} onChange={(e) => { setDetalhes({ ...detalhes, para: e.target.value }); const r = responsavelDoDestino(e.target.value, conciergeId); if (r) setResponsavel(r); }} className={classeInput}>
+              <option value="">Escolha…</option><option>Comercial Externa</option><option>Gabi</option><option>Gestão</option><option>Dra. Larissa</option>
+            </select>
+          </Campo>
           <Campo label="Motivo"><input value={det("motivo_encaminhamento")} onChange={setDet("motivo_encaminhamento")} className={classeInput} /></Campo>
         </div>
       )}
 
       <Campo label="O que foi feito hoje"><input value={feito} onChange={(e) => setFeito(e.target.value)} className={classeInput} placeholder="ex.: mensagem enviada oferecendo horário de sábado" /></Campo>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {!administrativo && <div className="grid gap-3 sm:grid-cols-2">
         <TriEstado rotulo="Contato realizado?" valor={contato} onChange={setContato} />
         <TriEstado rotulo="Houve resposta?" valor={resposta} onChange={setResposta} />
         {contato === "sim" && (
           <Campo label="Canal"><select value={canal} onChange={(e) => setCanal(e.target.value)} className={classeInput}><option value="whatsapp">WhatsApp</option><option value="ligacao">Ligação</option><option value="presencial">Presencial</option><option value="outro">Outro</option></select></Campo>
         )}
         {resposta === "sim" && <Campo label="Resultado ou resposta (curto) *"><input required value={resultado} onChange={(e) => setResultado(e.target.value)} className={classeInput} /></Campo>}
-      </div>
+      </div>}
 
       <Campo label="Situação atual do caso *">
         <select value={situacao} onChange={(e) => { const v = e.target.value as SituacaoRegistro; setSituacao(v); if (v === "aguardando" && !proxima) setProxima("Verificar se respondeu"); }} className={classeInput}>
@@ -300,7 +330,22 @@ export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props)
         </select>
       </Campo>
       {contato === "sim" && resposta === "nao" && situacao !== "aguardando" && situacao !== "" && situacao !== "pendente" && (
-        <p className="text-xs text-important">Mensagem sem retorno normalmente fica “Aguardando resposta”.</p>
+        <p className="text-xs text-important">Mensagem sem retorno fica “Aguardando paciente”, com data de revisão — não resolve o caso.</p>
+      )}
+      {situacao === "resolvido" && resposta !== "sim" && (
+        <Campo label="Resultado alcançado *"><input required value={resultado} onChange={(e) => setResultado(e.target.value)} className={classeInput} placeholder="o que ficou resolvido" /></Campo>
+      )}
+      {situacao === "resolvido" && ehCobranca && (
+        <label className="flex items-center gap-2 text-sm text-text-secondary">
+          <input type="checkbox" checked={pagamentoConfirmado} onChange={(e) => setPagamentoConfirmado(e.target.checked)} /> Pagamento confirmado no Simples Dental (enviar a cobrança não basta)
+        </label>
+      )}
+      {paraGestao && (
+        <div className="grid gap-3 rounded-[10px] border border-border p-3 sm:grid-cols-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted sm:col-span-3">Para a gestão — a próxima ação passa a ser dela</p>
+          <Campo label="Dúvida ou impedimento *" largo><input required value={pergunta} onChange={(e) => setPergunta(e.target.value)} className={classeInput} /></Campo>
+          <Campo label="Preciso da resposta até *"><input required type="date" min={hoje} value={prazo} onChange={(e) => setPrazo(e.target.value)} className={classeInput} /></Campo>
+        </div>
       )}
 
       {pendente && (
@@ -312,7 +357,11 @@ export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props)
         </div>
       )}
       {situacao === "agendado" && <Campo label="Data da consulta *"><input required type="date" value={agendadoPara} onChange={(e) => setAgendadoPara(e.target.value)} className={classeInput} /></Campo>}
-      {situacao === "dispensado" && <Campo label="Motivo *"><input required value={motivo} onChange={(e) => setMotivo(e.target.value)} className={classeInput} /></Campo>}
+      {situacao === "dispensado" && <Campo label="Justificativa do cancelamento *"><input required value={motivo} onChange={(e) => setMotivo(e.target.value)} className={classeInput} /></Campo>}
+      {adiando && <Campo label={`Motivo do adiamento (prazo atual ${dataBr(prazoAtual!)}) *`}><input required value={motivo} onChange={(e) => setMotivo(e.target.value)} className={classeInput} /></Campo>}
+      {exigeJustificativa && (
+        <Campo label="Justificativa para incluir marco ainda futuro *"><input required value={justificativa} onChange={(e) => setJustificativa(e.target.value)} className={classeInput} placeholder="ex.: paciente pediu para já tratar da próxima etapa" /></Campo>
+      )}
 
       {sugereEtapa && (
         <div className="rounded-[10px] border border-border p-3">
@@ -338,7 +387,7 @@ export function FormRegistro({ alvos, tipoInicial, onSalvo, onCancelar }: Props)
 
       {erro && <p role="alert" className="text-sm text-critical">{erro}</p>}
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" loading={estado === "salvando"} loadingText="Salvando…">Salvar registro</Button>
+        <Button type="submit" loading={estado === "salvando"} loadingText="Salvando…">{espontaneo ? "Salvar registro" : "Salvar andamento"}</Button>
         {onCancelar && <button type="button" onClick={onCancelar} className="text-sm text-text-muted underline">Cancelar</button>}
         {estado === "salvo" && <span className="text-sm text-opportunity">Salvo.</span>}
         <span className="text-xs text-text-muted">Nenhuma mensagem é enviada.</span>

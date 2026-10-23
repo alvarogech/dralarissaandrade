@@ -53,6 +53,8 @@ export interface Contadores {
   faltas: number;
   /** Casos encerrados como resolvidos hoje. */
   resolvidos: number;
+  /** Marcos de acompanhamento distintos trabalhados nos registros do dia (um contato com 2 marcos = 1 contato, 2 marcos). */
+  marcosTrabalhados: number;
 }
 
 export interface Fechamento {
@@ -131,6 +133,7 @@ function descrever(e: EventoRow): { texto: string; resultado: boolean } {
     case "resolvido": partes.push(`resolvido${e.resultado && !respostaSim(e) ? `: ${e.resultado}` : ""}`); resultado = true; break;
     case "dispensado": partes.push("encerrado sem resolver"); break;
     case "aguardando": partes.push("aguardando resposta"); break;
+    case "aguardando_gestao": partes.push(`aguardando gestão${typeof p.pergunta === "string" ? ` (${p.pergunta})` : ""}`); break;
     case "encaminhado": partes.push("encaminhado"); break;
   }
   if (typeof p.proxima === "string" && p.proxima) partes.push(`próxima: ${p.proxima}${p.responsavel ? ` (${p.responsavel})` : ""}${typeof p.prazo === "string" ? ` até ${dataBr(p.prazo)}` : ""}`);
@@ -153,7 +156,7 @@ export interface EntradaFechamento {
 export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numeros, estado }: EntradaFechamento): Fechamento {
   const historico = dia < hoje;
   const porAlvo = new Map(itens.filter((i) => i.alvo).map((i) => [i.alvo!.id, i]));
-  const daConcierge = eventos.filter((e) => e.kind !== "correcao");
+  const daConcierge = eventos.filter((e) => e.kind !== "correcao" && e.kind !== "nota");
   const nomeDe = (e: EventoRow) => (e.patientId ? nomeCurto(nomes[e.patientId] ?? "Paciente") : e.assunto ?? "Assunto");
 
   const blocos: Bloco[] = BLOCOS.map((b) => ({ id: b.id, titulo: b.titulo, linhas: [], semOcorrencias: false }));
@@ -184,6 +187,7 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
     comparecimentos: daConcierge.filter((e) => e.situacao === "compareceu" || (!e.situacao && e.kind === "atendimento_realizado")).length,
     faltas: daConcierge.filter((e) => e.situacao === "faltou" || (!e.situacao && e.kind === "cancelamento")).length,
     resolvidos: daConcierge.filter((e) => e.situacao === "resolvido" || (!e.situacao && e.kind === "encerramento")).length,
+    marcosTrabalhados: new Set(daConcierge.flatMap((e) => e.alvos.map((a) => a.marcoId).filter(Boolean))).size,
   };
 
   const proximoDia = proximoDiaUtil(dia);
@@ -194,7 +198,7 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
   const nomeItem = (i: ItemFila, n: string) => (i.semPaciente ? n : nomeCurto(n));
   const pendentesAbertas = historico ? [] : [
     ...abertasProximas.map(({ i, nome }) => ({ ref: refDoItem(i.alvo!), paciente: nomeItem(i, nome), item: i.titulo, quando: i.due < dia ? `vencida desde ${dataBr(i.due)}` : `prazo ${dataBr(i.due)}`, aguardando: false })),
-    ...aguardando.map(({ i, nome }) => ({ ref: refDoItem(i.alvo!), paciente: nomeItem(i, nome), item: i.titulo, quando: `aguardando resposta${i.due ? ` (rever em ${dataBr(i.due)})` : ""}`, aguardando: true })),
+    ...aguardando.map(({ i, nome }) => ({ ref: refDoItem(i.alvo!), paciente: nomeItem(i, nome), item: i.titulo, quando: `${i.aguardando === "gestao" ? "aguardando gestão" : "aguardando resposta"}${i.due ? ` (rever em ${dataBr(i.due)})` : ""}`, aguardando: true })),
   ];
 
   const sugestoes = historico ? [] : [
@@ -223,7 +227,7 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
 export function textoWhatsapp(f: Fechamento): string {
   const l: string[] = [`*Fechamento — ${dataBr(f.dia)} (${diaSemana(f.dia)})*`, ""];
   const c = f.contadores;
-  l.push(`Registros: ${c.registros} · Tentativas de contato: ${c.tentativasContato} (${c.pacientesContatadas} pacientes) · Respostas: ${c.respostas} · Agendamentos: ${c.agendamentos} · Comparecimentos: ${c.comparecimentos} · Resolvidos: ${c.resolvidos}`);
+  l.push(`Registros: ${c.registros} · Tentativas de contato: ${c.tentativasContato} (${c.pacientesContatadas} pacientes) · Respostas: ${c.respostas} · Agendamentos: ${c.agendamentos} · Comparecimentos: ${c.comparecimentos} · Resolvidos: ${c.resolvidos}${c.marcosTrabalhados ? ` · Marcos trabalhados: ${c.marcosTrabalhados}` : ""}`);
   l.push("");
 
   for (const b of f.blocos) {

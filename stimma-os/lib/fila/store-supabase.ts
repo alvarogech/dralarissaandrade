@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemEntrada } from "./contrato";
 import { hashConteudo, type RegistroExistente } from "./previa";
-import type { AtendimentoRow, EventoRow, FilaStore, MarcoRow, TarefaRow } from "./store";
+import { CONFIG_VAZIA, type AtendimentoRow, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type MarcoRow, type TarefaRow } from "./store";
 
 /**
  * Store real. Recebe o cliente service role (só em Route Handlers / Server Components) e a
@@ -28,6 +28,7 @@ function marcoRow(m: Rec): MarcoRow {
   return {
     id: m.id, appointmentId: m.appointment_id, patientId: m.patient_id, kind: m.kind, dueOriginal: m.due_original, dueCurrent: m.due_current,
     status: m.status, statusReason: m.status_reason, updatedAt: m.updated_at, temEventoVinculado: (m.event_links ?? []).length > 0,
+    dataAtendimento: (Array.isArray(m.appointments) ? m.appointments[0] : m.appointments)?.data_realizada ?? null,
   };
 }
 function tarefaRow(t: Rec): TarefaRow {
@@ -36,19 +37,34 @@ function tarefaRow(t: Rec): TarefaRow {
     due: t.next_action_due ?? String(t.due_at ?? t.created_at).slice(0, 10), aConferir: t.a_conferir ?? [], payload: t.payload ?? {},
     financialImpact: t.financial_impact === null ? null : Number(t.financial_impact), closedReason: t.closed_reason, updatedAt: t.updated_at ?? t.created_at,
     temEventoVinculado: (t.event_links ?? []).length > 0,
-    assignedTo: t.assigned_to ?? null, nextAction: t.next_action ?? null, origem: t.origem ?? null,
+    assignedTo: t.assigned_to ?? null, nextAction: t.next_action ?? null, origem: t.origem ?? null, origemData: t.origem_data ?? null,
+    aguardando: t.aguardando ?? null, prioridade: t.prioridade ?? null, prazoOriginal: t.prazo_original ?? null, adiamentos: t.adiamentos ?? 0, criadoEm: t.created_at,
   };
 }
 
+function feedbackRow(f: Rec): FeedbackRow {
+  return {
+    id: f.id, dia: f.day, responsavel: f.responsavel, versao: f.versao, status: f.status, texto: f.texto, contadores: f.contadores ?? {}, eventos: f.eventos ?? [],
+    substitui: f.substitui ?? null, geradoEm: f.gerado_em, entregueEm: f.entregue_em ?? null, copiadoEm: f.copiado_em ?? null,
+    whatsappConfirmadoEm: f.whatsapp_confirmado_em ?? null, observacaoGestao: f.observacao_gestao ?? null,
+    ajusteSolicitadoEm: f.ajuste_solicitado_em ?? null, ajusteSolicitadoPor: f.ajuste_solicitado_por ?? null,
+  };
+}
+
+const COLUNA_FEEDBACK: Record<string, string> = {
+  status: "status", texto: "texto", contadores: "contadores", eventos: "eventos", geradoEm: "gerado_em", entregueEm: "entregue_em", copiadoEm: "copiado_em",
+  whatsappConfirmadoEm: "whatsapp_confirmado_em", observacaoGestao: "observacao_gestao", ajusteSolicitadoEm: "ajuste_solicitado_em", ajusteSolicitadoPor: "ajuste_solicitado_por",
+};
+
 const COLS_ATEND = "id, patient_id, chave_origem, data_realizada, data_status, realizado_confirmado_em, anulado_em, created_at";
-const COLS_MARCO = "id, appointment_id, patient_id, kind, due_original, due_current, status, status_reason, updated_at, event_links(event_id)";
-const COLS_TAREFA = "id, patient_id, assunto, kind, title, chave_origem, status, next_action_due, due_at, a_conferir, payload, financial_impact, closed_reason, updated_at, created_at, assigned_to, next_action, origem, event_links(event_id)";
+const COLS_MARCO = "id, appointment_id, patient_id, kind, due_original, due_current, status, status_reason, updated_at, event_links(event_id), appointments(data_realizada)";
+const COLS_TAREFA = "id, patient_id, assunto, kind, title, chave_origem, status, next_action_due, due_at, a_conferir, payload, financial_impact, closed_reason, updated_at, created_at, assigned_to, next_action, origem, origem_data, aguardando, prioridade, prazo_original, adiamentos, event_links(event_id)";
 const COLS_EVENTO = "id, patient_id, kind, occurred_on, channel, notes, amount, amount_origin, scheduled_for, created_by, recorded_at, categoria, contato, resposta, resultado, situacao, assunto, payload, event_links(milestone_id, task_id)";
 
 function eventoRow(e: Rec): EventoRow {
   return {
     id: e.id, patientId: e.patient_id ?? null, kind: e.kind, occurredOn: e.occurred_on, channel: e.channel, notes: e.notes,
-    amount: e.amount === null ? null : Number(e.amount), amountOrigin: e.amount_origin, scheduledFor: e.scheduled_for, createdBy: e.created_by,
+    amount: e.amount === null ? null : Number(e.amount), amountOrigin: e.amount_origin, scheduledFor: e.scheduled_for, createdBy: e.created_by, registradoEm: e.recorded_at,
     categoria: e.categoria ?? null, contato: e.contato ?? null, resposta: e.resposta ?? null, resultado: e.resultado ?? null,
     situacao: e.situacao ?? null, assunto: e.assunto ?? null, payload: e.payload ?? {},
     alvos: (e.event_links ?? []).map((l: Rec) => (l.milestone_id ? { marcoId: l.milestone_id } : { tarefaId: l.task_id })),
@@ -187,7 +203,60 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
     async perfis() {
       const { data, error } = await db.from("profiles").select("id, full_name").eq("organization_id", org).eq("active", true).order("full_name");
       falhou(error, "perfis");
-      return (data ?? []).map((p: Rec) => ({ id: p.id, nome: p.full_name }));
+      // Nome de exibição configurado (ex.: a conta da recepção aparece como "Gabi", não como e-mail).
+      const c = await store.config();
+      return (data ?? []).map((p: Rec) => ({ id: p.id, nome: p.id === c.conciergeId && c.conciergeNome ? c.conciergeNome : p.full_name }));
+    },
+    async config() {
+      const { data, error } = await db.from("fila_config").select("*").eq("organization_id", org).maybeSingle();
+      falhou(error, "config");
+      if (!data) return { ...CONFIG_VAZIA };
+      return {
+        conciergeId: data.concierge_id ?? null, conciergeNome: data.concierge_nome ?? null, gestorId: data.gestor_id ?? null,
+        diasExpediente: data.dias_expediente ?? null, horarioFechamento: data.horario_fechamento ? String(data.horario_fechamento).slice(0, 5) : null,
+        excecoes: data.excecoes ?? [], diasSemAtualizacao: data.dias_sem_atualizacao ?? 3,
+      } satisfies FilaConfig;
+    },
+    async leituras(userId, ids) {
+      if (!ids.length) return {};
+      const { data, error } = await db.from("task_reads").select("task_id, read_at").eq("user_id", userId).in("task_id", ids);
+      falhou(error, "leituras");
+      return Object.fromEntries((data ?? []).map((r: Rec) => [r.task_id, r.read_at]));
+    },
+    async ultimosEventos(ids) {
+      if (!ids.length) return {};
+      const { data, error } = await db.from("event_links").select("task_id, interaction_events!inner(recorded_at, created_by, organization_id)").in("task_id", ids).eq("interaction_events.organization_id", org);
+      falhou(error, "ultimosEventos");
+      const out: Record<string, { em: string; por: string }> = {};
+      for (const r of (data ?? []) as Rec[]) {
+        const e = Array.isArray(r.interaction_events) ? r.interaction_events[0] : r.interaction_events;
+        if (!e) continue;
+        if (!out[r.task_id] || out[r.task_id]!.em < e.recorded_at) out[r.task_id] = { em: e.recorded_at, por: e.created_by };
+      }
+      return out;
+    },
+    async feedbacks(f) {
+      let q = db.from("daily_feedbacks").select("*").eq("organization_id", org);
+      if (f.dia) q = q.eq("day", f.dia);
+      if (f.responsavel) q = q.eq("responsavel", f.responsavel);
+      if (f.desde) q = q.gte("day", f.desde);
+      const { data, error } = await q.order("day", { ascending: false }).order("versao", { ascending: false }).limit(200);
+      falhou(error, "feedbacks");
+      return (data ?? []).map(feedbackRow);
+    },
+    async feedback(id) {
+      const { data, error } = await db.from("daily_feedbacks").select("*").eq("organization_id", org).eq("id", id).maybeSingle();
+      falhou(error, "feedback");
+      return data ? feedbackRow(data) : null;
+    },
+    async loteDoHash(hash) {
+      const { data, error } = await db.from("import_batches").select("id, status, created_at, import_items(row_index, resultado, resolution, aplicado_em, erro)").eq("organization_id", org).eq("payload_hash", hash).maybeSingle();
+      falhou(error, "loteDoHash");
+      if (!data) return null;
+      return {
+        id: data.id, status: data.status, criadoEm: data.created_at,
+        itens: ((data.import_items ?? []) as Rec[]).map((i) => ({ index: i.row_index, resultado: i.resultado, aplicado: !!i.aplicado_em, resolution: i.resolution ?? null, erro: i.erro ?? null })),
+      };
     },
     async numerosDoDia(dia) {
       const { data } = await db.from("daily_manual_figures").select("*").eq("organization_id", org).eq("day", dia).maybeSingle();
@@ -212,6 +281,29 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       falhou(e2, "criarLote/itens");
       return data!.id as string;
     },
+    async abrirLote(l) {
+      const { data: ex } = await db.from("import_batches").select("id").eq("organization_id", org).eq("payload_hash", l.hash).maybeSingle();
+      if (ex) return ex.id as string;
+      const { data, error } = await db.from("import_batches")
+        .insert({ organization_id: org, created_by: l.criadoPor, payload_hash: l.hash, origem: l.origem, consultado_em: l.consultadoEm, status: "em_andamento" })
+        .select("id").single();
+      if (error && /duplicate|unique/i.test(error.message)) {
+        // Outra requisição abriu o mesmo lote ao mesmo tempo: usa o dela.
+        const { data: d2 } = await db.from("import_batches").select("id").eq("organization_id", org).eq("payload_hash", l.hash).single();
+        return d2!.id as string;
+      }
+      falhou(error, "abrirLote");
+      return data!.id as string;
+    },
+    async registrarItemLote(loteId, i) {
+      falhou((await db.from("import_items").upsert({
+        batch_id: loteId, row_index: i.index, tipo: i.tipo, chave_origem: i.chaveOrigem ?? null, resultado: i.resultado, payload: i.payload,
+        resolution: i.resolution ?? null, aplicado_em: i.aplicado ? new Date().toISOString() : null, erro: i.erro ?? null,
+      }, { onConflict: "batch_id,row_index" })).error, "registrarItemLote");
+    },
+    async concluirLote(loteId) {
+      falhou((await db.from("import_batches").update({ status: "confirmado" }).eq("organization_id", org).eq("id", loteId)).error, "concluirLote");
+    },
     async criarPaciente(ref) {
       const nome = ref.nome ?? `Paciente SD ${ref.sd_codigo ?? ref.sd_numero ?? ref.sd_ficha_id}`;
       const { data, error } = await db.from("patients").insert({ organization_id: org, full_name: nome, phone: ref.telefone ?? null }).select("id").single();
@@ -231,10 +323,9 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
     async atualizarDataAtendimento(id, data) {
       falhou((await db.from("appointments").update({ data_realizada: data }).eq("organization_id", org).eq("id", id)).error, "atualizarDataAtendimento");
     },
-    async confirmarAtendimento(id, data, ator, marcos) {
-      // Com escolha de marcos usa a assinatura da 0013; sem escolha, a original (os três).
-      const args = marcos ? { p_appointment_id: id, p_data: data, p_actor: ator, p_marcos: marcos } : { p_appointment_id: id, p_data: data, p_actor: ator };
-      falhou((await db.rpc("confirmar_atendimento_realizado", args)).error, "confirmarAtendimento");
+    async confirmarAtendimento(id, data, ator) {
+      // Sempre os três marcos (30 dias, 90 dias, 6 meses): regra atômica do banco (0012/0014).
+      falhou((await db.rpc("confirmar_atendimento_realizado", { p_appointment_id: id, p_data: data, p_actor: ator })).error, "confirmarAtendimento");
     },
     async anularAtendimento(id, motivo, ator) {
       falhou((await db.rpc("anular_atendimento", { p_appointment_id: id, p_motivo: motivo, p_actor: ator })).error, "anularAtendimento");
@@ -244,7 +335,8 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
         organization_id: org, patient_id: t.patientId, assunto: t.assunto ?? null, title: t.title, source: "fila_entrada", kind: t.kind, chave_origem: t.chaveOrigem,
         origem: t.origem, origem_data: t.origemData, a_conferir: t.aConferir, payload: t.payload, financial_impact: t.financialImpact,
         next_action_due: t.due, due_at: meioDia(t.due), updated_at: new Date().toISOString(),
-        assigned_to: t.assignedTo ?? null, next_action: t.nextAction ?? null,
+        assigned_to: t.assignedTo ?? null, next_action: t.nextAction ?? null, prioridade: t.prioridade ?? null,
+        status: t.status ?? "open", aguardando: t.aguardando ?? null, waiting_since: t.status === "waiting" ? new Date().toISOString() : null,
       }).select("id").single();
       falhou(error, "criarTarefa");
       return data!.id as string;
@@ -285,6 +377,10 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       if (t.payload !== undefined) patch.payload = t.payload;
       if (t.financialImpact !== undefined) patch.financial_impact = t.financialImpact;
       if (t.waiting !== undefined || t.status !== undefined) patch.waiting_since = t.waiting ? new Date().toISOString() : null;
+      if (t.aguardando !== undefined) patch.aguardando = t.aguardando;
+      if (t.prioridade !== undefined) patch.prioridade = t.prioridade;
+      if (t.prazoOriginal !== undefined) patch.prazo_original = t.prazoOriginal;
+      if (t.adiamentos !== undefined) patch.adiamentos = t.adiamentos;
       falhou((await db.from("tasks").update(patch).eq("organization_id", org).eq("id", id)).error, "atualizarTarefa");
     },
     async salvarNumeros(dia, n, ator) {
@@ -298,6 +394,29 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       if (e.prioridades !== undefined) linha.prioridades = e.prioridades;
       if (e.secoes !== undefined) linha.secoes = e.secoes;
       falhou((await db.from("daily_manual_figures").upsert(linha, { onConflict: "organization_id,day" })).error, "salvarEstadoDoDia");
+    },
+    async salvarConfig(c, ator) {
+      const linha: Rec = { organization_id: org, updated_by: ator, updated_at: new Date().toISOString() };
+      if (c.diasExpediente !== undefined) linha.dias_expediente = c.diasExpediente;
+      if (c.horarioFechamento !== undefined) linha.horario_fechamento = c.horarioFechamento;
+      if (c.excecoes !== undefined) linha.excecoes = c.excecoes;
+      if (c.diasSemAtualizacao !== undefined) linha.dias_sem_atualizacao = c.diasSemAtualizacao;
+      falhou((await db.from("fila_config").upsert(linha, { onConflict: "organization_id" })).error, "salvarConfig");
+    },
+    async marcarLido(tarefaId, userId) {
+      falhou((await db.from("task_reads").upsert({ task_id: tarefaId, user_id: userId, read_at: new Date().toISOString() }, { onConflict: "task_id,user_id" })).error, "marcarLido");
+    },
+    async inserirFeedback(f) {
+      const { error } = await db.from("daily_feedbacks").upsert({
+        id: f.id, organization_id: org, day: f.dia, responsavel: f.responsavel, versao: f.versao, status: f.status, texto: f.texto, contadores: f.contadores,
+        eventos: f.eventos, substitui: f.substitui, gerado_em: f.geradoEm, entregue_em: f.entregueEm,
+      }, { onConflict: "id", ignoreDuplicates: true });
+      falhou(error, "inserirFeedback");
+    },
+    async atualizarFeedback(id, f) {
+      const patch: Rec = {};
+      for (const [k, v] of Object.entries(f)) if (v !== undefined) patch[COLUNA_FEEDBACK[k]!] = v;
+      falhou((await db.from("daily_feedbacks").update(patch).eq("organization_id", org).eq("id", id)).error, "atualizarFeedback");
     },
     async auditar(a) {
       await db.from("audit_logs").insert({

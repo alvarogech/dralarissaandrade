@@ -1,30 +1,24 @@
 import Link from "next/link";
 import clsx from "clsx";
-import { Sidebar } from "@/components/shell/Sidebar";
+import { Sidebar, navDoPerfil } from "@/components/shell/Sidebar";
 import { SairButton } from "@/components/auth/SairButton";
 
-const ABAS = [
-  { label: "Feedback diário", atual: "Feedback diário", href: "/fila" },
-  { label: "Outros dias", atual: "Fechamento", href: "/fechamento" },
-  { label: "Gestão", atual: "Gestão", href: "/entrada", soGestao: true },
-] as const;
-
 /**
- * Moldura das telas da fila da concierge, no padrão visual do feedback-concierge.html
- * (tema claro "tema-feedback"). No celular a sidebar some e há uma barra de abas própria.
+ * Moldura das telas da fila, no padrão visual do feedback-concierge.html (tema claro
+ * "tema-feedback"). Navegação por perfil; no celular a sidebar some e há uma barra de abas própria.
  */
-export function FilaShell({ atual, demo, gestao, children }: { atual: "Feedback diário" | "Fechamento" | "Gestão"; demo: boolean; gestao: boolean; children: React.ReactNode }) {
+export function FilaShell({ atual, demo, gestao, largo, children }: { atual: string; demo: boolean; gestao: boolean; largo?: boolean; children: React.ReactNode }) {
   return (
     <div className="tema-feedback flex min-h-screen">
-      <Sidebar current={atual} />
-      <main className={clsx("mx-auto w-full flex-1 px-4 py-6 md:px-8 md:py-8", atual === "Feedback diário" ? "max-w-[1260px]" : "max-w-3xl")}>
-        <nav className="mb-5 flex items-center gap-1 border-b border-border md:hidden">
-          {ABAS.filter((a) => !("soGestao" in a) || gestao).map((a) => (
-            <Link key={a.href} href={a.href} className={a.atual === atual ? "border-b-2 border-accent px-3 py-2 text-sm font-medium text-text-primary" : "px-3 py-2 text-sm text-text-secondary"}>
+      <Sidebar current={atual} gestao={gestao} />
+      <main className={clsx("mx-auto w-full min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8", largo ? "max-w-[1260px]" : "max-w-4xl")}>
+        <nav className="mb-5 flex items-center gap-1 overflow-x-auto border-b border-border md:hidden">
+          {navDoPerfil(gestao).map((a) => (
+            <Link key={a.href} href={a.href} className={clsx("shrink-0 px-3 py-2 text-sm", a.label === atual ? "border-b-2 border-accent font-medium text-text-primary" : "text-text-secondary")}>
               {a.label}
             </Link>
           ))}
-          <SairButton className="mb-1 ml-auto" />
+          <SairButton className="mb-1 ml-auto shrink-0" />
         </nav>
         {demo && (
           <div className="mb-5 rounded-md border border-important bg-important-bg px-4 py-2 text-sm text-important">

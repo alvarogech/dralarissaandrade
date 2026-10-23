@@ -17,7 +17,7 @@ afterEach(() => vi.useRealTimers());
 describe("gestão: tarefas manuais, edição e histórico", () => {
   it("cria tarefa manual para paciente nova; só a gestão", async () => {
     const { store, _dados } = criarStoreMemoria();
-    const base = { novoPaciente: { nome: "Helena Fictícia", sd_codigo: "4040" }, kind: "continuidade" as const, acao: "Ligar para marcar fase 2", contexto: "clareamento", prazo: "2026-10-22" };
+    const base = { novoPaciente: { nome: "Helena Fictícia", sd_codigo: "4040" }, kind: "continuidade" as const, acao: "Ligar para marcar fase 2", contexto: "clareamento", prazo: "2026-10-22", responsavel: GABI.id };
     await expect(criarTarefaManual(store, GABI, base)).rejects.toThrow(/gestão/);
     const id = await criarTarefaManual(store, GESTAO, base);
     expect(_dados.tarefas.find((t) => t.id === id)).toMatchObject({ title: "Ligar para marcar fase 2", due: "2026-10-22", kind: "continuidade" });
@@ -26,7 +26,7 @@ describe("gestão: tarefas manuais, edição e histórico", () => {
 
   it("reagendar exige motivo e fica no histórico com autor; tarefa encerrada pela Gabi não é editada", async () => {
     const { store } = criarStoreMemoria();
-    const id = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "Helena Fictícia" }, kind: "outro", acao: "Confirmar documento", prazo: "2026-10-21" });
+    const id = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "Helena Fictícia" }, kind: "outro", acao: "Confirmar documento", prazo: "2026-10-21", responsavel: GABI.id });
     await expect(editarTarefa(store, GESTAO, id, { prazo: "2026-10-25" })).rejects.toThrow(/motivo/);
     await editarTarefa(store, GESTAO, id, { prazo: "2026-10-25", motivo: "paciente viajando" });
     const h = await historico(store, { tipo: "tarefa", id });
@@ -42,7 +42,7 @@ describe("gestão: tarefas manuais, edição e histórico", () => {
 describe("continuidade automática", () => {
   async function comTarefa() {
     const m = criarStoreMemoria();
-    const id = await criarTarefaManual(m.store, GESTAO, { novoPaciente: { nome: "Íris Teste", sd_codigo: "5050" }, kind: "recuperacao_falta", acao: "Remarcar consulta", prazo: "2026-10-20" });
+    const id = await criarTarefaManual(m.store, GESTAO, { novoPaciente: { nome: "Íris Teste", sd_codigo: "5050" }, kind: "recuperacao_falta", acao: "Remarcar consulta", prazo: "2026-10-20", responsavel: GABI.id });
     return { ...m, id };
   }
 
@@ -82,8 +82,8 @@ describe("continuidade automática", () => {
 describe("ação executada ≠ objetivo resolvido; virada de dia", () => {
   it("cobrança sem resposta fica aberta, sem pagamento presumido; agendamento não presume comparecimento", async () => {
     const { store, _dados } = criarStoreMemoria();
-    const cob = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Ana" }, kind: "cobranca", acao: "Cobrar parcela 2/5", prazo: "2026-10-20", valor: 300 });
-    const fal = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Bia" }, kind: "recuperacao_falta", acao: "Remarcar", prazo: "2026-10-20" });
+    const cob = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Ana" }, kind: "cobranca", acao: "Cobrar parcela 2/5", prazo: "2026-10-20", responsavel: GABI.id, valor: 300 });
+    const fal = await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Bia" }, kind: "recuperacao_falta", acao: "Remarcar", prazo: "2026-10-20", responsavel: GABI.id });
     await registrarAcao(store, GABI, { eventoId: randomUUID(), alvos: [{ tipo: "tarefa", id: cob }], acao: "contato", canal: "whatsapp", notas: "cobrança enviada, sem resposta", novaData: "2026-10-22", proximaAcao: "ligar" });
     expect(_dados.tarefas.find((t) => t.id === cob)).toMatchObject({ status: "open", due: "2026-10-22", nextAction: "ligar" });
     expect(_dados.eventos.some((e) => e.kind === "recebimento_confirmado")).toBe(false);
@@ -100,8 +100,8 @@ describe("ação executada ≠ objetivo resolvido; virada de dia", () => {
 
   it("virada de dia: pendências continuam e tarefas futuras entram na data certa (fuso de Brasília)", async () => {
     const { store } = criarStoreMemoria();
-    await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Caio" }, kind: "continuidade", acao: "Agendar fase 2", prazo: "2026-10-23" });
-    await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Duda" }, kind: "outro", acao: "Retornar orçamento", prazo: "2026-10-20" });
+    await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Caio" }, kind: "continuidade", acao: "Agendar fase 2", prazo: "2026-10-23", responsavel: GABI.id });
+    await criarTarefaManual(store, GESTAO, { novoPaciente: { nome: "TESTE DE AUDITORIA Duda" }, kind: "outro", acao: "Retornar orçamento", prazo: "2026-10-20", responsavel: GABI.id });
     let f = await carregarFila(store);
     expect(f.fila.hoje.map((c) => c.pacienteNome)).toEqual(["TESTE DE AUDITORIA Duda"]);
     expect(f.fila.proximas.map((c) => c.pacienteNome)).toEqual(["TESTE DE AUDITORIA Caio"]);

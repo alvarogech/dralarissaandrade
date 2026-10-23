@@ -3,8 +3,13 @@
 import { useState } from "react";
 import clsx from "clsx";
 
-/** Chamada às rotas da fila: erro do servidor sempre vira mensagem visível (nunca sucesso falso). */
-export async function chamarApi<T>(url: string, method: "GET" | "POST" | "PATCH" = "POST", body?: unknown): Promise<{ ok: true; data: T } | { ok: false; erro: string }> {
+/**
+ * Chamada às rotas da fila: erro do servidor sempre vira mensagem visível (nunca sucesso falso).
+ * "Nada foi salvo" só aparece quando o servidor afirma isso. Se a resposta não chega (504, queda de
+ * rede), o resultado é INCERTO — `incerto: true` — e a tela deve consultar o que foi gravado antes
+ * de sugerir repetir (os registros usam id do cliente, então repetir o mesmo envio não duplica).
+ */
+export async function chamarApi<T>(url: string, method: "GET" | "POST" | "PATCH" = "POST", body?: unknown): Promise<{ ok: true; data: T } | { ok: false; erro: string; incerto?: boolean; status?: number }> {
   try {
     const res = await fetch(url, {
       method,
@@ -12,11 +17,15 @@ export async function chamarApi<T>(url: string, method: "GET" | "POST" | "PATCH"
       body: body !== undefined ? JSON.stringify(body) : undefined,
       cache: "no-store",
     });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok) return { ok: false, erro: (j as { error?: string }).error ?? `Falha (${res.status}). Nada foi salvo.` };
-    return { ok: true, data: j as T };
+    const j = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = (j as { error?: string } | null)?.error;
+      if (msg) return { ok: false, erro: msg, status: res.status };
+      return { ok: false, incerto: true, status: res.status, erro: `A resposta do servidor não chegou (falha ${res.status}). O resultado é incerto: confira o que foi salvo antes de repetir.` };
+    }
+    return { ok: true, data: (j ?? {}) as T };
   } catch {
-    return { ok: false, erro: "Sem conexão com o servidor. Nada foi salvo." };
+    return { ok: false, incerto: true, erro: "Sem conexão com o servidor. Se o envio chegou a sair, pode ter sido salvo: confira antes de repetir." };
   }
 }
 
@@ -30,7 +39,7 @@ export const numeroBr = (v: string): number | null => {
 };
 
 export const ROTULO_TIPO: Record<string, string> = {
-  marco: "Marco", cobranca: "Cobrança", recuperacao_falta: "Falta", continuidade: "Continuidade", relacionamento: "Relacionamento",
+  marco: "Marco", cobranca: "Cobrança", recuperacao_falta: "Falta/cancelamento", continuidade: "Continuidade", relacionamento: "Relacionamento",
   encaminhamento: "Encaminhamento", conferir_atendimento: "Conferir", outro: "Outro", atendimento_realizado: "Atendimento realizado",
   agenda: "Agenda", oportunidade: "Oportunidade", recorrencia: "Recorrência", pos_atendimento: "Pós-atendimento", pendencia: "Pendência",
 };
@@ -49,14 +58,29 @@ export const classeInput = "w-full rounded-sm border border-border bg-surface px
 const ROTULO_EVENTO: Record<string, string> = {
   contato: "Contato", resposta: "Resposta", agendamento_obtido: "Agendamento", cancelamento: "Faltou", recebimento_confirmado: "Recebimento",
   atendimento_realizado: "Compareceu", adiamento: "Adiamento", encerramento: "Encerramento", encaminhamento: "Encaminhamento", correcao: "Ajuste da gestão",
+  registro: "Registro de execução", nota: "Mensagem",
+};
+export const ROTULO_NOTA: Record<string, string> = {
+  orientacao: "Orientação", pergunta: "Pergunta ou impedimento", resposta_gestao: "Resposta da gestão", decisao: "Decisão",
 };
 
-interface EventoHist {
+export interface EventoHist {
   id: string;
   kind: string;
   occurredOn: string;
   notes: string | null;
   autor: string;
+  registradoEm?: string;
+  situacao?: string | null;
+  payload?: Record<string, unknown>;
+}
+
+export const horaBr = (iso?: string) =>
+  iso ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : "";
+
+export function rotuloEvento(e: EventoHist): string {
+  if (e.kind === "nota") return ROTULO_NOTA[String(e.payload?.tipo ?? "")] ?? "Mensagem";
+  return ROTULO_EVENTO[e.kind] ?? e.kind;
 }
 
 /** Histórico de um item, carregado sob demanda. */
@@ -83,7 +107,7 @@ export function Historico({ tipo, id }: { tipo: "tarefa" | "marco"; id: string }
           {eventos && !eventos.length && <p className="text-text-muted">Nenhum registro ainda.</p>}
           {eventos?.map((e) => (
             <p key={e.id} className="text-text-secondary">
-              <span className="text-text-muted">{dataBr(e.occurredOn)}</span> · <strong>{ROTULO_EVENTO[e.kind] ?? e.kind}</strong> · {e.autor}
+              <span className="text-text-muted">{e.registradoEm ? horaBr(e.registradoEm) : dataBr(e.occurredOn)}</span> · <strong>{rotuloEvento(e)}</strong> · {e.autor}
               {e.notes ? ` — ${e.notes}` : ""}
             </p>
           ))}

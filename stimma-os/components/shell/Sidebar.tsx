@@ -1,25 +1,26 @@
 import Link from "next/link";
 import { SairButton } from "@/components/auth/SairButton";
 
-const PRIMARY_NAV = [
-  { label: "Feedback diário", href: "/fila" },
-  { label: "Fechamento", href: "/fechamento" },
-  { label: "Gestão", href: "/entrada" },
-  { label: "Hoje", href: "/hoje" },
-  { label: "Pipeline", href: "/pipeline" },
-  { label: "Agenda", href: null },
-  { label: "Pacientes", href: null },
-  { label: "Oportunidades", href: null },
-  { label: "Financeiro", href: null },
-  { label: "Tarefas", href: null },
-  { label: "Equipe", href: null },
-  { label: "Relatórios", href: null },
-  { label: "Atividade", href: null },
+/**
+ * Navegação por perfil — só o que funciona (nada de itens "em breve"). A barreira real fica no
+ * servidor: cada página e cada rota checa o papel; esconder o menu não é a proteção.
+ */
+export const NAV_GESTAO = [
+  { label: "Trabalho da Gabi", href: "/trabalho" },
+  { label: "Entrada e tarefas", href: "/entrada" },
+  { label: "Feedbacks da Gabi", href: "/feedbacks" },
 ] as const;
 
-const SECONDARY_NAV = ["STIMMA AI", "Automações", "Integrações", "Configurações"] as const;
+export const NAV_CONCIERGE = [
+  { label: "Meu trabalho", href: "/trabalho" },
+  { label: "Feedback diário", href: "/fila" },
+] as const;
 
-export function Sidebar({ current }: { current?: string }) {
+export function navDoPerfil(gestao: boolean) {
+  return gestao ? NAV_GESTAO : NAV_CONCIERGE;
+}
+
+export function Sidebar({ current, gestao = true }: { current?: string; gestao?: boolean }) {
   return (
     <aside className="hidden w-56 shrink-0 flex-col gap-8 border-r border-border px-4 py-6 md:flex">
       <div>
@@ -29,36 +30,16 @@ export function Sidebar({ current }: { current?: string }) {
       <SairButton className="-mt-4 w-full text-left" />
 
       <nav className="flex flex-col gap-0.5">
-        {PRIMARY_NAV.map((item) => {
-          const isActive = item.label === current;
-          const className = isActive
-            ? "rounded-sm bg-accent-soft px-3 py-1.5 text-sm font-medium text-text-primary"
-            : "rounded-sm px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-raised";
-
-          if (!item.href) {
-            // Ainda não implementado: visivelmente indisponível, sem simular um link.
-            return (
-              <span key={item.label} aria-disabled="true" title="Ainda não disponível" className="flex cursor-not-allowed items-center justify-between rounded-sm px-3 py-1.5 text-sm text-text-muted opacity-70">
-                {item.label}
-                <span className="text-[10px] uppercase tracking-wide">em breve</span>
-              </span>
-            );
-          }
-
-          return (
-            <Link key={item.label} href={item.href} className={className}>
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <nav className="mt-auto flex flex-col gap-0.5 border-t border-border pt-4">
-        {SECONDARY_NAV.map((item) => (
-          <span key={item} aria-disabled="true" title="Ainda não disponível" className="flex cursor-not-allowed items-center justify-between rounded-sm px-3 py-1.5 text-sm text-text-muted opacity-70">
-            {item}
-            <span className="text-[10px] uppercase tracking-wide">em breve</span>
-          </span>
+        {navDoPerfil(gestao).map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={item.label === current
+              ? "rounded-sm bg-accent-soft px-3 py-1.5 text-sm font-medium text-text-primary"
+              : "rounded-sm px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-raised"}
+          >
+            {item.label}
+          </Link>
         ))}
       </nav>
     </aside>

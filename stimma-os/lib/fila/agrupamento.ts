@@ -36,6 +36,28 @@ export interface ItemFila {
   etapa?: { definicao?: string; situacao?: string; data?: string; motivo?: string };
   aConferir?: string[];
   alvo?: { tipo: "marco" | "tarefa" | "atendimento"; id: string };
+  /** Perfil responsável pela próxima ação (null = sem responsável definido). */
+  responsavelId?: string | null;
+  /** Em status "aguardando": esperando a paciente ou a gestão. */
+  aguardando?: "paciente" | "gestao";
+  origem?: string;
+  /** Data da informação de origem. */
+  origemData?: string;
+  prioridade?: "alta" | "normal" | "baixa";
+  /** Orientação da gestão e resultado esperado (o que fazer). */
+  orientacao?: string;
+  resultadoEsperado?: string;
+  /** Falta/cancelamento: ocorrência conhecida (ausente = não informada; nunca presumida). */
+  ocorrencia?: "falta" | "cancelamento";
+  dataOcorrencia?: string;
+  /** Marcos: atendimento de referência e prazo original. */
+  dataAtendimento?: string;
+  prazoOriginal?: string;
+  adiamentos?: number;
+  /** Última atualização (último registro ou criação). */
+  atualizadoEm?: string;
+  /** Há registro de outra pessoa que este usuário ainda não leu no detalhe. */
+  naoLido?: boolean;
 }
 
 export interface ItemJunto {

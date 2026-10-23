@@ -1,12 +1,13 @@
 import { hashLote, lerLote, type CabecalhoLote, type ItemEntrada, type PacienteRef } from "./contrato";
 import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
-import { ROTULO_MARCO, marcosValidos, type TipoMarco } from "./marcos";
+import { ROTULO_MARCO } from "./marcos";
 import { montarFila, type Fila, type ItemFila } from "./agrupamento";
 import { montarPrevia, type ItemPrevia } from "./previa";
 import { montarFechamento, refDoItem, textoWhatsapp, nomeCurto, type Fechamento } from "./fechamento";
 import { lerFeedback, linhaSemConteudo } from "./feedback";
-import { CATEGORIAS, type EstadoDoDia, type EventoRow, type FilaStore, type MarcoRow, type NumerosDoDia, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
+import { CATEGORIAS, type EstadoDoDia, type EventoRow, type FilaConfig, type FilaStore, type MarcoRow, type NumerosDoDia, type Prioridade, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 import { categoriaDaTarefa, rotuloResponsavel, type EtapaClinica } from "./registro";
+import { responsavelEfetivo } from "./trabalho";
 
 /**
  * Regras de negócio da fila. Os Route Handlers só autenticam e chamam daqui; o mesmo código
@@ -59,12 +60,13 @@ export interface ResultadoPrevia {
   pacientes: { id: string; nome: string }[];
 }
 
-export async function previaEntrada(store: FilaStore, texto: string): Promise<ResultadoPrevia> {
+export async function previaEntrada(store: FilaStore, texto: string, indices?: number[]): Promise<ResultadoPrevia> {
   const lido = lerLote(texto);
   if (!lido.ok) throw new ErroRegra(lido.erro);
   const hash = hashLote(texto);
   const pacientes = await store.pacientes();
-  const chaves = lido.itens.map((i) => i.item?.chave_origem).filter((c): c is string => !!c);
+  // Na publicação em partes, só as chaves do trecho são consultadas (consulta cara por chave).
+  const chaves = lido.itens.filter((i) => !indices || indices.includes(i.index)).map((i) => i.item?.chave_origem).filter((c): c is string => !!c);
   const registros = await store.registrosPorChave(chaves);
   const atendimentos = await store.atendimentosDe(pacientes.map((p) => p.id));
   const abertas = (await store.tarefasAtivas(hojeSaoPaulo())).filter((t) => !["completed", "cancelled"].includes(t.status));
@@ -76,7 +78,7 @@ export async function previaEntrada(store: FilaStore, texto: string): Promise<Re
   return {
     cabecalho: lido.cabecalho,
     hash,
-    jaImportado: await store.loteExiste(hash),
+    jaImportado: (await store.loteDoHash(hash))?.status === "confirmado",
     previa,
     pacientes: pacientes.filter((p) => citados.has(p.id)).map((p) => ({ id: p.id, nome: p.nome })),
   };
@@ -92,6 +94,29 @@ export interface ResultadoEntrada {
   atendimentosPendentes: number;
   tarefas: number;
   naoAplicados: { index: number; classificacao: string; motivo: string }[];
+  /** Itens deste lote que já tinham sido aplicados antes (retomada): não são repetidos. */
+  jaAplicados: number[];
+  /** Todos os itens do lote já têm resultado gravado. */
+  concluido: boolean;
+  /** Tarefas criadas sem responsável (concierge não configurada) — ficam na fila de atribuição da gestão. */
+  semResponsavel: number;
+}
+
+/** Itens por requisição na publicação: cada trecho termina bem dentro do tempo da função. */
+export const TAMANHO_TRECHO = 5;
+
+/** Estado persistido de um lote (o que já foi salvo) — base para retomar sem duplicar. */
+export async function estadoEntrada(store: FilaStore, ator: Ator, texto: string) {
+  exigirGestao(ator, "consultar entradas");
+  const lido = lerLote(texto);
+  if (!lido.ok) throw new ErroRegra(lido.erro);
+  const lote = await store.loteDoHash(hashLote(texto));
+  return {
+    existe: !!lote, loteId: lote?.id ?? null, status: lote?.status ?? null, total: lido.itens.length,
+    aplicados: (lote?.itens ?? []).filter((i) => i.aplicado).map((i) => i.index),
+    comErro: (lote?.itens ?? []).filter((i) => i.erro).map((i) => ({ index: i.index, erro: i.erro! })),
+    pendentes: (lote?.itens ?? []).filter((i) => !i.aplicado && !i.erro).map((i) => i.index),
+  };
 }
 
 const TITULO_TAREFA: Record<Exclude<ItemEntrada["tipo"], "atendimento_realizado">, string> = {
@@ -103,7 +128,7 @@ const TITULO_TAREFA: Record<Exclude<ItemEntrada["tipo"], "atendimento_realizado"
   outro: "Tarefa",
 };
 
-function dadosTarefa(it: ItemEntrada, hoje: string) {
+function dadosTarefa(it: ItemEntrada, hoje: string, config: FilaConfig) {
   const d = it.dados;
   const tipo = it.tipo as Exclude<ItemEntrada["tipo"], "atendimento_realizado">;
   const extra =
@@ -121,20 +146,35 @@ function dadosTarefa(it: ItemEntrada, hoje: string) {
     due: prazo ?? venc ?? hoje, // cobrança vencida entra com a data real: aparece como atrasada
     financialImpact: tipo === "cobranca" && typeof d.valor === "number" ? d.valor : null,
     payload: { ...d, ...(it.nota_ia ? { nota_ia: it.nota_ia } : {}), origem: it.origem, consultado_em: it.consultado_em },
+    // Destinada à concierge: usa a responsável configurada; sem configuração, fica sem responsável
+    // (fila de atribuição da gestão) — nunca se adivinha uma conta pelo nome.
+    assignedTo: tipo === "encaminhamento" && d.para === "gestao" ? config.gestorId : config.conciergeId,
   };
 }
 
-export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: string, resolucoes: Record<number, Resolucao> = {}): Promise<ResultadoEntrada> {
+/**
+ * Publica um lote — inteiro ou num trecho (`indices`). O lote é aberto ANTES de aplicar e cada item
+ * grava seu resultado logo depois de aplicado: se a requisição cair no meio, o que foi salvo fica
+ * comprovado no banco e a retomada aplica só o que falta (itens já aplicados são pulados).
+ */
+export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: string, resolucoes: Record<number, Resolucao> = {}, indices?: number[]): Promise<ResultadoEntrada> {
   exigirGestao(ator, "lançar entradas");
-  const p = await previaEntrada(store, texto);
-  if (p.jaImportado) throw new ErroRegra("Este lote já foi importado (mesmo conteúdo). Nada foi alterado.", 409);
+  const p = await previaEntrada(store, texto, indices);
   const hoje = hojeSaoPaulo();
+  const config = await store.config();
   const idsValidos = new Set((await store.pacientes()).map((x) => x.id));
   const criadosPorIdSd = new Map<string, string>();
-  const res: ResultadoEntrada = { loteId: "", aplicados: 0, atendimentosConfirmados: 0, atendimentosPendentes: 0, tarefas: 0, naoAplicados: [] };
-  const registroItens: Parameters<FilaStore["criarLote"]>[0]["itens"] = [];
+  const anterior = await store.loteDoHash(p.hash);
+  const jaAplicados = new Set((anterior?.itens ?? []).filter((i) => i.aplicado).map((i) => i.index));
+  const loteId = anterior?.id ?? (await store.abrirLote({ hash: p.hash, origem: p.cabecalho.origem, consultadoEm: p.cabecalho.consultado_em, criadoPor: ator.id }));
+  const res: ResultadoEntrada = { loteId, aplicados: 0, atendimentosConfirmados: 0, atendimentosPendentes: 0, tarefas: 0, naoAplicados: [], jaAplicados: [], concluido: false, semResponsavel: 0 };
 
   for (const item of p.previa) {
+    if (indices && !indices.includes(item.index)) continue;
+    if (jaAplicados.has(item.index)) {
+      res.jaAplicados.push(item.index);
+      continue;
+    }
     const r = resolucoes[item.index];
     let aplicar = item.classificacao === "novo" || item.classificacao === "atualizacao";
     let pacienteId = item.pacienteId;
@@ -147,13 +187,33 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
     if (item.classificacao === "possivel_duplicidade" && r?.acao === "aceitar") aplicar = true;
     if (r?.acao === "ignorar") aplicar = false;
 
-    registroItens.push({ index: item.index, tipo: item.item?.tipo ?? "invalido", chaveOrigem: item.item?.chave_origem, resultado: item.classificacao, payload: { item: item.item, erros: item.erros, avisos: item.avisos }, resolution: r ?? (aplicar ? { acao: "automatico" } : null) });
+    const registro = { index: item.index, tipo: item.item?.tipo ?? "invalido", chaveOrigem: item.item?.chave_origem, resultado: item.classificacao, payload: { item: item.item, erros: item.erros, avisos: item.avisos }, resolution: r ?? (aplicar ? { acao: "automatico" } : null) };
     if (!aplicar || !item.item) {
+      await store.registrarItemLote(loteId, { ...registro, aplicado: false });
       res.naoAplicados.push({ index: item.index, classificacao: item.classificacao, motivo: r?.acao === "ignorar" ? "ignorado pela gestão" : item.motivo });
       continue;
     }
+    try {
+      await aplicarItem(item.item, pacienteId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await store.registrarItemLote(loteId, { ...registro, aplicado: false, erro: msg }).catch(() => undefined);
+      throw new ErroRegra(`O item #${item.index + 1} não foi salvo (${e instanceof ErroRegra ? msg : "falha ao gravar"}). Os anteriores ficaram salvos; corrija e retome.`, e instanceof ErroRegra ? e.status : 500);
+    }
+    await store.registrarItemLote(loteId, { ...registro, aplicado: true });
+    res.aplicados++;
+  }
 
-    const it = item.item;
+  const estado = await store.loteDoHash(p.hash);
+  const comResultado = new Set((estado?.itens ?? []).map((i) => i.index));
+  res.concluido = p.previa.every((i) => comResultado.has(i.index));
+  if (res.concluido && estado?.status !== "confirmado") {
+    await store.concluirLote(loteId);
+    await store.auditar({ actor: ator.email, action: "fila_entrada_confirmada", target: `import_batches/${loteId}`, after: { aplicados: (estado?.itens ?? []).filter((i) => i.aplicado).length, naoAplicados: (estado?.itens ?? []).filter((i) => !i.aplicado).length } });
+  }
+  return res;
+
+  async function aplicarItem(it: ItemEntrada, pacienteId: string | null) {
     if (!pacienteId) {
       const idSd = it.paciente.sd_codigo ?? it.paciente.sd_numero ?? it.paciente.sd_ficha_id;
       pacienteId = (idSd && criadosPorIdSd.get(idSd)) || (await store.criarPaciente(it.paciente, ator.id));
@@ -163,14 +223,12 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
 
     if (it.tipo === "atendimento_realizado") {
       const data = String(it.dados.data_atendimento);
-      // Marcos pertinentes indicados no lote; ausente = os três (regra original).
-      const escolhaMarcos = marcosValidos(it.dados.marcos) ? it.dados.marcos : undefined;
       const pendente = it.a_conferir.includes("data_atendimento") || it.a_conferir.includes("status_no_sd");
       const existente = it.chave_origem ? await store.atendimentoPorChave(it.chave_origem) : null;
       if (existente) {
         if (existente.dataRealizada !== data) {
           await store.atualizarDataAtendimento(existente.id, data);
-          if (existente.realizadoConfirmado) await store.confirmarAtendimento(existente.id, data, ator.id, escolhaMarcos);
+          if (existente.realizadoConfirmado) await store.confirmarAtendimento(existente.id, data, ator.id);
         }
         if (existente.realizadoConfirmado) res.atendimentosConfirmados++;
         else res.atendimentosPendentes++;
@@ -178,23 +236,21 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
         const id = await store.criarAtendimento({ patientId: pacienteId, chaveOrigem: it.chave_origem ?? null, data, dataStatus: pendente ? "pendente_validacao" : "exata", consultadoEm: it.consultado_em, origem: it.origem });
         if (pendente) res.atendimentosPendentes++;
         else {
-          await store.confirmarAtendimento(id, data, ator.id, escolhaMarcos);
+          await store.confirmarAtendimento(id, data, ator.id);
           res.atendimentosConfirmados++;
         }
       }
     } else {
-      const t = dadosTarefa(it, hoje);
+      const t = dadosTarefa(it, hoje, config);
       const existente = it.chave_origem ? await store.tarefaPorChave(it.chave_origem) : null;
       if (existente) await store.atualizarTarefaEntrada(existente.id, { title: t.title, aConferir: it.a_conferir, payload: t.payload, financialImpact: t.financialImpact });
-      else await store.criarTarefa({ ...t, patientId: pacienteId, chaveOrigem: it.chave_origem ?? null, aConferir: it.a_conferir, origem: it.origem, origemData: it.consultado_em.slice(0, 10) });
+      else {
+        await store.criarTarefa({ ...t, patientId: pacienteId, chaveOrigem: it.chave_origem ?? null, aConferir: it.a_conferir, origem: it.origem, origemData: it.consultado_em.slice(0, 10) });
+        if (!t.assignedTo) res.semResponsavel++;
+      }
       res.tarefas++;
     }
-    res.aplicados++;
   }
-
-  res.loteId = await store.criarLote({ hash: p.hash, origem: p.cabecalho.origem, consultadoEm: p.cabecalho.consultado_em, criadoPor: ator.id, itens: registroItens });
-  await store.auditar({ actor: ator.email, action: "fila_entrada_confirmada", target: `import_batches/${res.loteId}`, after: { aplicados: res.aplicados, naoAplicados: res.naoAplicados.length } });
-  return res;
 }
 
 // ---------------------------------------------------------------- tarefas da gestão (manual)
@@ -202,44 +258,64 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
 export interface NovaTarefa {
   pacienteId?: string;
   novoPaciente?: PacienteRef;
+  /** Assunto administrativo sem paciente (não cria cadastro). */
+  assunto?: string;
   kind: TipoTarefa;
   acao: string;
   contexto?: string;
+  orientacao?: string;
+  resultadoEsperado?: string;
+  prioridade?: Prioridade | null;
   prazo: string;
   valor?: number | null;
   vencimento?: string | null;
   responsavel?: string | null;
   origem?: string;
+  /** Falta/cancelamento: só o que se sabe (nunca presumido). */
+  ocorrencia?: "falta" | "cancelamento" | null;
+  dataOcorrencia?: string | null;
 }
 
-const KINDS: TipoTarefa[] = ["cobranca", "recuperacao_falta", "continuidade", "relacionamento", "encaminhamento", "outro"];
+export const KINDS_MANUAIS: TipoTarefa[] = ["pendencia", "outro", "recuperacao_falta", "continuidade", "relacionamento", "oportunidade", "pos_atendimento", "encaminhamento", "cobranca"];
+const PRIORIDADES: Prioridade[] = ["alta", "normal", "baixa"];
 
 export async function criarTarefaManual(store: FilaStore, ator: Ator, t: NovaTarefa): Promise<string> {
   exigirGestao(ator, "criar tarefas");
-  if (!KINDS.includes(t.kind)) throw new ErroRegra("Tipo de tarefa inválido.");
+  if (!KINDS_MANUAIS.includes(t.kind)) throw new ErroRegra("Tipo de tarefa inválido.");
   if (!t.acao?.trim()) throw new ErroRegra("Descreva a ação solicitada.");
   if (!isDiaIso(t.prazo)) throw new ErroRegra("Informe o prazo (data exata).");
+  // Publicar exige responsável: tarefa sem dono some da rotina de todo mundo.
+  if (!t.responsavel) throw new ErroRegra("Defina o responsável antes de publicar a tarefa.");
+  if (t.prioridade && !PRIORIDADES.includes(t.prioridade)) throw new ErroRegra("Prioridade inválida.");
+  if (t.ocorrencia && !["falta", "cancelamento"].includes(t.ocorrencia)) throw new ErroRegra("Ocorrência inválida.");
+  if (t.dataOcorrencia && !isDiaIso(t.dataOcorrencia)) throw new ErroRegra("Data da ocorrência inválida.");
   if (t.valor !== undefined && t.valor !== null && !(typeof t.valor === "number" && t.valor >= 0)) throw new ErroRegra("Valor inválido.");
   if (t.vencimento && !isDiaIso(t.vencimento)) throw new ErroRegra("Vencimento inválido.");
   let pacienteId = t.pacienteId ?? null;
+  const assunto = !pacienteId && !t.novoPaciente?.nome?.trim() ? t.assunto?.trim() || null : null;
   if (pacienteId) {
     const nomes = await store.nomesPacientes([pacienteId]);
     if (!nomes[pacienteId]) throw new ErroRegra("Paciente não encontrada.", 404);
+  } else if (assunto) {
+    // Tarefa administrativa: sem paciente e sem cadastro fictício.
   } else {
     // Cadastro explícito pela gestão: nunca une com outra paciente por nome.
     const ref = t.novoPaciente ?? {};
-    if (!ref.nome?.trim()) throw new ErroRegra("Escolha uma paciente existente ou informe o nome da nova.");
+    if (!ref.nome?.trim()) throw new ErroRegra("Escolha uma paciente, informe o nome de uma nova ou descreva o assunto administrativo.");
     pacienteId = await store.criarPaciente({ ...ref, nome: ref.nome.trim() }, ator.id);
     await store.auditar({ actor: ator.email, action: "fila_paciente_criada", target: `patients/${pacienteId}`, after: { nome: ref.nome, sd_codigo: ref.sd_codigo } });
   }
-  if (t.responsavel) {
-    const perfis = await store.perfis();
-    if (!perfis.some((p) => p.id === t.responsavel)) throw new ErroRegra("Responsável inválido.");
-  }
+  const perfis = await store.perfis();
+  if (!perfis.some((p) => p.id === t.responsavel)) throw new ErroRegra("Responsável inválido.");
   const id = await store.criarTarefa({
-    patientId: pacienteId, kind: t.kind, title: t.acao.trim(), chaveOrigem: null, due: t.prazo, aConferir: [],
-    payload: { contexto: t.contexto?.trim() || undefined, vencimento: t.vencimento || undefined, origem: t.origem || "manual", criada_por: ator.email },
-    financialImpact: t.valor ?? null, origem: t.origem || "manual", origemData: hojeSaoPaulo(), assignedTo: t.responsavel ?? null,
+    patientId: pacienteId, assunto, kind: t.kind, title: t.acao.trim(), chaveOrigem: null, due: t.prazo, aConferir: [],
+    payload: {
+      contexto: t.contexto?.trim() || undefined, orientacao: t.orientacao?.trim() || undefined, resultado_esperado: t.resultadoEsperado?.trim() || undefined,
+      vencimento: t.vencimento || undefined, origem: t.origem || "manual", criada_por: ator.email,
+      ...(t.kind === "recuperacao_falta" && t.ocorrencia ? { ocorrencia: t.ocorrencia } : {}),
+      ...(t.kind === "recuperacao_falta" && t.dataOcorrencia ? { data_ocorrencia: t.dataOcorrencia } : {}),
+    },
+    financialImpact: t.valor ?? null, origem: t.origem || "manual", origemData: hojeSaoPaulo(), assignedTo: t.responsavel, prioridade: t.prioridade ?? null,
   });
   await store.auditar({ actor: ator.email, action: "fila_tarefa_criada", target: `tasks/${id}`, after: t });
   return id;
@@ -248,6 +324,9 @@ export async function criarTarefaManual(store: FilaStore, ator: Ator, t: NovaTar
 export interface EdicaoTarefa {
   acao?: string;
   contexto?: string;
+  orientacao?: string;
+  resultadoEsperado?: string;
+  prioridade?: Prioridade | null;
   prazo?: string;
   valor?: number | null;
   responsavel?: string | null;
@@ -275,6 +354,18 @@ export async function editarTarefa(store: FilaStore, ator: Ator, id: string, e: 
     patch.payload = { ...t.payload, contexto: e.contexto.trim() || undefined };
     mudancas.push("contexto atualizado");
   }
+  for (const [campo, chave, rotulo] of [["orientacao", "orientacao", "orientação"], ["resultadoEsperado", "resultado_esperado", "resultado esperado"]] as const) {
+    const novo = e[campo];
+    if (novo !== undefined && (novo.trim() || "") !== String(t.payload[chave] ?? "")) {
+      patch.payload = { ...(patch.payload ?? t.payload), [chave]: novo.trim() || undefined };
+      mudancas.push(`${rotulo} atualizada`);
+    }
+  }
+  if (e.prioridade !== undefined && (e.prioridade ?? null) !== (t.prioridade ?? null)) {
+    if (e.prioridade && !PRIORIDADES.includes(e.prioridade)) throw new ErroRegra("Prioridade inválida.");
+    patch.prioridade = e.prioridade;
+    mudancas.push(`prioridade: ${e.prioridade ?? "normal"}`);
+  }
   if (e.prazo !== undefined && e.prazo !== t.due) {
     if (!isDiaIso(e.prazo)) throw new ErroRegra("Prazo inválido.");
     patch.due = e.prazo;
@@ -287,6 +378,7 @@ export async function editarTarefa(store: FilaStore, ator: Ator, id: string, e: 
   }
   if (e.responsavel !== undefined && e.responsavel !== t.assignedTo) {
     const perfis = await store.perfis();
+    if (!e.responsavel && !e.cancelar) throw new ErroRegra("Uma tarefa aberta precisa de responsável.");
     if (e.responsavel && !perfis.some((p) => p.id === e.responsavel)) throw new ErroRegra("Responsável inválido.");
     patch.assignedTo = e.responsavel;
     mudancas.push(`responsável: ${perfis.find((p) => p.id === e.responsavel)?.nome ?? "ninguém"}`);
@@ -298,6 +390,11 @@ export async function editarTarefa(store: FilaStore, ator: Ator, id: string, e: 
     mudancas.push("cancelada");
   }
   if ((patch.due || patch.status) && !e.motivo?.trim()) throw new ErroRegra("Reagendar ou cancelar exige motivo.");
+  if (patch.due && patch.due > t.due && !e.cancelar) {
+    // Adiamento: preserva o prazo original e conta quantas vezes foi adiada.
+    patch.prazoOriginal = t.prazoOriginal ?? t.due;
+    patch.adiamentos = (t.adiamentos ?? 0) + 1;
+  }
   if (!mudancas.length) throw new ErroRegra("Nada mudou.");
   await store.atualizarTarefa(id, patch);
   await store.registrarEvento({
@@ -324,14 +421,18 @@ export async function listarTarefasGestao(store: FilaStore) {
   const nomes = await store.nomesPacientes(idsDePacientes(tarefas));
   const perfis = await store.perfis();
   const pacientes = (await store.pacientes()).map((p) => ({ id: p.id, nome: p.nome, sd_codigo: p.sd_codigo ?? null })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  const config = await store.config();
   return {
     perfis,
     pacientes,
+    conciergeId: config.conciergeId,
+    gestorId: config.gestorId,
     tarefas: tarefas
       .map((t) => ({
         id: t.id, ref: refDoItem({ tipo: "tarefa", id: t.id }), paciente: t.patientId ? nomes[t.patientId] ?? "Paciente" : t.assunto ?? "Assunto", pacienteId: t.patientId,
         kind: t.kind, acao: t.title, contexto: String(t.payload.contexto ?? ""), prazo: t.due, valor: t.financialImpact,
         responsavel: t.assignedTo, status: t.status, proximaAcao: t.nextAction, resultado: t.closedReason, origem: t.origem,
+        orientacao: String(t.payload.orientacao ?? ""), resultadoEsperado: String(t.payload.resultado_esperado ?? ""), prioridade: t.prioridade ?? null, aguardando: t.aguardando ?? null,
       }))
       .sort((a, b) => Number(["completed", "cancelled"].includes(a.status)) - Number(["completed", "cancelled"].includes(b.status)) || a.prazo.localeCompare(b.prazo)),
   };
@@ -339,15 +440,15 @@ export async function listarTarefasGestao(store: FilaStore) {
 
 // ---------------------------------------------------------------- atendimentos
 
-export async function confirmarAtendimentoPendente(store: FilaStore, ator: Ator, id: string, data: string, marcos?: TipoMarco[]) {
-  if (marcos !== undefined && !marcosValidos(marcos)) throw new ErroRegra("Marcos inválidos: escolha entre 30 dias, 90 dias e 6 meses.");
+/** Confirma o realizado: o banco cria sempre os três marcos (30 dias, 90 dias, 6 meses), sem escolha. */
+export async function confirmarAtendimentoPendente(store: FilaStore, ator: Ator, id: string, data: string) {
   if (!isDiaIso(data)) throw new ErroRegra("Informe a data exata do atendimento.");
   if (data > hojeSaoPaulo()) throw new ErroRegra("A data do atendimento não pode estar no futuro.");
   const a = await store.atendimento(id);
   if (!a) throw new ErroRegra("Atendimento não encontrado.", 404);
   if (a.anulado) throw new ErroRegra("Atendimento anulado não pode ser confirmado.");
-  await store.confirmarAtendimento(id, data, ator.id, marcos);
-  await store.auditar({ actor: ator.email, action: "fila_atendimento_confirmado", target: `appointments/${id}`, before: { data: a.dataRealizada, status: a.dataStatus }, after: { data, marcos: marcos ?? ["d30", "d90", "m6"] } });
+  await store.confirmarAtendimento(id, data, ator.id);
+  await store.auditar({ actor: ator.email, action: "fila_atendimento_confirmado", target: `appointments/${id}`, before: { data: a.dataRealizada, status: a.dataStatus }, after: { data, marcos: ["d30", "d90", "m6"] } });
 }
 
 export async function anularAtendimento(store: FilaStore, ator: Ator, id: string, motivo: string) {
@@ -486,11 +587,21 @@ export interface FilaCarregada {
   fila: Fila;
   maisTarde: number;
   itens: ItemFila[];
+  config: FilaConfig;
 }
 
-export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo()): Promise<FilaCarregada> {
-  const desde = somarDias(hoje, -1);
-  const [marcos, tarefas, pendentes, perfis] = await Promise.all([store.marcosAtivos(desde), store.tarefasAtivas(desde), store.atendimentosPendentes(), store.perfis()]);
+/** Encerradas há até 7 dias continuam consultáveis em "Concluídas". */
+export const DIAS_CONCLUIDAS = 7;
+
+/**
+ * Lê a fila. Com `eu`, marca "não lido" por usuário: há registro de outra pessoa depois da última
+ * vez que este usuário abriu o detalhe da tarefa.
+ */
+export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?: string): Promise<FilaCarregada> {
+  const desde = somarDias(hoje, -DIAS_CONCLUIDAS);
+  const [marcos, tarefas, pendentes, perfis, config] = await Promise.all([store.marcosAtivos(desde), store.tarefasAtivas(desde), store.atendimentosPendentes(), store.perfis(), store.config()]);
+  const idsTarefas = tarefas.map((t) => t.id);
+  const [ultimos, lidas] = await Promise.all([store.ultimosEventos(idsTarefas), eu ? store.leituras(eu, idsTarefas) : Promise.resolve({} as Record<string, string>)]);
   const nomes = await store.nomesPacientes(idsDePacientes([...marcos, ...tarefas, ...pendentes]));
   const nome = (id: string) => nomes[id] ?? "Paciente";
   const nomePerfil = new Map(perfis.map((p) => [p.id, p.nome]));
@@ -503,11 +614,16 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo()): Pro
       proximaAcao: m.status === "previsto" || m.status === "contatado" ? m.statusReason ?? undefined : undefined,
       contexto: m.status === "contemplado" || m.status === "dispensado" ? m.statusReason ?? undefined : undefined,
       status: m.status === "previsto" ? "aberta" : m.status === "contatado" ? "aguardando" : "concluida",
+      aguardando: m.status === "contatado" ? "paciente" : undefined,
       due: m.dueCurrent, concluidaEm: ["contemplado", "dispensado"].includes(m.status) ? diaSP(m.updatedAt) : undefined,
+      responsavelId: config.conciergeId, origem: "marco automático", origemData: m.dataAtendimento ?? undefined,
+      dataAtendimento: m.dataAtendimento ?? undefined, prazoOriginal: m.dueOriginal, atualizadoEm: m.updatedAt,
     })),
     ...tarefas.map((t): ItemFila => {
       const etapa = (t.payload.etapa ?? null) as EtapaClinica | null;
       const detalhes = (t.payload.detalhes ?? {}) as Record<string, string>;
+      const ult = ultimos[t.id];
+      const ocorrencia = [t.payload.ocorrencia, detalhes.ocorrencia].find((o) => o === "falta" || o === "cancelamento") as "falta" | "cancelamento" | undefined;
       return {
         id: `tarefa:${t.id}`, alvo: { tipo: "tarefa", id: t.id },
         // Assunto sem paciente (pendência administrativa) vira um cartão próprio.
@@ -523,18 +639,26 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo()): Pro
         etapa: etapa && Object.values(etapa).some(Boolean) ? etapa : undefined,
         detalhe: ["completed", "cancelled"].includes(t.status) ? t.closedReason ?? undefined : undefined,
         status: t.status === "waiting" ? "aguardando" : ["completed", "cancelled"].includes(t.status) ? "concluida" : "aberta",
+        aguardando: t.status === "waiting" ? t.aguardando ?? "paciente" : undefined,
         due: t.due, concluidaEm: ["completed", "cancelled"].includes(t.status) ? diaSP(t.updatedAt) : undefined,
+        responsavelId: t.assignedTo, origem: t.origem ?? undefined, origemData: t.origemData ?? undefined, prioridade: t.prioridade ?? undefined,
+        orientacao: typeof t.payload.orientacao === "string" ? t.payload.orientacao : undefined,
+        resultadoEsperado: typeof t.payload.resultado_esperado === "string" ? t.payload.resultado_esperado : undefined,
+        ocorrencia, dataOcorrencia: typeof t.payload.data_ocorrencia === "string" ? t.payload.data_ocorrencia : undefined,
+        prazoOriginal: t.prazoOriginal ?? undefined, adiamentos: t.adiamentos ?? 0,
+        atualizadoEm: ult?.em ?? t.criadoEm ?? t.updatedAt,
+        naoLido: !!(eu && ult && ult.por !== eu && (!lidas[t.id] || lidas[t.id]! < ult.em)) || undefined,
       };
     }),
     ...pendentes.map((a): ItemFila => ({
       id: `atendimento:${a.id}`, alvo: { tipo: "atendimento", id: a.id }, pacienteId: a.patientId, pacienteNome: nome(a.patientId), tipo: "conferir_atendimento",
       categoria: "agenda", titulo: "Conferir atendimento no Simples Dental", detalhe: a.dataRealizada ? `data informada: ${dataBr(a.dataRealizada)}` : undefined,
-      status: "aberta", due: diaSP(a.createdAt),
+      status: "aberta", due: diaSP(a.createdAt), responsavelId: config.conciergeId, origem: "conferência", origemData: diaSP(a.createdAt), atualizadoEm: a.createdAt,
     })),
   ];
   const limite = somarDias(hoje, HORIZONTE_PROXIMAS_DIAS);
   const visiveis = itens.filter((i) => i.status !== "aberta" || i.due <= limite);
-  return { hoje, fila: montarFila(visiveis, hoje), maisTarde: itens.length - visiveis.length, itens };
+  return { hoje, fila: montarFila(visiveis, hoje), maisTarde: itens.length - visiveis.length, itens, config };
 }
 
 export const ROTULO_DETALHE: Record<string, string> = {
@@ -547,12 +671,21 @@ export const ROTULO_DETALHE: Record<string, string> = {
 
 // ---------------------------------------------------------------- fechamento
 
-export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo()): Promise<{ fechamento: Fechamento; texto: string }> {
+/**
+ * Fechamento de um dia. Com `responsavel`, respeita a autoria: só os registros dessa pessoa e só as
+ * pendências sob a responsabilidade dela (marcos e conferências são da concierge) — nada de totais
+ * gerais da clínica montados com dados parciais.
+ */
+export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo(), responsavel?: string): Promise<{ fechamento: Fechamento; texto: string; eventos: EventoRow[] }> {
   if (!isDiaIso(dia)) throw new ErroRegra("Dia inválido.");
-  const [eventos, numeros, estado, carregada] = await Promise.all([store.eventosDoDia(dia), store.numerosDoDia(dia), store.estadoDoDia(dia), carregarFila(store, dia)]);
+  const [todos, numeros, estado, carregada] = await Promise.all([store.eventosDoDia(dia), store.numerosDoDia(dia), store.estadoDoDia(dia), carregarFila(store, dia)]);
+  const eventos = todos.filter((e) => e.kind !== "nota" && (!responsavel || e.createdBy === responsavel));
+  const pessoas = { eu: responsavel ?? "", conciergeId: carregada.config.conciergeId, gestorId: carregada.config.gestorId };
+  const itens = responsavel ? carregada.itens.filter((i) => { const r = responsavelEfetivo(i, pessoas); return !r || r === responsavel || i.aguardando === "gestao"; }) : carregada.itens;
+  const fila = responsavel ? montarFila(itens, dia) : carregada.fila;
   const nomes = await store.nomesPacientes(idsDePacientes(eventos));
-  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos, fila: carregada.fila, itens: carregada.itens, nomes, numeros, estado });
-  return { fechamento, texto: textoWhatsapp(fechamento) };
+  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos, fila, itens, nomes, numeros, estado });
+  return { fechamento, texto: textoWhatsapp(fechamento), eventos };
 }
 
 /** Prioridades escolhidas (até 5, sugeridas ou manuais) e seções "sem ocorrências" do dia. */
@@ -680,4 +813,30 @@ export async function aplicarContinuidade(store: FilaStore, ator: Ator, p: { tar
     if (!(err instanceof ErroRegra && err.message === "Nada mudou.")) throw err;
   });
   if (p.proximaAcao?.trim()) await store.atualizarTarefa(p.tarefaId, { nextAction: p.proximaAcao.trim() });
+}
+
+// ---------------------------------------------------------------- expediente (configuração da gestão)
+
+/** Dias de trabalho, horário de fechamento (fuso America/Sao_Paulo), exceções e critério de "sem atualização". */
+export async function salvarExpediente(store: FilaStore, ator: Ator, c: { diasExpediente?: unknown; horarioFechamento?: unknown; excecoes?: unknown; diasSemAtualizacao?: unknown }) {
+  exigirGestao(ator, "configurar o expediente");
+  const patch: Partial<FilaConfig> = {};
+  if (c.diasExpediente !== undefined) {
+    if (c.diasExpediente !== null && !(Array.isArray(c.diasExpediente) && c.diasExpediente.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))) throw new ErroRegra("Dias de expediente inválidos.");
+    patch.diasExpediente = c.diasExpediente === null ? null : [...new Set(c.diasExpediente as number[])].sort();
+  }
+  if (c.horarioFechamento !== undefined) {
+    if (c.horarioFechamento !== null && !(typeof c.horarioFechamento === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(c.horarioFechamento))) throw new ErroRegra("Horário de fechamento inválido (HH:MM).");
+    patch.horarioFechamento = c.horarioFechamento as string | null;
+  }
+  if (c.excecoes !== undefined) {
+    if (!(Array.isArray(c.excecoes) && c.excecoes.every(isDiaIso))) throw new ErroRegra("Exceções precisam ser datas (AAAA-MM-DD).");
+    patch.excecoes = [...new Set(c.excecoes as string[])].sort();
+  }
+  if (c.diasSemAtualizacao !== undefined) {
+    if (!(Number.isInteger(c.diasSemAtualizacao) && (c.diasSemAtualizacao as number) >= 1 && (c.diasSemAtualizacao as number) <= 60)) throw new ErroRegra("“Sem atualização” precisa ser de 1 a 60 dias.");
+    patch.diasSemAtualizacao = c.diasSemAtualizacao as number;
+  }
+  await store.salvarConfig(patch, ator.id);
+  await store.auditar({ actor: ator.email, action: "fila_expediente", target: "fila_config", after: patch });
 }

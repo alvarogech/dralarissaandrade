@@ -3,7 +3,7 @@
 import { createContext, useContext } from "react";
 import type { ItemFila } from "@/lib/fila/agrupamento";
 
-/** Dados compartilhados pela tela da concierge (evita repassar por todos os cartões). */
+/** Dados compartilhados pelas telas da fila (evita repassar por todos os cartões). */
 export interface DadosFila {
   hoje: string;
   proximoDiaUtil: string;
@@ -11,6 +11,9 @@ export interface DadosFila {
   perfis: { id: string; nome: string }[];
   pacientes: { id: string; nome: string }[];
   itens: ItemFila[];
+  gestao?: boolean;
+  conciergeId?: string | null;
+  gestorId?: string | null;
 }
 
 const Contexto = createContext<DadosFila | null>(null);

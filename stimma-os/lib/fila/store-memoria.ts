@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { hashConteudo } from "./previa";
 import { planejarAnulacao, planejarMarcos } from "./marcos";
 import type { ItemEntrada } from "./contrato";
-import type { AtendimentoRow, EstadoDoDia, EventoRow, FilaStore, MarcoRow, NumerosDoDia, TarefaRow } from "./store";
+import { CONFIG_VAZIA, type AtendimentoRow, type EstadoDoDia, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type LoteEstado, type MarcoRow, type NumerosDoDia, type TarefaRow } from "./store";
 
 /**
  * Store em memória: testes e modo demonstração (sem Supabase configurado). Espelha as regras
@@ -14,20 +14,30 @@ export const PERFIS_DEMO = [
   { id: "00000000-0000-4000-8000-000000000002", nome: "Gabi (demonstração)" },
 ];
 
-export function criarStoreMemoria() {
+export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { conciergeId: PERFIS_DEMO[1]!.id, conciergeNome: "Gabi", gestorId: PERFIS_DEMO[0]!.id }) {
   const pacientes: { id: string; nome: string; telefone?: string; ids: Record<string, string> }[] = [];
   const atendimentos: AtendimentoRow[] = [];
   const marcos: Omit<MarcoRow, "temEventoVinculado">[] = [];
   const tarefas: Omit<TarefaRow, "temEventoVinculado">[] = [];
   const eventos: EventoRow[] = [];
-  const lotes: { id: string; hash: string; itens: { chaveOrigem?: string; resultado: string; payload: unknown }[] }[] = [];
+  const lotes: { id: string; hash: string; status: LoteEstado["status"]; criadoEm: string; itens: { index?: number; chaveOrigem?: string; resultado: string; payload: unknown; resolution?: unknown; aplicado?: boolean; erro?: string | null }[] }[] = [];
+  let config: FilaConfig = { ...CONFIG_VAZIA, ...configInicial };
+  const leituras = new Map<string, string>();
+  const feedbacks: FeedbackRow[] = [];
   const numeros = new Map<string, NumerosDoDia>();
   const estados = new Map<string, EstadoDoDia>();
   const auditoria: { action: string; target: string }[] = [];
-  const agora = () => new Date().toISOString();
+  // Relógio monotônico: dois registros no mesmo milissegundo continuam ordenados (testes).
+  let ultimo = 0;
+  const agora = () => {
+    ultimo = Math.max(Date.now(), ultimo + 1);
+    return new Date(ultimo).toISOString();
+  };
+  /** Testes: simula queda de rede antes de gravar o item N de um lote. */
+  const falhaSimulada: { antesDoItem: number | null } = { antesDoItem: null };
 
   const vinculado = (f: (a: EventoRow["alvos"][number]) => boolean) => eventos.some((e) => e.alvos.some(f));
-  const comVinculoM = (m: Omit<MarcoRow, "temEventoVinculado">): MarcoRow => ({ ...m, temEventoVinculado: vinculado((a) => a.marcoId === m.id) });
+  const comVinculoM = (m: Omit<MarcoRow, "temEventoVinculado">): MarcoRow => ({ ...m, temEventoVinculado: vinculado((a) => a.marcoId === m.id), dataAtendimento: atendimentos.find((a) => a.id === m.appointmentId)?.dataRealizada ?? null });
   const comVinculoT = (t: Omit<TarefaRow, "temEventoVinculado">): TarefaRow => ({ ...t, temEventoVinculado: vinculado((a) => a.tarefaId === t.id) });
   const dia = (iso: string) => iso.slice(0, 10);
 
@@ -108,11 +118,63 @@ export function criarStoreMemoria() {
     async estadoDoDia(d) {
       return estados.get(d) ?? { prioridades: [], secoes: {} };
     },
+    async config() {
+      return { ...config };
+    },
+    async leituras(userId, ids) {
+      return Object.fromEntries(ids.filter((id) => leituras.has(`${id}|${userId}`)).map((id) => [id, leituras.get(`${id}|${userId}`)!]));
+    },
+    async ultimosEventos(ids) {
+      const out: Record<string, { em: string; por: string }> = {};
+      for (const e of eventos) {
+        for (const a of e.alvos) {
+          if (!a.tarefaId || !ids.includes(a.tarefaId)) continue;
+          const em = e.registradoEm ?? agora();
+          if (!out[a.tarefaId] || out[a.tarefaId]!.em <= em) out[a.tarefaId] = { em, por: e.createdBy };
+        }
+      }
+      return out;
+    },
+    async feedbacks(f) {
+      return feedbacks
+        .filter((x) => (!f.dia || x.dia === f.dia) && (!f.responsavel || x.responsavel === f.responsavel) && (!f.desde || x.dia >= f.desde))
+        .map((x) => ({ ...x }))
+        .sort((a, b) => b.dia.localeCompare(a.dia) || b.versao - a.versao);
+    },
+    async feedback(id) {
+      const x = feedbacks.find((y) => y.id === id);
+      return x ? { ...x } : null;
+    },
+    async loteDoHash(hash) {
+      const l = lotes.find((x) => x.hash === hash);
+      if (!l) return null;
+      return { id: l.id, status: l.status, criadoEm: l.criadoEm, itens: l.itens.filter((i) => i.index !== undefined).map((i) => ({ index: i.index!, resultado: i.resultado, aplicado: !!i.aplicado, resolution: i.resolution ?? null, erro: i.erro ?? null })) };
+    },
 
     async criarLote(l) {
       const id = randomUUID();
-      lotes.push({ id, hash: l.hash, itens: l.itens });
+      lotes.push({ id, hash: l.hash, status: "confirmado", criadoEm: agora(), itens: l.itens.map((i) => ({ ...i, aplicado: !!i.resolution && (i.resolution as { acao?: string }).acao !== "ignorar" })) });
       return id;
+    },
+    async abrirLote(l) {
+      const ex = lotes.find((x) => x.hash === l.hash);
+      if (ex) return ex.id;
+      const id = randomUUID();
+      lotes.push({ id, hash: l.hash, status: "em_andamento", criadoEm: agora(), itens: [] });
+      return id;
+    },
+    async registrarItemLote(loteId, i) {
+      const l = lotes.find((x) => x.id === loteId)!;
+      if (falhaSimulada.antesDoItem === i.index) {
+        falhaSimulada.antesDoItem = null;
+        throw new Error("falha simulada de rede");
+      }
+      const idx = l.itens.findIndex((x) => x.index === i.index);
+      if (idx >= 0) l.itens[idx] = { ...i };
+      else l.itens.push({ ...i });
+    },
+    async concluirLote(loteId) {
+      lotes.find((x) => x.id === loteId)!.status = "confirmado";
     },
     async criarPaciente(ref) {
       const id = randomUUID();
@@ -130,13 +192,13 @@ export function criarStoreMemoria() {
       const a = atendimentos.find((x) => x.id === id);
       if (a) a.dataRealizada = data;
     },
-    async confirmarAtendimento(id, data, _ator, escolhidos) {
+    async confirmarAtendimento(id, data) {
       const a = atendimentos.find((x) => x.id === id);
       if (!a) throw new Error("atendimento inexistente");
       if (a.anulado) throw new Error("atendimento anulado não pode ser confirmado");
       Object.assign(a, { dataRealizada: data, dataStatus: "exata", realizadoConfirmado: true });
       const existentes = marcos.filter((m) => m.appointmentId === id).map(comVinculoM);
-      for (const acao of planejarMarcos(data, existentes, escolhidos)) {
+      for (const acao of planejarMarcos(data, existentes)) {
         if (acao.acao === "inserir") {
           marcos.push({ id: randomUUID(), appointmentId: id, patientId: a.patientId, kind: acao.kind, dueOriginal: acao.due, dueCurrent: acao.due, status: "previsto", statusReason: null, updatedAt: agora() });
         } else if (acao.acao === "recalcular") {
@@ -159,8 +221,10 @@ export function criarStoreMemoria() {
       tarefas.push({
         id, patientId: t.patientId, assunto: t.assunto ?? null, kind: t.kind, title: t.title, chaveOrigem: t.chaveOrigem, status: "open", due: t.due, aConferir: t.aConferir,
         payload: t.payload, financialImpact: t.financialImpact, closedReason: null, updatedAt: agora(),
-        assignedTo: t.assignedTo ?? null, nextAction: t.nextAction ?? null, origem: t.origem,
+        assignedTo: t.assignedTo ?? null, nextAction: t.nextAction ?? null, origem: t.origem, origemData: t.origemData,
+        prioridade: t.prioridade ?? null, aguardando: t.aguardando ?? null, adiamentos: 0, prazoOriginal: null, criadoEm: agora(),
       });
+      if (t.status) tarefas[tarefas.length - 1]!.status = t.status;
       return id;
     },
     async atualizarTarefaEntrada(id, t) {
@@ -168,7 +232,7 @@ export function criarStoreMemoria() {
       if (x) Object.assign(x, t, { updatedAt: agora() });
     },
     async registrarEvento(e) {
-      if (!eventos.some((x) => x.id === e.id)) eventos.push(e);
+      if (!eventos.some((x) => x.id === e.id)) eventos.push({ ...e, registradoEm: e.registradoEm ?? agora() });
     },
     async atualizarMarco(id, m) {
       const x = marcos.find((y) => y.id === id);
@@ -187,12 +251,27 @@ export function criarStoreMemoria() {
       const atual = estados.get(d) ?? { prioridades: [], secoes: {} };
       estados.set(d, { ...atual, ...e });
     },
+    async salvarConfig(c) {
+      config = { ...config, ...Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined)) };
+    },
+    async marcarLido(tarefaId, userId) {
+      leituras.set(`${tarefaId}|${userId}`, agora());
+    },
+    async inserirFeedback(f) {
+      if (feedbacks.some((x) => x.id === f.id)) return;
+      if (feedbacks.some((x) => x.dia === f.dia && x.responsavel === f.responsavel && x.versao === f.versao)) throw new Error("versão já existe");
+      feedbacks.push({ ...f });
+    },
+    async atualizarFeedback(id, f) {
+      const x = feedbacks.find((y) => y.id === id);
+      if (x) Object.assign(x, Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined)));
+    },
     async auditar(a) {
       auditoria.push({ action: a.action, target: a.target });
     },
   };
 
-  return { store, _dados: { pacientes, atendimentos, marcos, tarefas, eventos, lotes, auditoria } };
+  return { store, _dados: { pacientes, atendimentos, marcos, tarefas, eventos, lotes, auditoria, feedbacks }, falhaSimulada };
 }
 
 // Modo demonstração: uma instância por processo do servidor de desenvolvimento.

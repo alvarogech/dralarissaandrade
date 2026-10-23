@@ -1,5 +1,6 @@
 import type { PacienteRef } from "./contrato";
 import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
+import { JANELA_MARCOS_DIAS } from "./trabalho";
 import { ErroRegra, type Ator } from "./servico";
 import { CATEGORIAS, type Categoria, type FilaStore, type MarcoRow, type SimNao, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 
@@ -14,11 +15,11 @@ import { CATEGORIAS, type Categoria, type FilaStore, type MarcoRow, type SimNao,
  *  - a SITUAÇÃO do caso depois do registro (aguardando, pendente, agendado, resolvido…).
  * Contato feito não encerra o caso; agendado não é atendido; informativo não cria tarefa.
  */
-export const SITUACOES = ["aguardando", "pendente", "agendado", "compareceu", "faltou", "encaminhado", "resolvido", "dispensado", "informativo"] as const;
+export const SITUACOES = ["aguardando", "pendente", "aguardando_gestao", "agendado", "compareceu", "faltou", "encaminhado", "resolvido", "dispensado", "informativo"] as const;
 export type SituacaoRegistro = (typeof SITUACOES)[number];
 
-/** Situações que deixam o caso aberto e por isso exigem próxima ação, responsável e prazo. */
-export const SITUACOES_COM_PENDENCIA: readonly SituacaoRegistro[] = ["aguardando", "pendente", "encaminhado"];
+/** Situações que deixam o caso aberto e por isso exigem próxima ação, responsável e prazo de revisão. */
+export const SITUACOES_COM_PENDENCIA: readonly SituacaoRegistro[] = ["aguardando", "pendente", "aguardando_gestao", "encaminhado"];
 
 export const RESPONSAVEIS_EXTERNOS = { comercial_externa: "Comercial Externa", dra_larissa: "Dra. Larissa", gestao: "Gestão" } as const;
 
@@ -58,6 +59,10 @@ export interface EntradaRegistro {
   /** Reclamação ou pedido de avaliação: vira ponto de atenção (sem interpretação clínica). */
   atencao?: boolean;
   data?: string;
+  /** Aguardando gestão: a dúvida ou o impedimento que a gestão precisa responder. */
+  pergunta?: string;
+  /** Marcos além da janela de trabalho incluídos no mesmo registro: exige justificativa. */
+  justificativaFuturos?: string;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -91,7 +96,7 @@ function tipoEvento(e: EntradaRegistro): TipoEvento {
     case "compareceu": return "atendimento_realizado";
     case "faltou": return "cancelamento";
     case "resolvido": case "dispensado": return "encerramento";
-    case "encaminhado": return "encaminhamento";
+    case "encaminhado": case "aguardando_gestao": return "encaminhamento";
   }
   if (e.contato === "sim") return "contato";
   if (e.resposta === "sim") return "resposta";
@@ -116,6 +121,14 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   if (e.resposta === "sim" && !limpo(e.resultado)) throw new ErroRegra("Houve resposta: descreva o resultado em poucas palavras.");
 
   const perfis = await store.perfis();
+  const config = await store.config();
+  // Encaminhar à gestão ou pedir orientação: a próxima ação passa a ser da gestão (nunca fica com a Gabi por padrão).
+  const paraGestao = e.situacao === "aguardando_gestao" || (e.situacao === "encaminhado" && (e.responsavel === "gestao" || /gest/i.test(e.detalhes?.para ?? "")));
+  if (paraGestao) {
+    if (!config.gestorId) throw new ErroRegra("Gestor não configurado: não há para quem encaminhar. Avise a administração.");
+    if (e.situacao === "aguardando_gestao" && !limpo(e.pergunta)) throw new ErroRegra("Aguardando gestão: escreva a dúvida ou o impedimento.");
+    e = { ...e, responsavel: `perfil:${config.gestorId}`, proximaAcao: limpo(e.proximaAcao) ?? (limpo(e.pergunta) ? `Responder: ${limpo(e.pergunta)}` : limpo(e.detalhes?.motivo_encaminhamento) ? `Avaliar encaminhamento: ${limpo(e.detalhes?.motivo_encaminhamento)}` : undefined) };
+  }
   const pendente = SITUACOES_COM_PENDENCIA.includes(e.situacao);
   const proxima = limpo(e.proximaAcao);
   if (pendente) {
@@ -125,6 +138,11 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   }
   if (e.situacao === "agendado" && (!e.agendadoPara || !isDiaIso(e.agendadoPara))) throw new ErroRegra("Informe a data da consulta agendada.");
   if (e.situacao === "dispensado" && !limpo(e.motivo)) throw new ErroRegra("Encerrar sem resolver exige motivo.");
+  if (e.situacao === "resolvido") {
+    // Resolução exige resultado coerente: mensagem sem resposta não resolve nada.
+    if (e.contato === "sim" && e.resposta === "nao") throw new ErroRegra("Mensagem sem resposta não resolve o caso: use “Aguardando paciente” com data de revisão.");
+    if (!limpo(e.resultado) && !limpo(e.feito)) throw new ErroRegra("Resolvido: descreva o resultado alcançado.");
+  }
   if (e.etapa?.data && !isDiaIso(e.etapa.data)) throw new ErroRegra("Data da etapa clínica inválida.");
   if ((e.etapa?.situacao === "adiada" || e.etapa?.situacao === "encerrada") && !limpo(e.etapa.motivo)) throw new ErroRegra("Etapa adiada ou encerrada: informe o motivo.");
 
@@ -142,6 +160,19 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   if ((e.situacao === "compareceu" || e.situacao === "faltou") && (marcos.length || !tarefas.length || tarefas.some((t) => t.payload.subtipo !== "comparecimento"))) {
     throw new ErroRegra("Comparecimento ou falta se registra na tarefa de confirmar comparecimento.");
   }
+  // Cobrança enviada não é pagamento: só resolve com confirmação explícita do pagamento.
+  if (e.situacao === "resolvido" && tarefas.some((t) => t.kind === "cobranca") && e.detalhes?.pagamento_confirmado !== "sim") {
+    throw new ErroRegra("Cobrança só é resolvida com o pagamento confirmado. Enviar a cobrança é uma ação: use “Aguardando paciente”.");
+  }
+  // Registro agrupado: marcos fora da janela de trabalho só entram com justificativa explícita.
+  const limiteJanela = somarDias(hoje, JANELA_MARCOS_DIAS);
+  const futuros = marcos.filter((m) => m.dueCurrent > limiteJanela);
+  if (futuros.length && !limpo(e.justificativaFuturos)) {
+    throw new ErroRegra(`Há ${futuros.length} marco(s) previsto(s) para depois de ${dataBr(limiteJanela)} neste registro: justifique a antecipação ou desmarque.`);
+  }
+  // Adiamento (empurrar o prazo sem contato nem resposta): exige motivo e preserva o prazo original.
+  const adiadas = pendente && e.prazo ? tarefas.filter((t) => e.prazo! > t.due && e.contato !== "sim" && e.resposta !== "sim" && !paraGestao) : [];
+  if (adiadas.length && !limpo(e.motivo)) throw new ErroRegra("Adiar o prazo sem contato exige motivo.");
 
   let patientId: string | null = null;
   let assunto: string | null = null;
@@ -177,6 +208,7 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     ...(e.atencao ? { atencao: true } : {}),
     ...(e.responsavel && !assignedTo ? { responsavel: e.responsavel } : {}),
   };
+  const aguardando: "paciente" | "gestao" | null = paraGestao ? "gestao" : e.situacao === "aguardando" ? "paciente" : null;
 
   // ---- registro espontâneo com pendência vira um caso (tarefa) — sem pendência, só o evento
   let tarefaCriada: string | null = null;
@@ -186,23 +218,27 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
       patientId, assunto, kind: e.categoria === "agenda" && /falta|cancel/i.test(e.detalhes?.ocorrencia ?? "") ? "recuperacao_falta" : KIND_DA_CATEGORIA[e.categoria], title: proxima!, chaveOrigem: chave, due: e.prazo!, aConferir: [],
       payload: payloadExtra, financialImpact: null, origem: "registro do dia", origemData: data, assignedTo, nextAction: proxima,
     }));
-    if (e.situacao !== "pendente") await store.atualizarTarefa(tarefaCriada, { status: "waiting", waiting: true });
+    if (e.situacao !== "pendente") await store.atualizarTarefa(tarefaCriada, { status: "waiting", waiting: true, aguardando });
   }
 
   // ---- evento (fonte única para histórico, contadores e feedback)
-  const resumo = [limpo(e.feito), e.resposta === "sim" ? `resposta: ${limpo(e.resultado)}` : null, limpo(e.motivo),
+  const resumo = [limpo(e.feito), e.resposta === "sim" ? `resposta: ${limpo(e.resultado)}` : null, limpo(e.pergunta) ? `dúvida para a gestão: ${limpo(e.pergunta)}` : null, limpo(e.motivo),
     proxima && pendente ? `próxima ação: ${proxima}${respRotulo ? ` (${respRotulo})` : ""} até ${dataBr(e.prazo!)}` : null].filter(Boolean).join(" — ") || null;
   await store.registrarEvento({
     id: e.eventoId, patientId, assunto, kind: tipoEvento(e), occurredOn: data, channel: e.contato === "sim" ? limpo(e.canal) : null,
     notes: resumo, amount: null, amountOrigin: null, scheduledFor: e.situacao === "agendado" ? e.agendadoPara! : null, createdBy: ator.id,
     categoria: e.categoria, contato: e.contato, resposta: e.resposta, resultado: limpo(e.resultado), situacao: e.situacao,
-    payload: { ...payloadExtra, ...(limpo(e.feito) ? { feito: limpo(e.feito) } : {}), ...(proxima ? { proxima, prazo: e.prazo, responsavel: respRotulo } : {}) },
+    payload: {
+      ...payloadExtra, ...(limpo(e.feito) ? { feito: limpo(e.feito) } : {}), ...(proxima ? { proxima, prazo: e.prazo, responsavel: respRotulo } : {}),
+      ...(limpo(e.pergunta) ? { pergunta: limpo(e.pergunta) } : {}), ...(limpo(e.justificativaFuturos) ? { justificativa_futuros: limpo(e.justificativaFuturos) } : {}),
+      ...(adiadas.length ? { adiamento: adiadas.map((t) => ({ tarefa: t.id, de: t.due, para: e.prazo })) } : {}),
+    },
     alvos: [...marcos.map((m) => ({ marcoId: m.id })), ...tarefas.map((t) => ({ tarefaId: t.id })), ...(tarefaCriada ? [{ tarefaId: tarefaCriada }] : [])],
   });
 
   // ---- atualiza o caso existente conforme a situação (histórico preservado nos eventos)
   for (const m of marcos) {
-    if (e.situacao === "aguardando" || e.situacao === "encaminhado") await store.atualizarMarco(m.id, { status: "contatado", statusReason: proxima, dueCurrent: e.prazo });
+    if (e.situacao === "aguardando" || e.situacao === "encaminhado" || e.situacao === "aguardando_gestao") await store.atualizarMarco(m.id, { status: "contatado", statusReason: proxima, dueCurrent: e.prazo });
     if (e.situacao === "pendente") await store.atualizarMarco(m.id, { status: "previsto", statusReason: proxima, dueCurrent: e.prazo });
     if (e.situacao === "agendado") await store.atualizarMarco(m.id, { status: "contemplado", statusReason: `agendado para ${dataBr(e.agendadoPara!)}` });
     if (e.situacao === "resolvido") await store.atualizarMarco(m.id, { status: "contemplado", statusReason: limpo(e.resultado) ?? limpo(e.feito) ?? "resolvido" });
@@ -210,8 +246,11 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   }
   for (const t of tarefas) {
     const payload = { ...t.payload, ...payloadExtra, categoria: t.payload.categoria ?? payloadExtra.categoria };
-    if (e.situacao === "aguardando" || e.situacao === "encaminhado") await store.atualizarTarefa(t.id, { status: "waiting", waiting: true, due: e.prazo, nextAction: proxima, assignedTo, payload });
-    else if (e.situacao === "pendente") await store.atualizarTarefa(t.id, { status: "open", due: e.prazo, nextAction: proxima, assignedTo, payload });
+    const adiamento = adiadas.includes(t) ? { prazoOriginal: t.prazoOriginal ?? t.due, adiamentos: (t.adiamentos ?? 0) + 1 } : {};
+    if (e.situacao === "aguardando" || e.situacao === "encaminhado" || e.situacao === "aguardando_gestao") {
+      // Encaminhamento externo (Comercial, Dra.) segue aberto sob responsabilidade nomeada; não encerra o caso.
+      await store.atualizarTarefa(t.id, { status: "waiting", waiting: true, due: e.prazo, nextAction: proxima, assignedTo: assignedTo ?? t.assignedTo, payload, aguardando: aguardando ?? "paciente", ...adiamento });
+    } else if (e.situacao === "pendente") await store.atualizarTarefa(t.id, { status: "open", due: e.prazo, nextAction: proxima, assignedTo: assignedTo ?? t.assignedTo, payload, aguardando: null, ...adiamento });
     else if (e.situacao === "agendado") await store.atualizarTarefa(t.id, { status: "completed", closedReason: `agendamento obtido para ${dataBr(e.agendadoPara!)}`, payload });
     else if (e.situacao === "resolvido") await store.atualizarTarefa(t.id, { status: "completed", closedReason: limpo(e.resultado) ?? limpo(e.feito) ?? "resolvido", payload });
     else if (e.situacao === "dispensado") await store.atualizarTarefa(t.id, { status: "cancelled", closedReason: limpo(e.motivo), payload });

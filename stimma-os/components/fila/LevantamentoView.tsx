@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { Classificacao, ItemPrevia } from "@/lib/fila/previa";
 import type { Resolucao, ResultadoEntrada, ResultadoPrevia } from "@/lib/fila/servico";
+
+/** Itens por requisição (mesmo valor do servidor, TAMANHO_TRECHO). */
+const TAMANHO_TRECHO = 5;
 import { Campo, ROTULO_TIPO, chamarApi, classeInput, numeroBr } from "./comum";
 
 /**
@@ -33,15 +36,16 @@ export interface LinhaEditor {
   a_conferir: string;
   evidencia: string;
   chave_origem: string;
-  /** Marcos pertinentes ao atendimento realizado (orientação clínica). */
-  marcos: string[];
 }
+
+/** Rascunho local das propostas (conveniência do navegador: sobrevive a recarregar a página). */
+const CHAVE_RASCUNHO = "stimma-levantamento-rascunho";
 
 let seq = 0;
 export function linhaVazia(extra: Partial<LinhaEditor> = {}): LinhaEditor {
   return {
     uid: `l${++seq}`, tipo: "outro", nome: "", sd_codigo: "", telefone: "", acao: "", contexto: "", prazo: "", valor: "", vencimento: "",
-    data_atendimento: "", status_no_sd: "", data_ocorrencia: "", ocorrencia: "", para: "", motivo: "", a_conferir: "", evidencia: "", chave_origem: "", marcos: ["d30", "d90", "m6"], ...extra,
+    data_atendimento: "", status_no_sd: "", data_ocorrencia: "", ocorrencia: "", para: "", motivo: "", a_conferir: "", evidencia: "", chave_origem: "", ...extra,
   };
 }
 
@@ -57,7 +61,6 @@ export function linhaDeItem(o: Record<string, unknown>): LinhaEditor {
     data_atendimento: s(o.data_atendimento), status_no_sd: s(o.status_no_sd), data_ocorrencia: s(o.data_ocorrencia), ocorrencia: s(o.ocorrencia),
     para: s(o.para), motivo: s(o.motivo), a_conferir: Array.isArray(o.a_conferir) ? (o.a_conferir as string[]).join(", ") : "",
     evidencia: s(o.evidencia ?? o.nota_ia), chave_origem: s(o.chave_origem),
-    ...(Array.isArray(o.marcos) ? { marcos: (o.marcos as unknown[]).map(String) } : {}),
   });
 }
 
@@ -73,7 +76,6 @@ function itemDaLinha(l: LinhaEditor): Record<string, unknown> {
   const v = numeroBr(l.valor);
   if (v !== null) o.valor = Number.isNaN(v) ? l.valor : v;
   o.a_conferir = l.a_conferir.split(",").map((x) => x.trim()).filter(Boolean);
-  if (l.tipo === "atendimento_realizado") o.marcos = l.marcos;
   if (l.evidencia.trim()) o.nota_ia = `trecho de origem: ${l.evidencia.trim()}`;
   return o;
 }
@@ -99,10 +101,41 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [carregando, setCarregando] = useState<string | null>(null);
+  /** Publicação em trechos: progresso e o que já está comprovadamente salvo. */
+  const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
+  const [salvos, setSalvos] = useState<{ aplicados: number[]; comErro: { index: number; erro: string }[]; status: string | null } | null>(null);
 
+  // Rascunho: recupera as propostas editadas se a página recarregar no meio (nunca é a fonte de verdade).
+  useEffect(() => {
+    try {
+      const r = localStorage.getItem(CHAVE_RASCUNHO);
+      if (r && !linhas.length) {
+        const d = JSON.parse(r) as { linhas: LinhaEditor[]; origem: string };
+        if (d.linhas?.length) {
+          setLinhas(() => d.linhas);
+          if (d.origem) setOrigem(d.origem);
+          setAviso(`Propostas recuperadas do rascunho deste navegador (${d.linhas.length}). Confira antes de publicar.`);
+        }
+      }
+    } catch { /* armazenamento indisponível: segue sem rascunho */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    try {
+      if (linhas.length) localStorage.setItem(CHAVE_RASCUNHO, JSON.stringify({ linhas, origem }));
+      else localStorage.removeItem(CHAVE_RASCUNHO);
+    } catch { /* ignora */ }
+  }, [linhas, origem]);
+
+  // O dia da consulta faz parte do conteúdo (e do hash do lote): retomar no mesmo dia identifica o mesmo lote.
+  const [consultadoEm] = useState(() => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()));
   function loteAtual(): string {
-    const hojeBrasilia = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
-    return JSON.stringify({ contrato: "stimma-entrada-v1", lote: { origem: origem.trim() || "manual", consultado_em: hojeBrasilia }, itens: linhas.map(itemDaLinha) });
+    return JSON.stringify({ contrato: "stimma-entrada-v1", lote: { origem: origem.trim() || "manual", consultado_em: consultadoEm }, itens: linhas.map(itemDaLinha) });
+  }
+
+  async function consultarSalvos(texto: string) {
+    const r = await chamarApi<{ existe: boolean; status: string | null; aplicados: number[]; comErro: { index: number; erro: string }[] }>("/api/fila/entrada/estado", "POST", { texto });
+    if (r.ok) setSalvos(r.data.existe ? { aplicados: r.data.aplicados, comErro: r.data.comErro, status: r.data.status } : null);
+    return r.ok ? r.data : null;
   }
 
   function editar(uid: string, campo: keyof LinhaEditor, valor: string) {
@@ -135,16 +168,47 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
     if (!r.ok) return setErro(r.erro);
     setPrevia(r.data);
     setResolucoes({});
+    await consultarSalvos(loteAtual());
   }
 
+  /**
+   * Publica em trechos pequenos (cada requisição termina bem dentro do tempo da função). Se um trecho
+   * falhar ou a resposta não chegar, consulta o que está salvo e oferece retomar só o que falta —
+   * as propostas editadas continuam na tela.
+   */
   async function publicar() {
     setErro(null);
     setCarregando("publicar");
-    const r = await chamarApi<ResultadoEntrada>("/api/fila/entrada/confirmar", "POST", { texto: loteAtual(), resolucoes });
+    const texto = loteAtual();
+    const ja = new Set(salvos?.aplicados ?? []);
+    const indices = linhas.map((_, i) => i).filter((i) => !ja.has(i));
+    const acumulado: ResultadoEntrada = { loteId: "", aplicados: 0, atendimentosConfirmados: 0, atendimentosPendentes: 0, tarefas: 0, naoAplicados: [], jaAplicados: [...ja], concluido: false, semResponsavel: 0 };
+    setProgresso({ feitos: 0, total: indices.length });
+    for (let k = 0; k < indices.length; k += TAMANHO_TRECHO) {
+      const trecho = indices.slice(k, k + TAMANHO_TRECHO);
+      const r = await chamarApi<ResultadoEntrada>("/api/fila/entrada/confirmar", "POST", { texto, resolucoes, indices: trecho });
+      if (!r.ok) {
+        const estado = await consultarSalvos(texto);
+        setCarregando(null);
+        setProgresso(null);
+        const salvosAgora = estado?.aplicados.length ?? 0;
+        return setErro(`${r.erro} ${estado ? `Confirmado no banco: ${salvosAgora} de ${linhas.length} item(ns) publicados.` : "Não consegui confirmar o que foi salvo."} Suas correções continuam aqui; use “Retomar publicação” para enviar só o que falta.`);
+      }
+      acumulado.loteId = r.data.loteId;
+      acumulado.aplicados += r.data.aplicados;
+      acumulado.atendimentosConfirmados += r.data.atendimentosConfirmados;
+      acumulado.atendimentosPendentes += r.data.atendimentosPendentes;
+      acumulado.tarefas += r.data.tarefas;
+      acumulado.semResponsavel += r.data.semResponsavel;
+      acumulado.naoAplicados.push(...r.data.naoAplicados);
+      acumulado.concluido = r.data.concluido;
+      setProgresso({ feitos: Math.min(k + TAMANHO_TRECHO, indices.length), total: indices.length });
+    }
     setCarregando(null);
-    if (!r.ok) return setErro(r.erro);
-    setResultado(r.data);
+    setProgresso(null);
+    setResultado(acumulado);
     setPrevia(null);
+    setSalvos(null);
     setLinhas(() => []);
     setTexto("");
   }
@@ -152,6 +216,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
   const porIndice = new Map<number, ItemPrevia>((previa?.previa ?? []).map((p) => [p.index, p]));
   const nome = (id: string) => previa?.pacientes.find((p) => p.id === id)?.nome ?? id;
   const vaiAplicar = previa ? previa.previa.filter((p) => {
+    if (salvos?.aplicados.includes(p.index)) return false;
     const r = resolucoes[p.index];
     if (r?.acao === "ignorar") return false;
     return p.classificacao === "novo" || p.classificacao === "atualizacao" || (p.classificacao === "vinculo_pendente" && (r?.acao === "vincular" || r?.acao === "nova")) || (p.classificacao === "possivel_duplicidade" && r?.acao === "aceitar");
@@ -163,8 +228,10 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
         <div className="rounded-md border border-opportunity bg-opportunity-bg p-4 text-sm text-text-primary">
           <p className="font-medium">Publicado na fila da concierge.</p>
           <p>
-            {resultado.tarefas} tarefa(s), {resultado.atendimentosConfirmados} atendimento(s) com marcos criados, {resultado.atendimentosPendentes} a conferir.
-            {resultado.naoAplicados.length ? ` ${resultado.naoAplicados.length} não aplicado(s) — ficam registrados no lote.` : ""}
+            {resultado.tarefas} tarefa(s), {resultado.atendimentosConfirmados} atendimento(s) com os três marcos criados, {resultado.atendimentosPendentes} a conferir.
+            {resultado.jaAplicados.length ? ` ${resultado.jaAplicados.length} já estavam publicados e não foram repetidos.` : ""}
+            {resultado.naoAplicados.length ? ` ${resultado.naoAplicados.length} não aplicado(s) — ficam registrados no lote; cole o mesmo conteúdo para resolvê-los depois.` : ""}
+            {resultado.semResponsavel ? ` ${resultado.semResponsavel} tarefa(s) sem responsável (concierge não configurada) — atribua em “Trabalho da Gabi”.` : ""}
           </p>
         </div>
       )}
@@ -197,7 +264,8 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
               <div key={l.uid} className="rounded-md border border-border p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
                   <span className="text-text-muted">#{i + 1}</span>
-                  {p && <Badge variant={ROTULO[p.classificacao].variant}>{ROTULO[p.classificacao].label}</Badge>}
+                  {salvos?.aplicados.includes(i) ? <Badge variant="opportunity">Já publicado</Badge> : p && <Badge variant={ROTULO[p.classificacao].variant}>{ROTULO[p.classificacao].label}</Badge>}
+                  {salvos?.comErro.find((x) => x.index === i) && <Badge variant="critical">falhou: {salvos.comErro.find((x) => x.index === i)!.erro.slice(0, 60)}</Badge>}
                   {p && p.classificacao !== "erro" && <span className="text-text-secondary">{p.motivo}</span>}
                   <button type="button" onClick={() => { setLinhas((ls) => ls.filter((x) => x.uid !== l.uid)); setPrevia(null); setResolucoes({}); }} className="ml-auto text-xs text-text-muted underline">remover</button>
                 </div>
@@ -227,16 +295,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
                     <>
                       <Campo label="Data exata do atendimento"><input type="date" value={l.data_atendimento} onChange={(e) => editar(l.uid, "data_atendimento", e.target.value)} className={classeInput} /></Campo>
                       <Campo label="Status no Simples Dental"><input value={l.status_no_sd} onChange={(e) => editar(l.uid, "status_no_sd", e.target.value)} className={classeInput} placeholder="Finalizado" /></Campo>
-                      <fieldset className="text-xs text-text-secondary sm:col-span-3">
-                        <legend>Marcos pertinentes (conforme orientação da Dra. Larissa)</legend>
-                        <div className="mt-1 flex flex-wrap gap-3 text-sm">
-                          {([["d30", "30 dias"], ["d90", "90 dias"], ["m6", "6 meses"]] as const).map(([k, rot]) => (
-                            <label key={k} className="flex items-center gap-1.5">
-                              <input type="checkbox" checked={l.marcos.includes(k)} onChange={() => { setLinhas((ls) => ls.map((x) => (x.uid === l.uid ? { ...x, marcos: x.marcos.includes(k) ? x.marcos.filter((m) => m !== k) : [...x.marcos, k] } : x))); setPrevia(null); }} /> {rot}
-                            </label>
-                          ))}
-                        </div>
-                      </fieldset>
+                      <p className="text-xs text-text-muted sm:col-span-3">Confirmado como realizado, gera automaticamente os marcos de 30 dias, 90 dias e 6 meses.</p>
                     </>
                   )}
                   {l.tipo === "recuperacao_falta" && (
@@ -290,11 +349,11 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={revisar} loading={carregando === "previa"} loadingText="Conferindo…">{previa ? "Conferir de novo" : "Conferir prévia"}</Button>
             {previa && (
-              <Button onClick={publicar} loading={carregando === "publicar"} loadingText="Publicando…" disabled={previa.jaImportado || vaiAplicar === 0}>
-                Publicar {vaiAplicar} para a concierge
+              <Button onClick={publicar} loading={carregando === "publicar"} loadingText={progresso ? `Publicando ${progresso.feitos}/${progresso.total}…` : "Publicando…"} disabled={vaiAplicar === 0}>
+                {salvos?.aplicados.length ? `Retomar publicação (${vaiAplicar} restante(s))` : `Publicar ${vaiAplicar} para a concierge`}
               </Button>
             )}
-            {previa?.jaImportado && <span className="text-sm text-critical">Este conteúdo já foi publicado antes.</span>}
+            {salvos && <span className="text-sm text-text-secondary">Este lote já existe no banco ({salvos.status === "confirmado" ? "concluído" : "publicação interrompida"}): {salvos.aplicados.length} item(ns) publicados. Só o que falta será enviado.</span>}
             {!previa && <span className="text-xs text-text-muted">A conferência verifica vínculo de paciente e duplicidade. Nada é gravado antes de publicar.</span>}
           </div>
         </section>

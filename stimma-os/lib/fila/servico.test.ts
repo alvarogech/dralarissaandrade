@@ -27,10 +27,11 @@ describe("entrada", () => {
     expect(_dados.pacientes).toHaveLength(1);
   });
 
-  it("mesmo lote de novo é recusado; reconsulta sem mudança não duplica nada", async () => {
+  it("mesmo lote de novo não reaplica nada (retomada); reconsulta sem mudança não duplica nada", async () => {
     const { store, _dados } = criarStoreMemoria();
     await confirmarEntrada(store, GESTAO, lote([atend()]));
-    await expect(confirmarEntrada(store, GESTAO, lote([atend()]))).rejects.toThrow(/já foi importado/);
+    const repetido = await confirmarEntrada(store, GESTAO, lote([atend()]));
+    expect(repetido).toMatchObject({ aplicados: 0, jaAplicados: [0], concluido: true });
     const r = await confirmarEntrada(store, GESTAO, lote([atend()], "2026-10-20T11:00:00-03:00"));
     expect(r.aplicados).toBe(0);
     expect(r.naoAplicados[0]!.classificacao).toBe("duplicado");

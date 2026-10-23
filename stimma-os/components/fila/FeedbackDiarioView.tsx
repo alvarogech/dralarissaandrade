@@ -5,39 +5,35 @@ import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import type { CartaoPaciente, ItemFila } from "@/lib/fila/agrupamento";
 import { BLOCOS, type Fechamento } from "@/lib/fila/fechamento";
 import type { FilaCarregada } from "@/lib/fila/servico";
-import type { Categoria, EstadoDoDia, NumerosDoDia } from "@/lib/fila/store";
-import { Campo, chamarApi, classeInput, dataBr, numeroBr } from "./comum";
+import type { EstadoDoFeedback, FeedbackComRegistros } from "@/lib/fila/entrega";
+import { textoSituacaoEntrega } from "@/lib/fila/expediente";
+import { contarPorSituacao, filtrarBase, FILTROS_PADRAO } from "@/lib/fila/trabalho";
+import type { Categoria, EstadoDoDia, FeedbackRow, NumerosDoDia } from "@/lib/fila/store";
+import { Campo, chamarApi, classeInput, dataBr, horaBr, numeroBr } from "./comum";
 import { ProvedorFila } from "./contexto";
-import { Cartao } from "./FilaView";
 import { FormRegistro, type TipoRegistro } from "./FormRegistro";
 
 /**
- * Tela da concierge (padrão do feedback-concierge.html): o acompanhamento de hoje no topo, os
- * registros do dia por área em seções recolhíveis e, ao lado, o resumo e a prévia da mensagem —
- * montada dos registros persistidos e atualizada depois de cada gravação confirmada pelo servidor.
+ * Feedback diário da concierge (padrão do feedback-concierge.html) — a área única de prestação de
+ * contas. Os registros do dia por área em seções recolhíveis; ao lado, o resumo e a entrega:
+ * rascunho (prévia ao vivo, montada dos registros persistidos) → gerado (versão para revisão) →
+ * entregue à gestão (ação explícita). Copiar ≠ entregar ≠ enviado pelo WhatsApp. A lista de
+ * tarefas fica em "Meu trabalho" (sem caminho concorrente).
  */
 interface Props {
   dados: FilaCarregada;
   fechamento: { fechamento: Fechamento; texto: string };
   estado: EstadoDoDia;
-  gestao: boolean;
   usuario: string;
   usuarioId: string;
   perfis: { id: string; nome: string }[];
   pacientes: { id: string; nome: string }[];
-}
-
-function agruparPorPaciente(itens: ItemFila[]): CartaoPaciente[] {
-  const mapa = new Map<string, CartaoPaciente>();
-  for (const i of [...itens].sort((a, b) => a.due.localeCompare(b.due))) {
-    const c = mapa.get(i.pacienteId) ?? { pacienteId: i.pacienteId, pacienteNome: i.pacienteNome, itens: [], junto: [], atrasoDias: 0 };
-    c.itens.push(i);
-    mapa.set(i.pacienteId, c);
-  }
-  return [...mapa.values()];
+  entrega: EstadoDoFeedback;
+  historico: FeedbackComRegistros[];
+  /** Ids dos registros de hoje da concierge (para saber se a versão gerada ficou desatualizada). */
+  eventosDoDia: string[];
 }
 
 function Secao({ n, titulo, resumo, tom, abertaInicial = false, children }: { n: string; titulo: string; resumo?: string; tom?: "ok" | "pendente"; abertaInicial?: boolean; children: React.ReactNode }) {
@@ -57,28 +53,6 @@ function Secao({ n, titulo, resumo, tom, abertaInicial = false, children }: { n:
   );
 }
 
-function Grupo({ titulo, nota, cartoes, gestao, grupo, secao, aberto, setAberto, vazio }: {
-  titulo: string; nota?: string; cartoes: CartaoPaciente[]; gestao: boolean; grupo: string; vazio?: React.ReactNode;
-  secao: "atrasadas" | "hoje" | "aguardando" | "proximas" | "concluidas"; aberto: string | null; setAberto: (k: string | null) => void;
-}) {
-  const total = cartoes.reduce((s, c) => s + c.itens.length, 0);
-  return (
-    <div className="mt-4">
-      <p className="text-sm text-text-primary"><strong>{titulo}</strong> · {total} {nota && <span className="text-text-muted">{nota}</span>}</p>
-      {cartoes.length === 0 ? (
-        <div className="mt-1 text-sm text-text-muted">{vazio ?? "Nada aqui."}</div>
-      ) : (
-        <ul className="mt-2 flex flex-col gap-2.5">
-          {cartoes.map((c) => {
-            const k = `${grupo}:${c.pacienteId}`;
-            return <Cartao key={k} cartao={c} secao={secao} gestao={gestao} aberto={aberto === k} onToggle={() => setAberto(aberto === k ? null : k)} />;
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 /** Tipo de registro sugerido ao adicionar a partir de uma seção da área. */
 const TIPO_DO_BLOCO: Record<(typeof BLOCOS)[number]["id"], TipoRegistro> = {
   agenda: "falta", oportunidade: "oportunidade", recorrencia: "recorrencia", continuidade: "continuidade", pos: "pos_atendimento", pendencia: "pendencia",
@@ -86,13 +60,11 @@ const TIPO_DO_BLOCO: Record<(typeof BLOCOS)[number]["id"], TipoRegistro> = {
 
 const txt = (v: number | null | undefined) => (v === null || v === undefined ? "" : String(v).replace(".", ","));
 
-export function FeedbackDiarioView({ dados, fechamento, estado, gestao, usuario, usuarioId, perfis, pacientes }: Props) {
+export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuarioId, perfis, pacientes, entrega, historico, eventosDoDia }: Props) {
   const router = useRouter();
-  const { fila, hoje, itens } = dados;
+  const { hoje, itens } = dados;
   const f = fechamento.fechamento;
-  const [aberto, setAberto] = useState<string | null>(null);
   const [novo, setNovo] = useState<{ tipo?: TipoRegistro; chave: number } | null>(null);
-  const [filtroMarco, setFiltroMarco] = useState<"todos" | "d30" | "d90" | "m6">("todos");
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [salvando, setSalvando] = useState<string | null>(null);
   const n0 = f.numeros;
@@ -100,12 +72,8 @@ export function FeedbackDiarioView({ dados, fechamento, estado, gestao, usuario,
   const [escolhidas, setEscolhidas] = useState<{ ref: string | null; texto: string }[]>(estado.prioridades);
   const [manual, setManual] = useState("");
 
-  const nItens = (cs: CartaoPaciente[]) => cs.reduce((s, c) => s + c.itens.length, 0);
-  const abertos = itens.filter((i) => i.status !== "concluida");
-  const comparecimentosFuturos = agruparPorPaciente(abertos.filter((i) => i.subtipo === "comparecimento" && i.status === "aberta" && i.due > hoje));
-  const marcos = abertos.filter((i) => i.tipo === "marco" && (filtroMarco === "todos" || i.subtipo === filtroMarco));
-  const proximasComuns = fila.proximas.map((c) => ({ ...c, itens: c.itens.filter((i) => i.tipo !== "marco" && i.subtipo !== "comparecimento") })).filter((c) => c.itens.length > 0);
-  const filaVazia = !nItens(fila.atrasadas) && !nItens(fila.hoje) && !nItens(fila.aguardando) && !nItens(proximasComuns);
+  const pessoas = { eu: usuarioId, conciergeId: dados.config.conciergeId, gestorId: dados.config.gestorId };
+  const meus = contarPorSituacao(filtrarBase(itens, { ...FILTROS_PADRAO, situacoes: [], responsavel: "eu" }, pessoas), hoje);
 
   function abrirNovo(tipo?: TipoRegistro) {
     setNovo({ tipo, chave: Date.now() });
@@ -185,31 +153,13 @@ export function FeedbackDiarioView({ dados, fechamento, estado, gestao, usuario,
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_370px]">
         <div className="min-w-0">
-          <Secao n="✓" titulo="Acompanhamento de hoje" abertaInicial
-            resumo={`${nItens(fila.atrasadas) + nItens(fila.hoje)} para hoje · ${nItens(fila.aguardando)} aguardando · ${nItens(proximasComuns)} próximas · ${nItens(fila.concluidas)} concluídas hoje`}>
-            {filaVazia && (
-              <div className="mt-3 rounded-[10px] border border-dashed border-border p-4 text-sm text-text-secondary">
-                Nenhuma tarefa aberta na fila. Se algo aconteceu hoje (falta, retorno de paciente, alerta), registre:{" "}
-                <button type="button" className="text-accent underline" onClick={() => abrirNovo()}>adicionar registro do dia</button>.
-              </div>
-            )}
-            <Grupo titulo="Atrasadas" nota="prazo vencido" cartoes={fila.atrasadas} secao="atrasadas" grupo="atr" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            <Grupo titulo="Ações de hoje" nota="prazo hoje" cartoes={fila.hoje} secao="hoje" grupo="hoj" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            <Grupo titulo="Aguardando resposta" nota="contato feito, esperando retorno" cartoes={fila.aguardando} secao="aguardando" grupo="agu" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            <Grupo titulo="Agendamentos a acompanhar" nota="confirmar comparecimento na data" cartoes={comparecimentosFuturos} secao="proximas" grupo="cmp" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            <Grupo titulo="Próximas" nota="viram ação quando a data chegar" cartoes={proximasComuns} secao="proximas" grupo="prx" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            <Grupo titulo="Concluídas hoje" cartoes={fila.concluidas} secao="concluidas" grupo="con" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            <div className="mt-5 border-t border-border pt-4">
-              <p className="text-sm text-text-primary"><strong>Marcos de acompanhamento — 30 dias · 90 dias · 6 meses</strong></p>
-              <p className="text-xs text-text-muted">Criados ao confirmar um atendimento realizado, só os marcos escolhidos.{dados.maisTarde ? ` ${dados.maisTarde} item(ns) previstos para depois de 30 dias.` : ""}</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {([["todos", "Todos"], ["d30", "30 dias"], ["d90", "90 dias"], ["m6", "6 meses"]] as const).map(([k, l]) => (
-                  <button key={k} type="button" className="fb-chip" data-ativo={filtroMarco === k} onClick={() => setFiltroMarco(k)}>{l}</button>
-                ))}
-              </div>
-              <Grupo titulo="Marcos abertos" nota="mesma paciente pode ser tratada junto" cartoes={agruparPorPaciente(marcos)} secao="proximas" grupo="mrc" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            </div>
-          </Secao>
+          <a href="/trabalho" className="fb-card mb-3.5 flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 hover:bg-surface-raised">
+            <span className="text-sm text-text-secondary">
+              Seu trabalho: <strong className="text-text-primary">{meus.atrasada}</strong> atrasada(s) · <strong className="text-text-primary">{meus.hoje}</strong> para hoje ·{" "}
+              <strong className="text-text-primary">{meus.aguardando_paciente}</strong> aguardando paciente · <strong className="text-text-primary">{meus.aguardando_gestao}</strong> aguardando gestão
+            </span>
+            <span className="text-sm text-accent">Abrir Meu trabalho →</span>
+          </a>
 
           {BLOCOS.map((b, i) => {
             const bloco = f.blocos.find((x) => x.id === b.id)!;
@@ -226,7 +176,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, gestao, usuario,
                       <div className="flex items-end"><Button type="button" onClick={salvarAgenda} loading={salvando === "Agenda"} loadingText="Salvando…">Salvar agenda</Button></div>
                     </div>
                     {dif !== null && dif !== 0 && <p className="mt-2 text-xs text-text-muted">Diferença de {dif} para conferir — não é necessariamente falta.</p>}
-                    {f.aConferir > 0 && <p className="mt-1 text-xs text-text-secondary">{f.aConferir} atendimento(s) aguardando conferência no Simples Dental (em “Ações de hoje”).</p>}
+                    {f.aConferir > 0 && <p className="mt-1 text-xs text-text-secondary">{f.aConferir} atendimento(s) aguardando conferência no Simples Dental (em “Meu trabalho”).</p>}
                   </div>
                 )}
                 {n > 0 ? (
@@ -304,40 +254,121 @@ export function FeedbackDiarioView({ dados, fechamento, estado, gestao, usuario,
                 ["Agendamentos", String(f.contadores.agendamentos)],
                 ["Comparecimentos", String(f.contadores.comparecimentos)],
                 ["Faltas", String(f.contadores.faltas)],
-                ["Aguardando resposta", String(nItens(fila.aguardando))],
-                ["Atrasadas", String(nItens(fila.atrasadas))],
+                ["Marcos trabalhados", String(f.contadores.marcosTrabalhados)],
+                ["Atrasadas", String(meus.atrasada)],
               ] as const).map(([k, v]) => (
                 <div key={k} className="flex items-baseline justify-between border-b border-border/60 pb-1"><dt className="text-text-secondary">{k}</dt><dd className="font-medium text-text-primary">{v}</dd></div>
               ))}
             </dl>
-            <p className="mt-2 text-[11px] leading-snug text-text-muted">Contatos = registros com contato realizado; respostas não somam como contato; agendamento não é comparecimento.</p>
+            <p className="mt-2 text-[11px] leading-snug text-text-muted">Só os seus registros de hoje. Contatos = registros com contato realizado (um contato com vários marcos conta uma vez); respostas não somam como contato; agendamento não é comparecimento.</p>
           </div>
 
-          <div className="fb-card p-4">
-            <h2 className="font-serif text-[20px] text-text-primary">Prévia da mensagem</h2>
-            <p className="text-xs text-text-muted">Montada dos registros salvos hoje e atualizada depois de cada gravação confirmada.</p>
-            <pre className="mt-3 max-h-[55vh] overflow-auto whitespace-pre-wrap rounded-[10px] border border-border bg-surface-raised p-3 font-sans text-[13px] leading-relaxed text-text-primary">{fechamento.texto}</pre>
-            <CopiarTexto texto={fechamento.texto} />
-          </div>
+          <Entrega entrega={entrega} textoAoVivo={fechamento.texto} eventosAoVivo={eventosDoDia} hoje={hoje} />
         </aside>
       </div>
+      <HistoricoFeedbacks historico={historico.filter((h) => h.dia !== hoje)} />
     </ProvedorFila>
   );
 }
 
-function CopiarTexto({ texto }: { texto: string }) {
+const ROTULO_ESTADO = { rascunho: "Rascunho", gerado: "Gerado — pronto para revisão", entregue: "Entregue à gestão" } as const;
+
+function Entrega({ entrega, textoAoVivo, eventosAoVivo, hoje }: { entrega: EstadoDoFeedback; textoAoVivo: string; eventosAoVivo: string[]; hoje: string }) {
+  const router = useRouter();
+  const ultima: FeedbackRow | undefined = [...entrega.versoes].sort((a, b) => b.versao - a.versao)[0];
+  const entregue = entrega.versoes.filter((v) => v.status === "entregue").sort((a, b) => b.versao - a.versao)[0];
+  const desatualizado = ultima?.status === "gerado" && [...ultima.eventos].sort().join(",") !== [...eventosAoVivo].sort().join(",");
+  const estado = !ultima ? "rascunho" : ultima.status;
+  const [idGerar, setIdGerar] = useState(() => crypto.randomUUID());
+  const [ocupado, setOcupado] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  const textoMostrado = estado === "rascunho" || desatualizado ? textoAoVivo : ultima!.texto;
+
+  async function operar(operacao: string, id: string, rotulo: string) {
+    setMsg(null);
+    setOcupado(operacao);
+    const r = await chamarApi("/api/fila/feedback-diario", "POST", { operacao, id, dia: hoje });
+    setOcupado(null);
+    if (!r.ok) return setMsg({ ok: false, t: r.incerto ? `${r.erro} Repetir é seguro: a mesma ação não é duplicada.` : r.erro });
+    if (operacao === "gerar") setIdGerar(crypto.randomUUID());
+    setMsg({ ok: true, t: rotulo });
+    router.refresh();
+  }
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(textoMostrado);
+      setMsg({ ok: true, t: "Copiado. Copiar não conta como entrega nem como envio." });
+      if (ultima && !desatualizado) void chamarApi("/api/fila/feedback-diario", "POST", { operacao: "copiado", id: ultima.id }).then(() => router.refresh());
+    } catch {
+      setMsg({ ok: false, t: "Não consegui copiar. Selecione o texto e copie." });
+    }
+  }
+
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      <Button type="button" onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(texto);
-          setMsg({ ok: true, t: "Copiado. Cole no WhatsApp." });
-        } catch {
-          setMsg({ ok: false, t: "Não consegui copiar. Selecione o texto e copie." });
-        }
-      }}>Copiar para o WhatsApp</Button>
-      {msg && <span className={clsx("text-sm", msg.ok ? "text-opportunity" : "text-critical")}>{msg.t}</span>}
+    <div className="fb-card p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-serif text-[20px] text-text-primary">Entrega do feedback</h2>
+        <span className="text-xs text-text-muted">{textoSituacaoEntrega(entrega.situacao)}</span>
+      </div>
+      <p className="mt-1 text-sm">
+        <span className={clsx("rounded-full px-2 py-0.5 text-xs", estado === "entregue" ? "bg-opportunity-bg text-opportunity" : estado === "gerado" ? "bg-accent-soft text-accent" : "bg-surface-raised text-text-secondary")}>
+          {ROTULO_ESTADO[estado]}{ultima ? ` · versão ${ultima.versao}` : ""}
+        </span>
+        {entregue?.entregueEm && <span className="ml-2 text-xs text-text-muted">versão {entregue.versao} entregue {horaBr(entregue.entregueEm)}</span>}
+      </p>
+      {entregue?.ajusteSolicitadoEm && !entrega.versoes.some((v) => v.versao > entregue.versao) && (
+        <div className="mt-2 rounded-[8px] border border-important bg-important-bg p-2 text-sm text-important">
+          A gestão pediu ajuste: “{entregue.observacaoGestao}”. Corrija os registros, gere e entregue uma nova versão (a anterior fica preservada).
+        </div>
+      )}
+      {entregue?.observacaoGestao && !entregue.ajusteSolicitadoEm && <p className="mt-2 text-sm text-text-secondary">Observação da gestão: “{entregue.observacaoGestao}”</p>}
+      {desatualizado && <p className="mt-2 text-xs text-important">Há registros novos desde que a versão foi gerada: gere de novo antes de entregar.</p>}
+      <p className="mt-2 text-xs text-text-muted">{estado === "rascunho" || desatualizado ? "Prévia ao vivo, montada dos registros salvos hoje." : "Versão congelada para revisão e entrega."}</p>
+      <pre className="mt-2 max-h-[50vh] overflow-auto whitespace-pre-wrap rounded-[10px] border border-border bg-surface-raised p-3 font-sans text-[13px] leading-relaxed text-text-primary">{textoMostrado}</pre>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {(estado !== "gerado" || desatualizado) && (
+          <Button type="button" loading={ocupado === "gerar"} loadingText="Gerando…" onClick={() => operar("gerar", idGerar, "Versão gerada para revisão. Confira e entregue.")}>
+            {estado === "entregue" ? "Gerar versão corrigida" : "Gerar para revisão"}
+          </Button>
+        )}
+        {estado === "gerado" && !desatualizado && (
+          <Button type="button" loading={ocupado === "entregar"} loadingText="Entregando…" onClick={() => operar("entregar", ultima!.id, "Entregue à gestão.")}>Entregar à gestão</Button>
+        )}
+        <button type="button" className="fb-chip" onClick={copiar}>Copiar para o WhatsApp</button>
+        {entregue && !entregue.whatsappConfirmadoEm && (
+          <button type="button" className="fb-chip" disabled={ocupado === "whatsapp"} onClick={() => operar("whatsapp", entregue.id, "Envio pelo WhatsApp confirmado por você.")}>Confirmo que enviei no WhatsApp</button>
+        )}
+      </div>
+      <ul className="mt-2 text-[11px] text-text-muted">
+        {ultima?.copiadoEm && <li>Copiado {horaBr(ultima.copiadoEm)} (não comprova envio)</li>}
+        {entregue?.whatsappConfirmadoEm && <li>Envio pelo WhatsApp confirmado manualmente {horaBr(entregue.whatsappConfirmadoEm)}</li>}
+        <li>Nada é enviado automaticamente.</li>
+      </ul>
+      {msg && <p className={clsx("mt-2 text-sm", msg.ok ? "text-opportunity" : "text-critical")}>{msg.t}</p>}
     </div>
+  );
+}
+
+function HistoricoFeedbacks({ historico }: { historico: FeedbackComRegistros[] }) {
+  return (
+    <section className="mt-6">
+      <h2 className="mb-2 font-serif text-[20px] text-text-primary">Feedbacks anteriores</h2>
+      {!historico.length && <p className="text-sm text-text-muted">Nenhum feedback dos últimos 30 dias.</p>}
+      <ul className="flex flex-col gap-2">
+        {historico.map((h) => (
+          <li key={h.id} className="fb-card p-3">
+            <details>
+              <summary className="cursor-pointer text-sm text-text-primary">
+                {dataBr(h.dia)} · versão {h.versao} · {h.status === "entregue" ? `entregue ${h.entregueEm ? horaBr(h.entregueEm) : ""}` : "gerado, não entregue"}
+                {h.ajusteSolicitadoEm && <span className="ml-2 text-important">ajuste solicitado</span>}
+              </summary>
+              {h.observacaoGestao && <p className="mt-2 text-sm text-text-secondary">Gestão: “{h.observacaoGestao}”</p>}
+              <pre className="mt-2 whitespace-pre-wrap rounded-[8px] bg-surface-raised p-2 font-sans text-[12.5px] text-text-primary">{h.texto}</pre>
+            </details>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

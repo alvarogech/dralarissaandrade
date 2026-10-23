@@ -1,58 +1,7 @@
-import { Sidebar } from "@/components/shell/Sidebar";
-import { NeedsYou } from "@/components/cockpit/NeedsYou";
-import { PriorityList } from "@/components/cockpit/PriorityList";
-import { TodayInClinic } from "@/components/cockpit/TodayInClinic";
-import { OpportunitiesPreview } from "@/components/cockpit/OpportunitiesPreview";
-import Link from "next/link";
-import { runRuleEngine, topPriorities } from "@/lib/rules/engine";
-import { semFinanceiroSuspenso } from "@/lib/rules/modulos";
-import { getClinicSnapshot } from "@/lib/data/clinic-snapshot";
+import { redirect } from "next/navigation";
 
-export default async function HojePage() {
-  const { snapshot, source } = await getClinicSnapshot();
-
-  const result = runRuleEngine(snapshot);
-  // Módulo financeiro por paciente suspenso: alertas financeiros não chegam à tela nem às prioridades.
-  const alertas = semFinanceiroSuspenso(result.alerts);
-  const priorities = topPriorities({ ...result, alerts: alertas }, 3);
-  const patientNameById = new Map(snapshot.patients.map((p) => [p.id, p.fullName]));
-
-  const firstName = "Álvaro";
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
-
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar current="Hoje" />
-      <main className="mx-auto w-full max-w-cockpit flex-1 px-6 py-8 md:px-10">
-        {source === "demo" && (
-          <div className="mb-6 rounded-md border border-important bg-important-bg px-4 py-2 text-sm text-important">
-            Modo demonstração — nenhum paciente real cadastrado ainda, os dados abaixo são
-            fictícios (ver <code>docs/ROADMAP.md</code>, Fase 2).
-          </div>
-        )}
-
-        <header className="mb-8">
-          <h1 className="font-serif text-2xl text-text-primary">
-            {greeting}, {firstName}.
-          </h1>
-        </header>
-
-        <Link href="/fila" className="mb-8 flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3 text-sm hover:bg-surface-raised">
-          <span className="text-text-secondary">A execução do dia (contatos, cobranças, agendamentos e o feedback) acontece no <strong className="text-text-primary">Feedback diário</strong>.</span>
-          <span className="shrink-0 text-accent">Abrir a fila →</span>
-        </Link>
-
-        <div className="flex flex-col gap-10">
-          <NeedsYou alerts={alertas} />
-          <PriorityList priorities={priorities} />
-          <TodayInClinic
-            appointments={snapshot.appointments}
-            patientNameById={patientNameById}
-          />
-          <OpportunitiesPreview opportunities={result.opportunities} />
-        </div>
-      </main>
-    </div>
-  );
+// O antigo cockpit ("operação sob controle", prioridades sem evidência suficiente) saiu do fluxo:
+// a página inicial agora é o trabalho do dia, com números conciliáveis.
+export default function HojePage() {
+  redirect("/trabalho");
 }

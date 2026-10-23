@@ -149,7 +149,7 @@ export function SetPasswordForm() {
 
     setSuccess(true);
     setTimeout(() => {
-      router.push("/fila");
+      router.push("/trabalho");
       router.refresh();
     }, 1200);
   }

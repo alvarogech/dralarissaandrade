@@ -12,23 +12,20 @@ export default async function EntradaPage() {
   if (s.tipo === "sem_sessao") redirect("/login");
   if (s.tipo === "indisponivel") {
     return (
-      <FilaShell atual="Gestão" demo={false} gestao={false}>
+      <FilaShell atual="Entrada e tarefas" demo={false} gestao>
         <Indisponivel titulo="Gestão da fila" motivo={s.motivo} />
       </FilaShell>
     );
   }
   const { ctx } = s;
+  if (!ctx.ator.gestao) redirect("/trabalho"); // área só da gestão (as rotas também checam o papel)
   return (
-    <FilaShell atual="Gestão" demo={ctx.demo} gestao={ctx.ator.gestao}>
+    <FilaShell atual="Entrada e tarefas" demo={ctx.demo} gestao>
       <header className="mb-6">
-        <h1 className="font-serif text-2xl text-text-primary">Gestão da fila</h1>
-        <p className="text-sm text-text-secondary">Alimente a fila da concierge e administre as tarefas. Nada é publicado sem sua confirmação.</p>
+        <h1 className="font-serif text-2xl text-text-primary">Entrada e tarefas</h1>
+        <p className="text-sm text-text-secondary">Cole levantamentos, revise e publique propostas, crie e edite tarefas. Nada é publicado sem sua confirmação.</p>
       </header>
-      {ctx.ator.gestao ? (
-        <GestaoView iaDisponivel={iaConfigurada()} />
-      ) : (
-        <p className="rounded-md border border-border p-4 text-sm text-text-secondary">Esta área é só da gestão.</p>
-      )}
+      <GestaoView iaDisponivel={iaConfigurada()} />
     </FilaShell>
   );
 }

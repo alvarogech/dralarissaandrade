@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { OTP_DIGITOS, lerCodigo, limparEntradaCodigo } from "@/lib/auth/otp";
 
 type Modo = "senha" | "codigo" | "recuperar";
 
 /**
  * Três formas de entrar, todas só para quem já existe (sem cadastro público):
  * - senha;
- * - código de 6 dígitos por e-mail (`signInWithOtp` com `shouldCreateUser: false` + `verifyOtp`).
+ * - código de 8 dígitos por e-mail (`signInWithOtp` com `shouldCreateUser: false` + `verifyOtp`) —
+ *   o comprimento vem do provedor (ver lib/auth/otp.ts); o código é texto (zeros à esquerda valem).
  *   O template "Magic Link" do Supabase precisa conter `{{ .Token }}` para o código aparecer;
  * - "esqueci minha senha": link por e-mail que abre /auth/set-password.
  * As mensagens de envio são sempre genéricas, para não revelar se um e-mail tem acesso.
@@ -36,7 +38,7 @@ export function LoginForm() {
   }
 
   function entrou() {
-    router.push("/fila");
+    router.push("/trabalho");
     router.refresh();
   }
 
@@ -91,16 +93,21 @@ export function LoginForm() {
         return;
       }
       setCodigoEnviado(true);
-      setAviso("Se este e-mail tiver acesso, enviamos um código de 6 dígitos. Confira também o spam.");
+      setAviso(`Se este e-mail tiver acesso, enviamos um código de ${OTP_DIGITOS} dígitos. Confira também o spam.`);
     });
   }
 
   async function confirmarCodigo(event: FormEvent) {
     event.preventDefault();
+    const lido = lerCodigo(codigo);
+    if (!lido.ok) {
+      setError(lido.erro);
+      return;
+    }
     await comCliente(async (supabase) => {
-      const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: codigo.trim(), type: "email" });
+      const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: lido.codigo, type: "email" });
       if (verifyError) {
-        setError("Código inválido ou expirado. Peça um novo.");
+        setError(/expired|expirad/i.test(verifyError.message) ? "Código expirado. Peça um novo." : `Código não aceito (confira os ${OTP_DIGITOS} dígitos do último e-mail) ou expirado. Peça um novo se precisar.`);
         return;
       }
       entrou();
@@ -180,17 +187,25 @@ export function LoginForm() {
         <form onSubmit={confirmarCodigo} className="flex flex-col gap-4">
           {campoEmail}
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-text-secondary">Código recebido</span>
+            <span className="text-xs font-medium text-text-secondary">Código de {OTP_DIGITOS} dígitos recebido por e-mail</span>
             <Input
+              type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              pattern="[0-9]{6,8}"
-              maxLength={8}
+              pattern={`[0-9]{${OTP_DIGITOS}}`}
+              title={`${OTP_DIGITOS} dígitos`}
+              maxLength={OTP_DIGITOS}
+              placeholder={"0".repeat(OTP_DIGITOS)}
               required
               value={codigo}
-              onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
-              className="text-center text-lg tracking-[0.4em]"
+              onPaste={(e) => {
+                e.preventDefault();
+                setCodigo(limparEntradaCodigo(e.clipboardData.getData("text")));
+              }}
+              onChange={(e) => setCodigo(limparEntradaCodigo(e.target.value))}
+              className="text-center text-lg tracking-[0.3em]"
             />
+            <span className="text-[11px] text-text-muted">{codigo.length}/{OTP_DIGITOS} — pode colar o código direto do e-mail.</span>
           </label>
           {mensagens}
           <Button type="submit" loading={loading} loadingText="Conferindo…" className="w-full">Entrar</Button>
