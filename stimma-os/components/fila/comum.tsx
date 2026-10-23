@@ -32,6 +32,7 @@ export const numeroBr = (v: string): number | null => {
 export const ROTULO_TIPO: Record<string, string> = {
   marco: "Marco", cobranca: "Cobrança", recuperacao_falta: "Falta", continuidade: "Continuidade", relacionamento: "Relacionamento",
   encaminhamento: "Encaminhamento", conferir_atendimento: "Conferir", outro: "Outro", atendimento_realizado: "Atendimento realizado",
+  agenda: "Agenda", oportunidade: "Oportunidade", recorrencia: "Recorrência", pos_atendimento: "Pós-atendimento", pendencia: "Pendência",
 };
 
 export function Campo({ label, largo, children }: { label: string; largo?: boolean; children: React.ReactNode }) {

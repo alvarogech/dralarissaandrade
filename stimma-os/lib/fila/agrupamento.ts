@@ -26,6 +26,14 @@ export interface ItemFila {
   proximaAcao?: string;
   responsavel?: string;
   subtipo?: string;
+  /** Área do acompanhamento (bloco do feedback). */
+  categoria?: string;
+  /** Assunto sem paciente vinculada. */
+  semPaciente?: boolean;
+  /** Reclamação/pedido de avaliação — aparece como ponto de atenção. */
+  atencao?: boolean;
+  /** Próxima etapa do cuidado (informada pela Dra.), separada da próxima ação administrativa. */
+  etapa?: { definicao?: string; situacao?: string; data?: string; motivo?: string };
   aConferir?: string[];
   alvo?: { tipo: "marco" | "tarefa" | "atendimento"; id: string };
 }

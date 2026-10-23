@@ -145,8 +145,8 @@ describe("auditoria do fluxo completo", () => {
 
     // 5. feedback reflete as ações
     const { texto } = await carregarFechamento(store, "2026-10-20");
-    expect(texto).toContain("Lia E. — Remarcar falta: contato por whatsapp: sem resposta — próxima ação: tentar ligação");
-    expect(texto).toMatch(/Joana T\. — Cobrar parcela 3\/6: recebimento confirmado R\$\s?450,00/);
+    expect(texto).toContain("Lia E. · Remarcar falta: contato por WhatsApp: sem resposta — próxima ação: tentar ligação");
+    expect(texto).toMatch(/Joana T\. · Cobrar parcela 3\/6: .*recebimento registrado R\$\s?450,00/);
     expect(texto).not.toMatch(/Recebimentos confirmados|Cobranças em aberto/); // sem totais financeiros
 
     // 6–7. colado de volta: consulta o registrado, não recria a concluída nem duplica a aberta

@@ -1,11 +1,12 @@
 import { hashLote, lerLote, type CabecalhoLote, type ItemEntrada, type PacienteRef } from "./contrato";
 import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
-import { ROTULO_MARCO } from "./marcos";
+import { ROTULO_MARCO, marcosValidos, type TipoMarco } from "./marcos";
 import { montarFila, type Fila, type ItemFila } from "./agrupamento";
 import { montarPrevia, type ItemPrevia } from "./previa";
 import { montarFechamento, refDoItem, textoWhatsapp, nomeCurto, type Fechamento } from "./fechamento";
 import { lerFeedback, linhaSemConteudo } from "./feedback";
-import type { EventoRow, FilaStore, MarcoRow, NumerosDoDia, TarefaRow, TipoEvento, TipoTarefa } from "./store";
+import { CATEGORIAS, type EstadoDoDia, type EventoRow, type FilaStore, type MarcoRow, type NumerosDoDia, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
+import { categoriaDaTarefa, rotuloResponsavel, type EtapaClinica } from "./registro";
 
 /**
  * Regras de negócio da fila. Os Route Handlers só autenticam e chamam daqui; o mesmo código
@@ -39,6 +40,11 @@ function exigirGestao(ator: Ator, oque: string) {
   if (!ator.gestao) throw new ErroRegra(`Só a gestão pode ${oque}.`, 403);
 }
 
+/** Ids de pacientes (sem repetição) de linhas que podem não ter paciente (assunto administrativo). */
+function idsDePacientes(rows: { patientId: string | null }[]): string[] {
+  return [...new Set(rows.map((r) => r.patientId).filter((x): x is string => !!x))];
+}
+
 function novoId(): string {
   return crypto.randomUUID();
 }
@@ -64,7 +70,7 @@ export async function previaEntrada(store: FilaStore, texto: string): Promise<Re
   const abertas = (await store.tarefasAtivas(hojeSaoPaulo())).filter((t) => !["completed", "cancelled"].includes(t.status));
   const previa = montarPrevia(lido.itens, {
     pacientes, registros, atendimentos,
-    tarefasAbertas: abertas.map((t) => ({ id: t.id, pacienteId: t.patientId, kind: t.kind, titulo: t.title })),
+    tarefasAbertas: abertas.filter((t) => t.patientId).map((t) => ({ id: t.id, pacienteId: t.patientId!, kind: t.kind, titulo: t.title })),
   });
   const citados = new Set(previa.flatMap((p) => [...p.sugestoes, ...(p.pacienteId ? [p.pacienteId] : [])]));
   return {
@@ -157,12 +163,14 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
 
     if (it.tipo === "atendimento_realizado") {
       const data = String(it.dados.data_atendimento);
+      // Marcos pertinentes indicados no lote; ausente = os três (regra original).
+      const escolhaMarcos = marcosValidos(it.dados.marcos) ? it.dados.marcos : undefined;
       const pendente = it.a_conferir.includes("data_atendimento") || it.a_conferir.includes("status_no_sd");
       const existente = it.chave_origem ? await store.atendimentoPorChave(it.chave_origem) : null;
       if (existente) {
         if (existente.dataRealizada !== data) {
           await store.atualizarDataAtendimento(existente.id, data);
-          if (existente.realizadoConfirmado) await store.confirmarAtendimento(existente.id, data, ator.id);
+          if (existente.realizadoConfirmado) await store.confirmarAtendimento(existente.id, data, ator.id, escolhaMarcos);
         }
         if (existente.realizadoConfirmado) res.atendimentosConfirmados++;
         else res.atendimentosPendentes++;
@@ -170,7 +178,7 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
         const id = await store.criarAtendimento({ patientId: pacienteId, chaveOrigem: it.chave_origem ?? null, data, dataStatus: pendente ? "pendente_validacao" : "exata", consultadoEm: it.consultado_em, origem: it.origem });
         if (pendente) res.atendimentosPendentes++;
         else {
-          await store.confirmarAtendimento(id, data, ator.id);
+          await store.confirmarAtendimento(id, data, ator.id, escolhaMarcos);
           res.atendimentosConfirmados++;
         }
       }
@@ -313,7 +321,7 @@ export async function historico(store: FilaStore, alvo: { tipo: "marco" | "taref
 export async function listarTarefasGestao(store: FilaStore) {
   const hoje = hojeSaoPaulo();
   const tarefas = await store.tarefasAtivas(somarDias(hoje, -7));
-  const nomes = await store.nomesPacientes([...new Set(tarefas.map((t) => t.patientId))]);
+  const nomes = await store.nomesPacientes(idsDePacientes(tarefas));
   const perfis = await store.perfis();
   const pacientes = (await store.pacientes()).map((p) => ({ id: p.id, nome: p.nome, sd_codigo: p.sd_codigo ?? null })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   return {
@@ -321,7 +329,7 @@ export async function listarTarefasGestao(store: FilaStore) {
     pacientes,
     tarefas: tarefas
       .map((t) => ({
-        id: t.id, ref: refDoItem({ tipo: "tarefa", id: t.id }), paciente: nomes[t.patientId] ?? "Paciente", pacienteId: t.patientId,
+        id: t.id, ref: refDoItem({ tipo: "tarefa", id: t.id }), paciente: t.patientId ? nomes[t.patientId] ?? "Paciente" : t.assunto ?? "Assunto", pacienteId: t.patientId,
         kind: t.kind, acao: t.title, contexto: String(t.payload.contexto ?? ""), prazo: t.due, valor: t.financialImpact,
         responsavel: t.assignedTo, status: t.status, proximaAcao: t.nextAction, resultado: t.closedReason, origem: t.origem,
       }))
@@ -331,14 +339,15 @@ export async function listarTarefasGestao(store: FilaStore) {
 
 // ---------------------------------------------------------------- atendimentos
 
-export async function confirmarAtendimentoPendente(store: FilaStore, ator: Ator, id: string, data: string) {
+export async function confirmarAtendimentoPendente(store: FilaStore, ator: Ator, id: string, data: string, marcos?: TipoMarco[]) {
+  if (marcos !== undefined && !marcosValidos(marcos)) throw new ErroRegra("Marcos inválidos: escolha entre 30 dias, 90 dias e 6 meses.");
   if (!isDiaIso(data)) throw new ErroRegra("Informe a data exata do atendimento.");
   if (data > hojeSaoPaulo()) throw new ErroRegra("A data do atendimento não pode estar no futuro.");
   const a = await store.atendimento(id);
   if (!a) throw new ErroRegra("Atendimento não encontrado.", 404);
   if (a.anulado) throw new ErroRegra("Atendimento anulado não pode ser confirmado.");
-  await store.confirmarAtendimento(id, data, ator.id);
-  await store.auditar({ actor: ator.email, action: "fila_atendimento_confirmado", target: `appointments/${id}`, before: { data: a.dataRealizada, status: a.dataStatus }, after: { data } });
+  await store.confirmarAtendimento(id, data, ator.id, marcos);
+  await store.auditar({ actor: ator.email, action: "fila_atendimento_confirmado", target: `appointments/${id}`, before: { data: a.dataRealizada, status: a.dataStatus }, after: { data, marcos: marcos ?? ["d30", "d90", "m6"] } });
 }
 
 export async function anularAtendimento(store: FilaStore, ator: Ator, id: string, motivo: string) {
@@ -482,33 +491,44 @@ export interface FilaCarregada {
 export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo()): Promise<FilaCarregada> {
   const desde = somarDias(hoje, -1);
   const [marcos, tarefas, pendentes, perfis] = await Promise.all([store.marcosAtivos(desde), store.tarefasAtivas(desde), store.atendimentosPendentes(), store.perfis()]);
-  const nomes = await store.nomesPacientes([...new Set([...marcos, ...tarefas, ...pendentes].map((r) => r.patientId))]);
+  const nomes = await store.nomesPacientes(idsDePacientes([...marcos, ...tarefas, ...pendentes]));
   const nome = (id: string) => nomes[id] ?? "Paciente";
   const nomePerfil = new Map(perfis.map((p) => [p.id, p.nome]));
 
   const itens: ItemFila[] = [
     ...marcos.map((m): ItemFila => ({
       id: `marco:${m.id}`, alvo: { tipo: "marco", id: m.id }, pacienteId: m.patientId, pacienteNome: nome(m.patientId), tipo: "marco",
-      titulo: `Acompanhamento de ${ROTULO_MARCO[m.kind]}`, subtipo: m.kind,
+      titulo: `Acompanhamento de ${ROTULO_MARCO[m.kind]}`, subtipo: m.kind, categoria: "recorrencia",
       detalhe: m.dueCurrent !== m.dueOriginal ? `previsto para ${dataBr(m.dueOriginal)}, adiado` : undefined,
       proximaAcao: m.status === "previsto" || m.status === "contatado" ? m.statusReason ?? undefined : undefined,
       contexto: m.status === "contemplado" || m.status === "dispensado" ? m.statusReason ?? undefined : undefined,
       status: m.status === "previsto" ? "aberta" : m.status === "contatado" ? "aguardando" : "concluida",
       due: m.dueCurrent, concluidaEm: ["contemplado", "dispensado"].includes(m.status) ? diaSP(m.updatedAt) : undefined,
     })),
-    ...tarefas.map((t): ItemFila => ({
-      id: `tarefa:${t.id}`, alvo: { tipo: "tarefa", id: t.id }, pacienteId: t.patientId, pacienteNome: nome(t.patientId), tipo: t.kind,
-      titulo: t.title, aConferir: t.aConferir, valor: t.financialImpact ?? undefined,
-      contexto: [t.payload.contexto, t.payload.descricao].filter((x) => typeof x === "string" && x).join(" · ") || undefined,
-      proximaAcao: t.nextAction ?? undefined, responsavel: t.assignedTo ? nomePerfil.get(t.assignedTo) : undefined,
-      subtipo: typeof t.payload.subtipo === "string" ? t.payload.subtipo : undefined,
-      detalhe: ["completed", "cancelled"].includes(t.status) ? t.closedReason ?? undefined : undefined,
-      status: t.status === "waiting" ? "aguardando" : ["completed", "cancelled"].includes(t.status) ? "concluida" : "aberta",
-      due: t.due, concluidaEm: ["completed", "cancelled"].includes(t.status) ? diaSP(t.updatedAt) : undefined,
-    })),
+    ...tarefas.map((t): ItemFila => {
+      const etapa = (t.payload.etapa ?? null) as EtapaClinica | null;
+      const detalhes = (t.payload.detalhes ?? {}) as Record<string, string>;
+      return {
+        id: `tarefa:${t.id}`, alvo: { tipo: "tarefa", id: t.id },
+        // Assunto sem paciente (pendência administrativa) vira um cartão próprio.
+        pacienteId: t.patientId ?? `assunto:${t.id}`, pacienteNome: t.patientId ? nome(t.patientId) : t.assunto ?? "Assunto", semPaciente: !t.patientId || undefined,
+        tipo: t.kind, categoria: categoriaDaTarefa(t),
+        titulo: t.title, aConferir: t.aConferir, valor: t.financialImpact ?? undefined,
+        contexto: [t.payload.contexto, t.payload.descricao, ...Object.entries(detalhes).filter(([, v]) => v).map(([k, v]) => `${ROTULO_DETALHE[k] ?? k}: ${v}`)]
+          .filter((x) => typeof x === "string" && x).join(" · ") || undefined,
+        proximaAcao: t.nextAction ?? undefined,
+        responsavel: t.assignedTo ? nomePerfil.get(t.assignedTo) : rotuloResponsavel(typeof t.payload.responsavel === "string" ? t.payload.responsavel : undefined, perfis) ?? undefined,
+        subtipo: typeof t.payload.subtipo === "string" ? t.payload.subtipo : undefined,
+        atencao: t.payload.atencao === true || undefined,
+        etapa: etapa && Object.values(etapa).some(Boolean) ? etapa : undefined,
+        detalhe: ["completed", "cancelled"].includes(t.status) ? t.closedReason ?? undefined : undefined,
+        status: t.status === "waiting" ? "aguardando" : ["completed", "cancelled"].includes(t.status) ? "concluida" : "aberta",
+        due: t.due, concluidaEm: ["completed", "cancelled"].includes(t.status) ? diaSP(t.updatedAt) : undefined,
+      };
+    }),
     ...pendentes.map((a): ItemFila => ({
       id: `atendimento:${a.id}`, alvo: { tipo: "atendimento", id: a.id }, pacienteId: a.patientId, pacienteNome: nome(a.patientId), tipo: "conferir_atendimento",
-      titulo: "Conferir atendimento no Simples Dental", detalhe: a.dataRealizada ? `data informada: ${dataBr(a.dataRealizada)}` : undefined,
+      categoria: "agenda", titulo: "Conferir atendimento no Simples Dental", detalhe: a.dataRealizada ? `data informada: ${dataBr(a.dataRealizada)}` : undefined,
       status: "aberta", due: diaSP(a.createdAt),
     })),
   ];
@@ -517,14 +537,41 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo()): Pro
   return { hoje, fila: montarFila(visiveis, hoje), maisTarde: itens.length - visiveis.length, itens };
 }
 
+export const ROTULO_DETALHE: Record<string, string> = {
+  ocorrencia: "Ocorrência", horario: "Horário", motivo_falta: "Motivo", remarcou: "Remarcou", nova_data: "Nova data",
+  ponto_amanha: "Ponto de atenção", interesse: "Interesse", especialidade: "Tratamento/especialidade", objecao: "Resposta/objeção",
+  motivo_contato: "Motivo do contato", ultimo_atendimento: "Último atendimento (aprox.)", procedimento: "Procedimento",
+  necessidade: "Necessidade", tipo_pendencia: "Tipo", descricao: "Descrição", para: "Encaminhado para", motivo_encaminhamento: "Motivo",
+  observacao: "Observação",
+};
+
 // ---------------------------------------------------------------- fechamento
 
 export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo()): Promise<{ fechamento: Fechamento; texto: string }> {
   if (!isDiaIso(dia)) throw new ErroRegra("Dia inválido.");
-  const [eventos, numeros, carregada] = await Promise.all([store.eventosDoDia(dia), store.numerosDoDia(dia), carregarFila(store, dia)]);
-  const nomes = await store.nomesPacientes([...new Set(eventos.map((e) => e.patientId))]);
-  const fechamento = montarFechamento(dia, eventos, carregada.fila, carregada.itens, nomes, numeros);
+  const [eventos, numeros, estado, carregada] = await Promise.all([store.eventosDoDia(dia), store.numerosDoDia(dia), store.estadoDoDia(dia), carregarFila(store, dia)]);
+  const nomes = await store.nomesPacientes(idsDePacientes(eventos));
+  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos, fila: carregada.fila, itens: carregada.itens, nomes, numeros, estado });
   return { fechamento, texto: textoWhatsapp(fechamento) };
+}
+
+/** Prioridades escolhidas (até 5, sugeridas ou manuais) e seções "sem ocorrências" do dia. */
+export async function salvarEstadoDoDia(store: FilaStore, ator: Ator, dia: string, e: Partial<EstadoDoDia>) {
+  if (!isDiaIso(dia) || dia > hojeSaoPaulo()) throw new ErroRegra("Dia inválido.");
+  const limpo: Partial<EstadoDoDia> = {};
+  if (e.prioridades !== undefined) {
+    if (!Array.isArray(e.prioridades) || e.prioridades.length > 5) throw new ErroRegra("Escolha até cinco prioridades.");
+    limpo.prioridades = e.prioridades
+      .map((p) => ({ ref: typeof p.ref === "string" && p.ref ? p.ref : null, texto: String(p.texto ?? "").trim().slice(0, 200) }))
+      .filter((p) => p.texto);
+  }
+  if (e.secoes !== undefined) {
+    const ok = e.secoes && typeof e.secoes === "object" && Object.entries(e.secoes).every(([k, v]) => (CATEGORIAS as readonly string[]).includes(k) && v === "sem_ocorrencias");
+    if (!ok) throw new ErroRegra("Seção inválida.");
+    limpo.secoes = e.secoes;
+  }
+  await store.salvarEstadoDoDia(dia, limpo, ator.id);
+  await store.auditar({ actor: ator.email, action: "fila_estado_do_dia", target: `daily_manual_figures/${dia}`, after: limpo });
 }
 
 export async function salvarNumeros(store: FilaStore, ator: Ator, dia: string, n: NumerosDoDia) {
@@ -603,8 +650,8 @@ export async function analisarFeedback(store: FilaStore, ator: Ator, texto: stri
 /** Tarefas abertas resumidas para a IA (referência curta + primeiro nome e inicial). */
 export async function tarefasAbertasResumo(store: FilaStore) {
   const tarefas = (await store.tarefasAtivas(hojeSaoPaulo())).filter((t) => !["completed", "cancelled"].includes(t.status));
-  const nomes = await store.nomesPacientes([...new Set(tarefas.map((t) => t.patientId))]);
-  return tarefas.map((t) => ({ ref: refDoItem({ tipo: "tarefa", id: t.id }), id: t.id, paciente: nomeCurto(nomes[t.patientId] ?? "Paciente"), tipo: t.kind, titulo: t.title, due: t.due }));
+  const nomes = await store.nomesPacientes(idsDePacientes(tarefas));
+  return tarefas.map((t) => ({ ref: refDoItem({ tipo: "tarefa", id: t.id }), id: t.id, paciente: t.patientId ? nomeCurto(nomes[t.patientId] ?? "Paciente") : t.assunto ?? "Assunto", tipo: t.kind, titulo: t.title, due: t.due }));
 }
 
 /** Aplica uma proposta de continuidade aprovada pela gestão (atualizar ou encerrar tarefa existente). */

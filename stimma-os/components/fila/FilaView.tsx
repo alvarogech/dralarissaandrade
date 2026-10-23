@@ -2,38 +2,39 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import clsx from "clsx";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { CartaoPaciente, ItemFila, Secao } from "@/lib/fila/agrupamento";
-import type { Acao } from "@/lib/fila/servico";
-import { Campo, Historico, ROTULO_TIPO, brl, chamarApi, classeInput, dataBr, numeroBr } from "./comum";
+import { Campo, Historico, ROTULO_TIPO, brl, chamarApi, dataBr } from "./comum";
+import { FormRegistro } from "./FormRegistro";
 
-const ORIGENS_VALOR = [
-  { value: "parcela", label: "Parcela" },
-  { value: "divida_antiga", label: "Dívida antiga" },
-  { value: "nova_contratacao", label: "Nova contratação" },
-  { value: "avaliacao", label: "Avaliação" },
-  { value: "outro", label: "Outro" },
-];
+const ROTULO_ETAPA: Record<string, string> = {
+  a_definir: "a definir", prevista: "prevista", agendada: "agendada", realizada: "realizada", adiada: "adiada", encerrada: "encerrada",
+};
 
 export function LinhaItem({ item, secao }: { item: ItemFila; secao: Secao }) {
   return (
     <div className="flex flex-col gap-0.5 text-sm">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <Badge variant={item.tipo === "cobranca" ? "important" : item.tipo === "conferir_atendimento" ? "critical" : "informative"}>
+        <Badge variant={item.atencao ? "critical" : item.tipo === "conferir_atendimento" ? "critical" : item.tipo === "cobranca" ? "important" : "informative"}>
           {item.subtipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[item.tipo] ?? item.tipo}
         </Badge>
+        {item.atencao && <Badge variant="critical">Atenção</Badge>}
         <span className="text-text-primary">{item.titulo}</span>
         {item.valor !== undefined && <span className="font-medium text-text-primary">{brl(item.valor)}</span>}
         {secao !== "concluidas" && <span className="text-text-muted">· prazo {dataBr(item.due)}</span>}
         {item.aConferir?.length ? <Badge variant="important">a conferir: {item.aConferir.join(", ")}</Badge> : null}
       </div>
       {item.contexto && <span className="text-xs text-text-secondary">{item.contexto}</span>}
-      {item.proximaAcao && <span className="text-xs text-text-secondary">Próxima ação: {item.proximaAcao}</span>}
+      {item.proximaAcao && <span className="text-xs text-text-secondary">Próxima ação da Gabi: {item.proximaAcao}{item.responsavel ? ` · ${item.responsavel}` : ""}</span>}
+      {!item.proximaAcao && item.responsavel && <span className="text-xs text-text-muted">Responsável: {item.responsavel}</span>}
+      {item.etapa && (
+        <span className="text-xs text-text-muted">
+          Etapa do cuidado: {item.etapa.definicao ?? "—"}{item.etapa.situacao ? ` · ${ROTULO_ETAPA[item.etapa.situacao] ?? item.etapa.situacao}` : ""}{item.etapa.data ? ` · ${dataBr(item.etapa.data)}` : ""}
+        </span>
+      )}
       {item.detalhe && <span className="text-xs text-text-muted">{item.detalhe}</span>}
-      {item.responsavel && <span className="text-xs text-text-muted">Responsável: {item.responsavel}</span>}
     </div>
   );
 }
@@ -46,6 +47,7 @@ export function Cartao({ cartao, secao, gestao, aberto, onToggle }: { cartao: Ca
         <div className="min-w-0 flex-1">
           <p className="font-medium text-text-primary">
             {cartao.pacienteNome}
+            {cartao.itens[0]?.semPaciente && <span className="ml-2 text-xs font-normal text-text-muted">(assunto)</span>}
             {cartao.atrasoDias > 0 && <span className="ml-2 align-middle"><Badge variant="critical">{cartao.atrasoDias} {cartao.atrasoDias === 1 ? "dia" : "dias"} de atraso</Badge></span>}
           </p>
           <div className="mt-2 flex flex-col gap-2">
@@ -61,173 +63,69 @@ export function Cartao({ cartao, secao, gestao, aberto, onToggle }: { cartao: Ca
           )}
         </div>
         {podeAgir && (
-          <button onClick={onToggle} className="shrink-0 rounded-sm border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface">
+          <button onClick={onToggle} className="shrink-0 rounded-sm border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-raised">
             {aberto ? "Fechar" : "Registrar"}
           </button>
         )}
       </div>
-      {aberto && podeAgir && <PainelAcao cartao={cartao} gestao={gestao} />}
+      {aberto && podeAgir && <PainelRegistro cartao={cartao} gestao={gestao} onSalvo={onToggle} />}
     </li>
   );
 }
 
-function acoesPara(itens: ItemFila[]): { key: Acao; label: string }[] {
-  const comparecimento = itens.length > 0 && itens.every((i) => i.subtipo === "comparecimento");
-  const cobranca = itens.length > 0 && itens.every((i) => i.tipo === "cobranca");
-  if (comparecimento) return [{ key: "comparecimento", label: "Comparecimento" }, { key: "contato", label: "Fiz contato" }, { key: "adiar", label: "Adiar" }, { key: "encerrar", label: "Encerrar" }];
-  return [
-    { key: "contato", label: "Fiz contato" },
-    { key: "resposta", label: "Respondeu" },
-    { key: "agendamento", label: "Agendou consulta" },
-    ...(cobranca ? [{ key: "recebimento" as const, label: "Recebimento confirmado" }] : []),
-    { key: "adiar", label: "Adiar" },
-    { key: "encerrar", label: "Resolver / encerrar" },
-  ];
-}
-
-function PainelAcao({ cartao, gestao }: { cartao: CartaoPaciente; gestao: boolean }) {
-  const router = useRouter();
+function PainelRegistro({ cartao, gestao, onSalvo }: { cartao: CartaoPaciente; gestao: boolean; onSalvo: () => void }) {
   const conferir = cartao.itens.filter((i) => i.alvo?.tipo === "atendimento");
   const trabalho = cartao.itens.filter((i) => i.alvo && i.alvo.tipo !== "atendimento");
   const [selecionados, setSelecionados] = useState<Set<string>>(() => new Set(trabalho.map((i) => i.id)));
-  const [acao, setAcao] = useState<Acao | null>(null);
-  const [eventoId, setEventoId] = useState(() => crypto.randomUUID());
-  const [f, setF] = useState({ canal: "whatsapp", notas: "", novaData: "", proximaAcao: "", agendadoPara: "", valor: "", origemValor: "", motivo: "", desfecho: "", compareceu: "" });
-  const [erro, setErro] = useState<string | null>(null);
-  const [salvando, setSalvando] = useState(false);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
-
   const todos = [...trabalho, ...cartao.junto.map((j) => j.item)];
   const escolhidos = todos.filter((i) => selecionados.has(i.id));
-  const acoes = acoesPara(escolhidos);
+  // O formulário recomeça quando a seleção muda (tipo e contexto vêm dos itens escolhidos).
+  const chave = escolhidos.map((i) => i.id).join(",");
 
   function alternar(id: string) {
     const s = new Set(selecionados);
     if (s.has(id)) s.delete(id);
     else s.add(id);
     setSelecionados(s);
-    setAcao(null);
-  }
-
-  async function salvar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!acao || !escolhidos.length) return;
-    setErro(null);
-    const valor = numeroBr(f.valor);
-    if (acao === "recebimento" && (valor === null || Number.isNaN(valor))) return setErro("Informe o valor recebido.");
-    setSalvando(true);
-    const r = await chamarApi("/api/fila/acao", "POST", {
-      eventoId, acao,
-      alvos: escolhidos.map((i) => ({ tipo: i.alvo!.tipo, id: i.alvo!.id })),
-      canal: f.canal || undefined, notas: f.notas || undefined, novaData: f.novaData || undefined, proximaAcao: f.proximaAcao || undefined,
-      agendadoPara: f.agendadoPara || undefined, valor: valor ?? undefined, origemValor: f.origemValor || undefined,
-      motivo: f.motivo || undefined, desfecho: f.desfecho || undefined, compareceu: f.compareceu ? f.compareceu === "sim" : undefined,
-    });
-    setSalvando(false);
-    if (!r.ok) return setErro(r.erro);
-    setEventoId(crypto.randomUUID());
-    router.refresh();
   }
 
   return (
     <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4">
       {conferir.map((i) => <ConferirAtendimento key={i.id} item={i} gestao={gestao} />)}
-
       {todos.length > 0 && (
-        <form onSubmit={salvar} className="flex flex-col gap-3">
-          <fieldset className="flex flex-col gap-1.5">
-            <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-text-muted">Itens deste registro</legend>
-            {trabalho.map((i) => (
-              <label key={i.id} className="flex items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-1" checked={selecionados.has(i.id)} onChange={() => alternar(i.id)} />
-                <LinhaItem item={i} secao="hoje" />
-              </label>
-            ))}
-            {cartao.junto.length > 0 && <p className="mt-1 text-xs text-text-muted">Pode ser tratado junto (vence em até 14 dias):</p>}
-            {cartao.junto.map(({ item }) => (
-              <label key={item.id} className="flex items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-1" checked={selecionados.has(item.id)} onChange={() => alternar(item.id)} />
-                <LinhaItem item={item} secao="proximas" />
-              </label>
-            ))}
-          </fieldset>
-
-          <div className="flex flex-wrap gap-1.5">
-            {acoes.map((a) => (
-              <button type="button" key={a.key} onClick={() => setAcao(a.key)}
-                className={clsx("rounded-sm border px-3 py-1.5 text-sm", acao === a.key ? "border-accent bg-accent-soft text-text-primary" : "border-border text-text-secondary hover:bg-surface")}>
-                {a.label}
-              </button>
-            ))}
-          </div>
-
-          {acao && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(acao === "contato" || acao === "resposta") && (
-                <Campo label="Canal">
-                  <select className={classeInput} value={f.canal} onChange={set("canal")}>
-                    <option value="whatsapp">WhatsApp</option><option value="ligacao">Ligação</option><option value="presencial">Presencial</option><option value="outro">Outro</option>
-                  </select>
-                </Campo>
-              )}
-              {acao === "contato" && <Campo label="Sem resposta? Tentar de novo em (opcional — senão fica aguardando)"><Input type="date" value={f.novaData} onChange={set("novaData")} /></Campo>}
-              {(acao === "resposta" || acao === "adiar") && <Campo label="Data do próximo passo *"><Input type="date" required value={f.novaData} onChange={set("novaData")} /></Campo>}
-              {(acao === "contato" || acao === "resposta" || acao === "adiar") && <Campo label="Próxima ação" largo><Input value={f.proximaAcao} onChange={set("proximaAcao")} placeholder="ex.: ligar à tarde e oferecer horário de sábado" /></Campo>}
-              {acao === "agendamento" && <Campo label="Data da consulta *"><Input type="date" required value={f.agendadoPara} onChange={set("agendadoPara")} /></Campo>}
-              {acao === "recebimento" && (
-                <>
-                  <Campo label="Valor recebido (R$) *"><Input inputMode="decimal" required value={f.valor} onChange={set("valor")} placeholder="450,00" /></Campo>
-                  <Campo label="Origem do valor *">
-                    <select required className={classeInput} value={f.origemValor} onChange={set("origemValor")}>
-                      <option value="">Escolha…</option>
-                      {ORIGENS_VALOR.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </Campo>
-                </>
-              )}
-              {acao === "comparecimento" && (
-                <Campo label="A paciente compareceu? *">
-                  <select required className={classeInput} value={f.compareceu} onChange={set("compareceu")}>
-                    <option value="">Escolha…</option><option value="sim">Compareceu</option><option value="nao">Faltou</option>
-                  </select>
-                </Campo>
-              )}
-              {acao === "encerrar" && (
-                <Campo label="Desfecho *">
-                  <select required className={classeInput} value={f.desfecho} onChange={set("desfecho")}>
-                    <option value="">Escolha…</option>
-                    <option value="resolvido">Objetivo resolvido</option>
-                    <option value="dispensado">Encerrar sem resolver (não precisa mais)</option>
-                  </select>
-                </Campo>
-              )}
-              {acao === "adiar" && <Campo label="Justificativa *" largo><Input required value={f.motivo} onChange={set("motivo")} /></Campo>}
-              {acao === "encerrar" && <Campo label={f.desfecho === "dispensado" ? "Motivo *" : "Resultado alcançado *"} largo><Input required value={f.motivo} onChange={set("motivo")} /></Campo>}
-              <Campo label={acao === "contato" ? "O que aconteceu (ex.: sem resposta)" : "Observação (opcional)"} largo>
-                <textarea rows={2} className={classeInput} value={f.notas} onChange={set("notas")} />
-              </Campo>
-              {acao === "agendamento" && <p className="text-xs text-text-muted sm:col-span-2">Ao salvar, a fila cria automaticamente “Confirmar comparecimento” na data da consulta.</p>}
-              {acao === "comparecimento" && <p className="text-xs text-text-muted sm:col-span-2">Compareceu: vira “Conferir atendimento” (os marcos de 30/90 dias e 6 meses nascem quando o realizado for confirmado). Faltou: cria a recuperação da falta para amanhã.</p>}
-            </div>
+        <>
+          {todos.length > 1 && (
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-text-muted">Itens deste registro (histórico individual em cada um)</legend>
+              {trabalho.map((i) => (
+                <label key={i.id} className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-1" checked={selecionados.has(i.id)} onChange={() => alternar(i.id)} />
+                  <LinhaItem item={i} secao="hoje" />
+                </label>
+              ))}
+              {cartao.junto.length > 0 && <p className="mt-1 text-xs text-text-muted">Pode ser tratado junto (vence em até 14 dias):</p>}
+              {cartao.junto.map(({ item }) => (
+                <label key={item.id} className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-1" checked={selecionados.has(item.id)} onChange={() => alternar(item.id)} />
+                  <LinhaItem item={item} secao="proximas" />
+                </label>
+              ))}
+            </fieldset>
           )}
-
-          {erro && <p role="alert" className="text-sm text-critical">{erro}</p>}
-          {acao && (
-            <div className="flex items-center gap-3">
-              <Button type="submit" loading={salvando} loadingText="Salvando…" disabled={!escolhidos.length}>Salvar registro</Button>
-              <span className="text-xs text-text-muted">{escolhidos.length} {escolhidos.length === 1 ? "item" : "itens"} · nenhuma mensagem é enviada</span>
-            </div>
-          )}
-        </form>
+          {escolhidos.length > 0 ? <FormRegistro key={chave} alvos={escolhidos} onSalvo={onSalvo} /> : <p className="text-sm text-text-muted">Marque ao menos um item.</p>}
+        </>
       )}
     </div>
   );
 }
 
+const MARCOS = [["d30", "30 dias"], ["d90", "90 dias"], ["m6", "6 meses"]] as const;
+
 function ConferirAtendimento({ item, gestao }: { item: ItemFila; gestao: boolean }) {
   const router = useRouter();
   const sugestao = item.detalhe?.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   const [data, setData] = useState(sugestao ? `${sugestao[3]}-${sugestao[2]}-${sugestao[1]}` : "");
+  const [marcos, setMarcos] = useState<Set<string>>(new Set(["d30", "d90", "m6"]));
   const [motivo, setMotivo] = useState("");
   const [anulando, setAnulando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -236,7 +134,7 @@ function ConferirAtendimento({ item, gestao }: { item: ItemFila; gestao: boolean
   async function executar(operacao: "confirmar" | "anular") {
     setErro(null);
     setSalvando(true);
-    const r = await chamarApi("/api/fila/atendimento", "POST", { id: item.alvo!.id, operacao, data, motivo });
+    const r = await chamarApi("/api/fila/atendimento", "POST", { id: item.alvo!.id, operacao, data, motivo, marcos: [...marcos] });
     setSalvando(false);
     if (!r.ok) return setErro(r.erro);
     router.refresh();
@@ -244,9 +142,22 @@ function ConferirAtendimento({ item, gestao }: { item: ItemFila; gestao: boolean
 
   return (
     <div className="rounded-md border border-border p-3">
-      <p className="mb-2 text-sm text-text-secondary">Confira no Simples Dental se o atendimento consta como realizado e a data exata. Ao confirmar, os marcos de 30 dias, 90 dias e 6 meses são criados automaticamente.</p>
+      <p className="mb-2 text-sm text-text-secondary">Confira no Simples Dental se o atendimento consta como realizado e a data exata.</p>
       <div className="flex flex-wrap items-end gap-2">
         <Campo label="Data exata do atendimento"><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></Campo>
+      </div>
+      <fieldset className="mt-2 text-sm">
+        <legend className="text-xs text-text-secondary">Marcos de acompanhamento pertinentes (conforme orientação da Dra. Larissa)</legend>
+        <div className="mt-1 flex flex-wrap gap-3">
+          {MARCOS.map(([k, l]) => (
+            <label key={k} className="flex items-center gap-1.5">
+              <input type="checkbox" checked={marcos.has(k)} onChange={() => { const s = new Set(marcos); if (s.has(k)) s.delete(k); else s.add(k); setMarcos(s); }} /> {l}
+            </label>
+          ))}
+        </div>
+        {marcos.size === 0 && <p className="mt-1 text-xs text-text-muted">Nenhum marco será criado para este atendimento.</p>}
+      </fieldset>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button type="button" loading={salvando} loadingText="Salvando…" disabled={!data} onClick={() => executar("confirmar")}>Confirmar realizado</Button>
         {gestao && <button type="button" className="px-2 py-2 text-sm text-text-muted underline" onClick={() => setAnulando(!anulando)}>Anular</button>}
       </div>

@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { hashConteudo } from "./previa";
 import { planejarAnulacao, planejarMarcos } from "./marcos";
 import type { ItemEntrada } from "./contrato";
-import type { AtendimentoRow, EventoRow, FilaStore, MarcoRow, NumerosDoDia, TarefaRow } from "./store";
+import type { AtendimentoRow, EstadoDoDia, EventoRow, FilaStore, MarcoRow, NumerosDoDia, TarefaRow } from "./store";
 
 /**
  * Store em memória: testes e modo demonstração (sem Supabase configurado). Espelha as regras
@@ -22,6 +22,7 @@ export function criarStoreMemoria() {
   const eventos: EventoRow[] = [];
   const lotes: { id: string; hash: string; itens: { chaveOrigem?: string; resultado: string; payload: unknown }[] }[] = [];
   const numeros = new Map<string, NumerosDoDia>();
+  const estados = new Map<string, EstadoDoDia>();
   const auditoria: { action: string; target: string }[] = [];
   const agora = () => new Date().toISOString();
 
@@ -104,6 +105,9 @@ export function criarStoreMemoria() {
     async numerosDoDia(d) {
       return numeros.get(d) ?? null;
     },
+    async estadoDoDia(d) {
+      return estados.get(d) ?? { prioridades: [], secoes: {} };
+    },
 
     async criarLote(l) {
       const id = randomUUID();
@@ -126,13 +130,13 @@ export function criarStoreMemoria() {
       const a = atendimentos.find((x) => x.id === id);
       if (a) a.dataRealizada = data;
     },
-    async confirmarAtendimento(id, data) {
+    async confirmarAtendimento(id, data, _ator, escolhidos) {
       const a = atendimentos.find((x) => x.id === id);
       if (!a) throw new Error("atendimento inexistente");
       if (a.anulado) throw new Error("atendimento anulado não pode ser confirmado");
       Object.assign(a, { dataRealizada: data, dataStatus: "exata", realizadoConfirmado: true });
       const existentes = marcos.filter((m) => m.appointmentId === id).map(comVinculoM);
-      for (const acao of planejarMarcos(data, existentes)) {
+      for (const acao of planejarMarcos(data, existentes, escolhidos)) {
         if (acao.acao === "inserir") {
           marcos.push({ id: randomUUID(), appointmentId: id, patientId: a.patientId, kind: acao.kind, dueOriginal: acao.due, dueCurrent: acao.due, status: "previsto", statusReason: null, updatedAt: agora() });
         } else if (acao.acao === "recalcular") {
@@ -153,7 +157,7 @@ export function criarStoreMemoria() {
     async criarTarefa(t) {
       const id = randomUUID();
       tarefas.push({
-        id, patientId: t.patientId, kind: t.kind, title: t.title, chaveOrigem: t.chaveOrigem, status: "open", due: t.due, aConferir: t.aConferir,
+        id, patientId: t.patientId, assunto: t.assunto ?? null, kind: t.kind, title: t.title, chaveOrigem: t.chaveOrigem, status: "open", due: t.due, aConferir: t.aConferir,
         payload: t.payload, financialImpact: t.financialImpact, closedReason: null, updatedAt: agora(),
         assignedTo: t.assignedTo ?? null, nextAction: t.nextAction ?? null, origem: t.origem,
       });
@@ -178,6 +182,10 @@ export function criarStoreMemoria() {
     },
     async salvarNumeros(d, n) {
       numeros.set(d, n);
+    },
+    async salvarEstadoDoDia(d, e) {
+      const atual = estados.get(d) ?? { prioridades: [], secoes: {} };
+      estados.set(d, { ...atual, ...e });
     },
     async auditar(a) {
       auditoria.push({ action: a.action, target: a.target });

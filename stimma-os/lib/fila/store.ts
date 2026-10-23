@@ -9,9 +9,16 @@ import type { AtendimentoExistente, Classificacao, PacienteConhecido, RegistroEx
  */
 export type StatusMarcoDb = "previsto" | "contatado" | "contemplado" | "dispensado" | "invalidado";
 export type StatusTarefaDb = "open" | "in_progress" | "waiting" | "completed" | "cancelled";
-export type TipoTarefa = "cobranca" | "recuperacao_falta" | "continuidade" | "relacionamento" | "encaminhamento" | "outro";
+export type TipoTarefa = "cobranca" | "recuperacao_falta" | "continuidade" | "relacionamento" | "encaminhamento" | "outro"
+  | "agenda" | "oportunidade" | "recorrencia" | "pos_atendimento" | "pendencia";
 
-export const TIPOS_EVENTO = ["contato", "resposta", "agendamento_obtido", "cancelamento", "recebimento_confirmado", "atendimento_realizado", "adiamento", "encerramento", "encaminhamento", "correcao"] as const;
+/** Área do registro do dia (bloco do feedback). */
+export const CATEGORIAS = ["agenda", "oportunidade", "recorrencia", "continuidade", "pos_atendimento", "relacionamento", "pendencia", "encaminhamento"] as const;
+export type Categoria = (typeof CATEGORIAS)[number];
+/** sim / não / não se aplica — null = não preenchido (nunca presumido). */
+export type SimNao = "sim" | "nao" | "na";
+
+export const TIPOS_EVENTO = ["contato", "resposta", "agendamento_obtido", "cancelamento", "recebimento_confirmado", "atendimento_realizado", "adiamento", "encerramento", "encaminhamento", "correcao", "registro"] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 
 export interface AtendimentoRow {
@@ -40,7 +47,9 @@ export interface MarcoRow {
 
 export interface TarefaRow {
   id: string;
-  patientId: string;
+  /** null = assunto sem paciente (ex.: pendência administrativa). */
+  patientId: string | null;
+  assunto: string | null;
   kind: TipoTarefa;
   title: string;
   chaveOrigem: string | null;
@@ -59,7 +68,15 @@ export interface TarefaRow {
 
 export interface EventoRow {
   id: string;
-  patientId: string;
+  patientId: string | null;
+  assunto?: string | null;
+  categoria?: Categoria | null;
+  contato?: SimNao | null;
+  resposta?: SimNao | null;
+  resultado?: string | null;
+  /** Situação do caso depois deste registro (aguardando, pendente, agendado, resolvido, informativo…). */
+  situacao?: string | null;
+  payload?: Record<string, unknown>;
   kind: TipoEvento;
   occurredOn: string;
   channel: string | null;
@@ -77,6 +94,18 @@ export interface NumerosDoDia {
   caixaPrevisto: number | null;
   caixaRecebido: number | null;
   caixaSituacao: string | null;
+}
+
+export interface PrioridadeDoDia {
+  /** Referência curta do item ([T-…]/[M-…]) ou null para prioridade manual. */
+  ref: string | null;
+  texto: string;
+}
+
+export interface EstadoDoDia {
+  prioridades: PrioridadeDoDia[];
+  /** Seções revisadas e marcadas "sem ocorrências" (ausente = não revisada). */
+  secoes: Partial<Record<Categoria, "sem_ocorrencias">>;
 }
 
 export interface FilaStore {
@@ -103,20 +132,22 @@ export interface FilaStore {
   perfis(): Promise<{ id: string; nome: string }[]>;
   eventosDoDia(dia: string): Promise<EventoRow[]>;
   numerosDoDia(dia: string): Promise<NumerosDoDia | null>;
+  estadoDoDia(dia: string): Promise<EstadoDoDia>;
 
   // escrita
   criarLote(l: { hash: string; origem: string; consultadoEm: string; criadoPor: string; itens: { index: number; tipo: string; chaveOrigem?: string; resultado: Classificacao; payload: unknown; resolution?: unknown }[] }): Promise<string>;
   criarPaciente(ref: PacienteRef, criadoPor: string): Promise<string>;
   criarAtendimento(a: { patientId: string; chaveOrigem: string | null; data: string; dataStatus: "exata" | "pendente_validacao"; consultadoEm: string; origem: string }): Promise<string>;
   atualizarDataAtendimento(id: string, data: string): Promise<void>;
-  /** Regra atômica do banco: marca realizado e cria/recalcula os 3 marcos (migration 0012). */
-  confirmarAtendimento(id: string, data: string, ator: string): Promise<void>;
+  /** Regra atômica do banco: marca realizado e cria/recalcula os marcos escolhidos (0012/0013). */
+  confirmarAtendimento(id: string, data: string, ator: string, marcos?: TipoMarco[]): Promise<void>;
   anularAtendimento(id: string, motivo: string, ator: string): Promise<void>;
-  criarTarefa(t: { patientId: string; kind: TipoTarefa; title: string; chaveOrigem: string | null; due: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null; origem: string; origemData: string; assignedTo?: string | null; nextAction?: string | null }): Promise<string>;
+  criarTarefa(t: { patientId: string | null; assunto?: string | null; kind: TipoTarefa; title: string; chaveOrigem: string | null; due: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null; origem: string; origemData: string; assignedTo?: string | null; nextAction?: string | null }): Promise<string>;
   atualizarTarefaEntrada(id: string, t: { title: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null }): Promise<void>;
   registrarEvento(e: EventoRow): Promise<void>;
   atualizarMarco(id: string, m: { status?: StatusMarcoDb; statusReason?: string | null; dueCurrent?: string }): Promise<void>;
   atualizarTarefa(id: string, t: { status?: StatusTarefaDb; due?: string; closedReason?: string | null; waiting?: boolean; title?: string; nextAction?: string | null; assignedTo?: string | null; payload?: Record<string, unknown>; financialImpact?: number | null }): Promise<void>;
   salvarNumeros(dia: string, n: NumerosDoDia, ator: string): Promise<void>;
+  salvarEstadoDoDia(dia: string, e: Partial<EstadoDoDia>, ator: string): Promise<void>;
   auditar(a: { actor: string; action: string; target: string; before?: unknown; after?: unknown; reason?: string | null }): Promise<void>;
 }

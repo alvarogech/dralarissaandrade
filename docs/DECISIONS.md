@@ -405,3 +405,44 @@ também dependem da mesma variável.
 - **Botão "Sair"** no topo do menu lateral (computador) e na barra de abas (celular): `signOut()`
   no Supabase Auth + `location.replace("/login")`. O middleware passa a proteger `/` e marca as
   páginas protegidas com `Cache-Control: private, no-store`, para o "Voltar" não reexibir dados.
+
+## 2026-10-23 — Registro do dia, formulário único "Registrar" e migration 0013
+
+- **Registro espontâneo** ("+ Adicionar registro do dia"), mesmo com a fila vazia. Os tipos são agenda
+  (falta/cancelamento/amanhã), oportunidade interna, recorrência/reativação, continuidade,
+  pós-atendimento, aniversário/relacionamento, pendência/alerta e encaminhamento Gabi↔Comercial
+  Externa. Não há prospecção de leads.
+  - A paciente é escolhida por busca e os casos abertos dela aparecem para vincular, sempre por
+    escolha explícita. Nada é mesclado automaticamente.
+  - "Não cadastrada" cria a paciente explicitamente. Pendência e agenda aceitam assunto sem
+    paciente.
+- **Um só formulário** (`components/fila/FormRegistro.tsx`, regras em `lib/fila/registro.ts`) para
+  item da fila e registro espontâneo.
+  - Contato e resposta são tri-estado (sim/não/não se aplica), o vazio significa "não preenchido" e
+    nada é marcado sozinho.
+  - Mensagem sem retorno fica "aguardando". Contato não encerra o caso.
+  - "Agendado" cria um acompanhamento de comparecimento: agendamento ≠ atendido.
+  - Pendência exige próxima ação + responsável + prazo. "Resolvido" fecha sem próxima ação.
+    "Informativo" não cria tarefa.
+  - Reclamação de pós-atendimento é só "atenção", sem interpretação clínica. Oportunidade não tem
+    campos financeiros.
+  - Etapa clínica futura não conta como atraso administrativo.
+  - O `eventoId` gerado no cliente torna o duplo clique idempotente.
+- **Feedback** montado só de eventos persistidos, em blocos por área. Cada evento aparece num bloco
+  só, separando resultados, ações e pendências abertas.
+  - Um caso antigo respondido hoje conta como resultado, sem contato inventado.
+  - Dias anteriores não usam a situação atual (`historico`).
+  - Os contadores excluem correções e contam tentativas e pacientes separadamente.
+  - "Sem ocorrências" é um estado salvo, diferente de "ainda não revisada".
+  - Prioridades: até 5, sugeridas ou manuais, persistidas, sempre para o próximo dia útil. O botão
+    redundante "Gerar feedback" saiu.
+- **Marcos de continuidade escolhidos ao conferir o atendimento**, todos marcados por padrão. Só os
+  escolhidos são criados e os existentes nunca são tocados.
+- **Migration 0013** (só aditiva):
+  - novas colunas em `interaction_events`, com `patient_id` passando a anulável e o alvo sendo
+    paciente ou assunto;
+  - `tasks.assunto` e novos tipos de tarefa;
+  - `daily_manual_figures.prioridades/secoes`;
+  - sobrecarga `confirmar_atendimento_realizado(..., p_marcos text[])`.
+  - Precisa ser aplicada **antes** do deploy deste código, porque o store já seleciona as colunas
+    novas.

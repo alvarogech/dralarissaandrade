@@ -37,13 +37,20 @@ export function marcoIntocado(m: MarcoExistente): boolean {
   return m.status === "previsto" && !m.temEventoVinculado;
 }
 
+/** Valida a escolha de marcos de um atendimento (subconjunto de d30/d90/m6, sem repetição). */
+export function marcosValidos(v: unknown): v is TipoMarco[] {
+  return Array.isArray(v) && v.every((k) => (TIPOS_MARCO as readonly string[]).includes(k)) && new Set(v).size === v.length;
+}
+
 /**
- * O que acontece com os 3 marcos ao confirmar (ou corrigir a data de) um atendimento realizado.
- * Nunca gera parcial: sempre devolve exatamente uma ação por tipo de marco.
+ * O que acontece com os marcos ESCOLHIDOS ao confirmar (ou corrigir a data de) um atendimento
+ * realizado — por padrão os três (regra da 0012); a orientação clínica pode indicar só alguns.
+ * Devolve exatamente uma ação por marco escolhido; marcos já existentes de outros tipos não são
+ * tocados (nunca apagados nem reclassificados).
  */
-export function planejarMarcos(dataAtendimento: string, existentes: MarcoExistente[]): AcaoMarco[] {
+export function planejarMarcos(dataAtendimento: string, existentes: MarcoExistente[], escolhidos: readonly TipoMarco[] = TIPOS_MARCO): AcaoMarco[] {
   const datas = datasDosMarcos(dataAtendimento);
-  return TIPOS_MARCO.map((kind): AcaoMarco => {
+  return TIPOS_MARCO.filter((k) => escolhidos.includes(k)).map((kind): AcaoMarco => {
     const ex = existentes.find((m) => m.kind === kind);
     const due = datas[kind];
     if (!ex) return { kind, acao: "inserir", due };

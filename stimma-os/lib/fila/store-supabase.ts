@@ -32,7 +32,7 @@ function marcoRow(m: Rec): MarcoRow {
 }
 function tarefaRow(t: Rec): TarefaRow {
   return {
-    id: t.id, patientId: t.patient_id, kind: t.kind, title: t.title, chaveOrigem: t.chave_origem, status: t.status,
+    id: t.id, patientId: t.patient_id ?? null, assunto: t.assunto ?? null, kind: t.kind, title: t.title, chaveOrigem: t.chave_origem, status: t.status,
     due: t.next_action_due ?? String(t.due_at ?? t.created_at).slice(0, 10), aConferir: t.a_conferir ?? [], payload: t.payload ?? {},
     financialImpact: t.financial_impact === null ? null : Number(t.financial_impact), closedReason: t.closed_reason, updatedAt: t.updated_at ?? t.created_at,
     temEventoVinculado: (t.event_links ?? []).length > 0,
@@ -42,13 +42,15 @@ function tarefaRow(t: Rec): TarefaRow {
 
 const COLS_ATEND = "id, patient_id, chave_origem, data_realizada, data_status, realizado_confirmado_em, anulado_em, created_at";
 const COLS_MARCO = "id, appointment_id, patient_id, kind, due_original, due_current, status, status_reason, updated_at, event_links(event_id)";
-const COLS_TAREFA = "id, patient_id, kind, title, chave_origem, status, next_action_due, due_at, a_conferir, payload, financial_impact, closed_reason, updated_at, created_at, assigned_to, next_action, origem, event_links(event_id)";
-const COLS_EVENTO = "id, patient_id, kind, occurred_on, channel, notes, amount, amount_origin, scheduled_for, created_by, recorded_at, event_links(milestone_id, task_id)";
+const COLS_TAREFA = "id, patient_id, assunto, kind, title, chave_origem, status, next_action_due, due_at, a_conferir, payload, financial_impact, closed_reason, updated_at, created_at, assigned_to, next_action, origem, event_links(event_id)";
+const COLS_EVENTO = "id, patient_id, kind, occurred_on, channel, notes, amount, amount_origin, scheduled_for, created_by, recorded_at, categoria, contato, resposta, resultado, situacao, assunto, payload, event_links(milestone_id, task_id)";
 
 function eventoRow(e: Rec): EventoRow {
   return {
-    id: e.id, patientId: e.patient_id, kind: e.kind, occurredOn: e.occurred_on, channel: e.channel, notes: e.notes,
+    id: e.id, patientId: e.patient_id ?? null, kind: e.kind, occurredOn: e.occurred_on, channel: e.channel, notes: e.notes,
     amount: e.amount === null ? null : Number(e.amount), amountOrigin: e.amount_origin, scheduledFor: e.scheduled_for, createdBy: e.created_by,
+    categoria: e.categoria ?? null, contato: e.contato ?? null, resposta: e.resposta ?? null, resultado: e.resultado ?? null,
+    situacao: e.situacao ?? null, assunto: e.assunto ?? null, payload: e.payload ?? {},
     alvos: (e.event_links ?? []).map((l: Rec) => (l.milestone_id ? { marcoId: l.milestone_id } : { tarefaId: l.task_id })),
   };
 }
@@ -193,6 +195,11 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
       return { agendaPrevista: n(data.agenda_prevista), agendaRealizada: n(data.agenda_realizada), caixaPrevisto: n(data.caixa_previsto), caixaRecebido: n(data.caixa_recebido), caixaSituacao: data.caixa_situacao };
     },
+    async estadoDoDia(dia) {
+      const { data, error } = await db.from("daily_manual_figures").select("prioridades, secoes").eq("organization_id", org).eq("day", dia).maybeSingle();
+      falhou(error, "estadoDoDia");
+      return { prioridades: Array.isArray(data?.prioridades) ? data!.prioridades : [], secoes: (data?.secoes as Rec) ?? {} };
+    },
 
     async criarLote(l) {
       const { data, error } = await db.from("import_batches")
@@ -224,15 +231,17 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
     async atualizarDataAtendimento(id, data) {
       falhou((await db.from("appointments").update({ data_realizada: data }).eq("organization_id", org).eq("id", id)).error, "atualizarDataAtendimento");
     },
-    async confirmarAtendimento(id, data, ator) {
-      falhou((await db.rpc("confirmar_atendimento_realizado", { p_appointment_id: id, p_data: data, p_actor: ator })).error, "confirmarAtendimento");
+    async confirmarAtendimento(id, data, ator, marcos) {
+      // Com escolha de marcos usa a assinatura da 0013; sem escolha, a original (os três).
+      const args = marcos ? { p_appointment_id: id, p_data: data, p_actor: ator, p_marcos: marcos } : { p_appointment_id: id, p_data: data, p_actor: ator };
+      falhou((await db.rpc("confirmar_atendimento_realizado", args)).error, "confirmarAtendimento");
     },
     async anularAtendimento(id, motivo, ator) {
       falhou((await db.rpc("anular_atendimento", { p_appointment_id: id, p_motivo: motivo, p_actor: ator })).error, "anularAtendimento");
     },
     async criarTarefa(t) {
       const { data, error } = await db.from("tasks").insert({
-        organization_id: org, patient_id: t.patientId, title: t.title, source: "fila_entrada", kind: t.kind, chave_origem: t.chaveOrigem,
+        organization_id: org, patient_id: t.patientId, assunto: t.assunto ?? null, title: t.title, source: "fila_entrada", kind: t.kind, chave_origem: t.chaveOrigem,
         origem: t.origem, origem_data: t.origemData, a_conferir: t.aConferir, payload: t.payload, financial_impact: t.financialImpact,
         next_action_due: t.due, due_at: meioDia(t.due), updated_at: new Date().toISOString(),
         assigned_to: t.assignedTo ?? null, next_action: t.nextAction ?? null,
@@ -247,6 +256,8 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       const { error } = await db.from("interaction_events").upsert({
         id: e.id, organization_id: org, patient_id: e.patientId, kind: e.kind, occurred_on: e.occurredOn, channel: e.channel, notes: e.notes,
         amount: e.amount, amount_origin: e.amountOrigin, scheduled_for: e.scheduledFor, created_by: e.createdBy,
+        categoria: e.categoria ?? null, contato: e.contato ?? null, resposta: e.resposta ?? null, resultado: e.resultado ?? null,
+        situacao: e.situacao ?? null, assunto: e.assunto ?? null, payload: e.payload ?? {},
       }, { onConflict: "id", ignoreDuplicates: true });
       falhou(error, "registrarEvento");
       if (e.alvos.length) {
@@ -281,6 +292,12 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
         organization_id: org, day: dia, agenda_prevista: n.agendaPrevista, agenda_realizada: n.agendaRealizada, caixa_previsto: n.caixaPrevisto,
         caixa_recebido: n.caixaRecebido, caixa_situacao: n.caixaSituacao, updated_by: ator, updated_at: new Date().toISOString(),
       }, { onConflict: "organization_id,day" })).error, "salvarNumeros");
+    },
+    async salvarEstadoDoDia(dia, e, ator) {
+      const linha: Rec = { organization_id: org, day: dia, updated_by: ator, updated_at: new Date().toISOString() };
+      if (e.prioridades !== undefined) linha.prioridades = e.prioridades;
+      if (e.secoes !== undefined) linha.secoes = e.secoes;
+      falhou((await db.from("daily_manual_figures").upsert(linha, { onConflict: "organization_id,day" })).error, "salvarEstadoDoDia");
     },
     async auditar(a) {
       await db.from("audit_logs").insert({

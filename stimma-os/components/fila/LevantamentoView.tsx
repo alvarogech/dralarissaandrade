@@ -33,13 +33,15 @@ export interface LinhaEditor {
   a_conferir: string;
   evidencia: string;
   chave_origem: string;
+  /** Marcos pertinentes ao atendimento realizado (orientação clínica). */
+  marcos: string[];
 }
 
 let seq = 0;
 export function linhaVazia(extra: Partial<LinhaEditor> = {}): LinhaEditor {
   return {
     uid: `l${++seq}`, tipo: "outro", nome: "", sd_codigo: "", telefone: "", acao: "", contexto: "", prazo: "", valor: "", vencimento: "",
-    data_atendimento: "", status_no_sd: "", data_ocorrencia: "", ocorrencia: "", para: "", motivo: "", a_conferir: "", evidencia: "", chave_origem: "", ...extra,
+    data_atendimento: "", status_no_sd: "", data_ocorrencia: "", ocorrencia: "", para: "", motivo: "", a_conferir: "", evidencia: "", chave_origem: "", marcos: ["d30", "d90", "m6"], ...extra,
   };
 }
 
@@ -55,6 +57,7 @@ export function linhaDeItem(o: Record<string, unknown>): LinhaEditor {
     data_atendimento: s(o.data_atendimento), status_no_sd: s(o.status_no_sd), data_ocorrencia: s(o.data_ocorrencia), ocorrencia: s(o.ocorrencia),
     para: s(o.para), motivo: s(o.motivo), a_conferir: Array.isArray(o.a_conferir) ? (o.a_conferir as string[]).join(", ") : "",
     evidencia: s(o.evidencia ?? o.nota_ia), chave_origem: s(o.chave_origem),
+    ...(Array.isArray(o.marcos) ? { marcos: (o.marcos as unknown[]).map(String) } : {}),
   });
 }
 
@@ -70,6 +73,7 @@ function itemDaLinha(l: LinhaEditor): Record<string, unknown> {
   const v = numeroBr(l.valor);
   if (v !== null) o.valor = Number.isNaN(v) ? l.valor : v;
   o.a_conferir = l.a_conferir.split(",").map((x) => x.trim()).filter(Boolean);
+  if (l.tipo === "atendimento_realizado") o.marcos = l.marcos;
   if (l.evidencia.trim()) o.nota_ia = `trecho de origem: ${l.evidencia.trim()}`;
   return o;
 }
@@ -223,6 +227,16 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
                     <>
                       <Campo label="Data exata do atendimento"><input type="date" value={l.data_atendimento} onChange={(e) => editar(l.uid, "data_atendimento", e.target.value)} className={classeInput} /></Campo>
                       <Campo label="Status no Simples Dental"><input value={l.status_no_sd} onChange={(e) => editar(l.uid, "status_no_sd", e.target.value)} className={classeInput} placeholder="Finalizado" /></Campo>
+                      <fieldset className="text-xs text-text-secondary sm:col-span-3">
+                        <legend>Marcos pertinentes (conforme orientação da Dra. Larissa)</legend>
+                        <div className="mt-1 flex flex-wrap gap-3 text-sm">
+                          {([["d30", "30 dias"], ["d90", "90 dias"], ["m6", "6 meses"]] as const).map(([k, rot]) => (
+                            <label key={k} className="flex items-center gap-1.5">
+                              <input type="checkbox" checked={l.marcos.includes(k)} onChange={() => { setLinhas((ls) => ls.map((x) => (x.uid === l.uid ? { ...x, marcos: x.marcos.includes(k) ? x.marcos.filter((m) => m !== k) : [...x.marcos, k] } : x))); setPrevia(null); }} /> {rot}
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
                     </>
                   )}
                   {l.tipo === "recuperacao_falta" && (

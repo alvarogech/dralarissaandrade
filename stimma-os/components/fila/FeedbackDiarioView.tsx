@@ -6,21 +6,28 @@ import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { CartaoPaciente, ItemFila } from "@/lib/fila/agrupamento";
-import type { Fechamento } from "@/lib/fila/fechamento";
+import { BLOCOS, type Fechamento } from "@/lib/fila/fechamento";
 import type { FilaCarregada } from "@/lib/fila/servico";
-import { Campo, chamarApi, dataBr, numeroBr } from "./comum";
+import type { Categoria, EstadoDoDia, NumerosDoDia } from "@/lib/fila/store";
+import { Campo, chamarApi, classeInput, dataBr, numeroBr } from "./comum";
+import { ProvedorFila } from "./contexto";
 import { Cartao } from "./FilaView";
+import { FormRegistro, type TipoRegistro } from "./FormRegistro";
 
 /**
- * Tela da concierge no mesmo padrão do feedback-concierge.html: cabeçalho, "Acompanhamento de
- * hoje" + seções numeradas à esquerda e, à direita, o resumo do dia e a prévia da mensagem —
- * que se atualiza a cada registro, a partir dos dados reais (nada é digitado duas vezes).
+ * Tela da concierge (padrão do feedback-concierge.html): o acompanhamento de hoje no topo, os
+ * registros do dia por área em seções recolhíveis e, ao lado, o resumo e a prévia da mensagem —
+ * montada dos registros persistidos e atualizada depois de cada gravação confirmada pelo servidor.
  */
 interface Props {
   dados: FilaCarregada;
   fechamento: { fechamento: Fechamento; texto: string };
+  estado: EstadoDoDia;
   gestao: boolean;
   usuario: string;
+  usuarioId: string;
+  perfis: { id: string; nome: string }[];
+  pacientes: { id: string; nome: string }[];
 }
 
 function agruparPorPaciente(itens: ItemFila[]): CartaoPaciente[] {
@@ -33,7 +40,7 @@ function agruparPorPaciente(itens: ItemFila[]): CartaoPaciente[] {
   return [...mapa.values()];
 }
 
-function Secao({ n, titulo, resumo, abertaInicial = false, children }: { n: string; titulo: string; resumo?: string; abertaInicial?: boolean; children: React.ReactNode }) {
+function Secao({ n, titulo, resumo, tom, abertaInicial = false, children }: { n: string; titulo: string; resumo?: string; tom?: "ok" | "pendente"; abertaInicial?: boolean; children: React.ReactNode }) {
   const [aberta, setAberta] = useState(abertaInicial);
   return (
     <section className="fb-card mb-3.5 overflow-hidden">
@@ -41,7 +48,7 @@ function Secao({ n, titulo, resumo, abertaInicial = false, children }: { n: stri
         <span className="fb-num">{n}</span>
         <span className="min-w-0 flex-1">
           <span className="block font-serif text-[19px] leading-tight text-text-primary">{titulo}</span>
-          {resumo && <span className="mt-0.5 block text-xs text-text-muted">{resumo}</span>}
+          {resumo && <span className={clsx("mt-0.5 block text-xs", tom === "ok" ? "text-opportunity" : "text-text-muted")}>{resumo}</span>}
         </span>
         <span className="text-text-muted">{aberta ? "▴" : "▾"}</span>
       </button>
@@ -50,18 +57,16 @@ function Secao({ n, titulo, resumo, abertaInicial = false, children }: { n: stri
   );
 }
 
-function Grupo({ titulo, nota, cartoes, gestao, grupo, secao, aberto, setAberto }: {
-  titulo: string; nota?: string; cartoes: CartaoPaciente[]; gestao: boolean; grupo: string;
+function Grupo({ titulo, nota, cartoes, gestao, grupo, secao, aberto, setAberto, vazio }: {
+  titulo: string; nota?: string; cartoes: CartaoPaciente[]; gestao: boolean; grupo: string; vazio?: React.ReactNode;
   secao: "atrasadas" | "hoje" | "aguardando" | "proximas" | "concluidas"; aberto: string | null; setAberto: (k: string | null) => void;
 }) {
   const total = cartoes.reduce((s, c) => s + c.itens.length, 0);
   return (
     <div className="mt-4">
-      <p className="text-sm text-text-primary">
-        <strong>{titulo}</strong> · {total} {nota && <span className="text-text-muted">{nota}</span>}
-      </p>
+      <p className="text-sm text-text-primary"><strong>{titulo}</strong> · {total} {nota && <span className="text-text-muted">{nota}</span>}</p>
       {cartoes.length === 0 ? (
-        <p className="mt-1 text-sm text-text-muted">Nada aqui.</p>
+        <div className="mt-1 text-sm text-text-muted">{vazio ?? "Nada aqui."}</div>
       ) : (
         <ul className="mt-2 flex flex-col gap-2.5">
           {cartoes.map((c) => {
@@ -74,84 +79,87 @@ function Grupo({ titulo, nota, cartoes, gestao, grupo, secao, aberto, setAberto 
   );
 }
 
+/** Tipo de registro sugerido ao adicionar a partir de uma seção da área. */
+const TIPO_DO_BLOCO: Record<(typeof BLOCOS)[number]["id"], TipoRegistro> = {
+  agenda: "falta", oportunidade: "oportunidade", recorrencia: "recorrencia", continuidade: "continuidade", pos: "pos_atendimento", pendencia: "pendencia",
+};
+
 const txt = (v: number | null | undefined) => (v === null || v === undefined ? "" : String(v).replace(".", ","));
 
-export function FeedbackDiarioView({ dados, fechamento, gestao, usuario }: Props) {
+export function FeedbackDiarioView({ dados, fechamento, estado, gestao, usuario, usuarioId, perfis, pacientes }: Props) {
   const router = useRouter();
   const { fila, hoje, itens } = dados;
   const f = fechamento.fechamento;
   const [aberto, setAberto] = useState<string | null>(null);
+  const [novo, setNovo] = useState<{ tipo?: TipoRegistro; chave: number } | null>(null);
   const [filtroMarco, setFiltroMarco] = useState<"todos" | "d30" | "d90" | "m6">("todos");
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [salvando, setSalvando] = useState<string | null>(null);
   const n0 = f.numeros;
-  // Caixa: módulo financeiro suspenso — não aparece, mas o valor já gravado é reenviado intacto
-  // ao salvar a agenda (nunca apagado).
-  const [numeros, setNumeros] = useState({
-    agendaPrevista: txt(n0?.agendaPrevista), agendaRealizada: txt(n0?.agendaRealizada),
-    caixaPrevisto: txt(n0?.caixaPrevisto), caixaRecebido: txt(n0?.caixaRecebido), caixaSituacao: n0?.caixaSituacao ?? "",
-  });
-  const [msgNumeros, setMsgNumeros] = useState<{ ok: boolean; texto: string } | null>(null);
-  const [salvandoNumeros, setSalvandoNumeros] = useState(false);
-  const [copia, setCopia] = useState<{ ok: boolean; texto: string } | null>(null);
-  const [atualizando, setAtualizando] = useState(false);
+  const [agenda, setAgenda] = useState({ prevista: txt(n0?.agendaPrevista), realizada: txt(n0?.agendaRealizada) });
+  const [escolhidas, setEscolhidas] = useState<{ ref: string | null; texto: string }[]>(estado.prioridades);
+  const [manual, setManual] = useState("");
 
   const nItens = (cs: CartaoPaciente[]) => cs.reduce((s, c) => s + c.itens.length, 0);
   const abertos = itens.filter((i) => i.status !== "concluida");
   const comparecimentosFuturos = agruparPorPaciente(abertos.filter((i) => i.subtipo === "comparecimento" && i.status === "aberta" && i.due > hoje));
   const marcos = abertos.filter((i) => i.tipo === "marco" && (filtroMarco === "todos" || i.subtipo === filtroMarco));
-  const aConferir = abertos.filter((i) => i.tipo === "conferir_atendimento");
-  // Em "Próximos dias" ficam só as tarefas comuns: marcos e comparecimentos têm grupo próprio.
-  const proximasComuns = fila.proximas
-    .map((c) => ({ ...c, itens: c.itens.filter((i) => i.tipo !== "marco" && i.subtipo !== "comparecimento") }))
-    .filter((c) => c.itens.length > 0);
-  const proximos7 = abertos.filter((i) => i.status === "aberta" && i.due > hoje && i.due <= addDias(hoje, 7)).length;
+  const proximasComuns = fila.proximas.map((c) => ({ ...c, itens: c.itens.filter((i) => i.tipo !== "marco" && i.subtipo !== "comparecimento") })).filter((c) => c.itens.length > 0);
+  const filaVazia = !nItens(fila.atrasadas) && !nItens(fila.hoje) && !nItens(fila.aguardando) && !nItens(proximasComuns);
 
-  async function salvarNumeros() {
-    setMsgNumeros(null);
-    const n = { agendaPrevista: numeroBr(numeros.agendaPrevista), agendaRealizada: numeroBr(numeros.agendaRealizada), caixaPrevisto: numeroBr(numeros.caixaPrevisto), caixaRecebido: numeroBr(numeros.caixaRecebido), caixaSituacao: numeros.caixaSituacao };
-    if (Object.values(n).some((v) => typeof v === "number" && Number.isNaN(v))) return setMsgNumeros({ ok: false, texto: "Algum número está em formato inválido." });
-    setSalvandoNumeros(true);
-    const r = await chamarApi("/api/fila/fechamento", "POST", { dia: hoje, numeros: n });
-    setSalvandoNumeros(false);
-    if (!r.ok) return setMsgNumeros({ ok: false, texto: r.erro });
-    setMsgNumeros({ ok: true, texto: "Salvo." });
+  function abrirNovo(tipo?: TipoRegistro) {
+    setNovo({ tipo, chave: Date.now() });
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function salvarDia(corpo: Partial<EstadoDoDia>, rotulo: string) {
+    setMsg(null);
+    setSalvando(rotulo);
+    const r = await chamarApi("/api/fila/dia", "POST", { dia: hoje, ...corpo });
+    setSalvando(null);
+    if (!r.ok) return setMsg({ ok: false, texto: r.erro });
+    setMsg({ ok: true, texto: `${rotulo}: salvo.` });
     router.refresh();
   }
 
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(fechamento.texto);
-      setCopia({ ok: true, texto: "Copiado. Cole no WhatsApp." });
-    } catch {
-      setCopia({ ok: false, texto: "Não consegui copiar. Selecione o texto e copie." });
+  async function salvarAgenda() {
+    const prevista = numeroBr(agenda.prevista);
+    const realizada = numeroBr(agenda.realizada);
+    if ([prevista, realizada].some((v) => typeof v === "number" && Number.isNaN(v))) return setMsg({ ok: false, texto: "Número da agenda inválido." });
+    setSalvando("Agenda");
+    // Caixa: módulo financeiro suspenso — valor já gravado é reenviado intacto, nunca apagado.
+    const numeros: NumerosDoDia = { agendaPrevista: prevista, agendaRealizada: realizada, caixaPrevisto: n0?.caixaPrevisto ?? null, caixaRecebido: n0?.caixaRecebido ?? null, caixaSituacao: n0?.caixaSituacao ?? null };
+    const r = await chamarApi("/api/fila/fechamento", "POST", { dia: hoje, numeros });
+    setSalvando(null);
+    if (!r.ok) return setMsg({ ok: false, texto: r.erro });
+    setMsg({ ok: true, texto: "Agenda: salvo." });
+    router.refresh();
+  }
+
+  function marcarSemOcorrencias(cats: readonly Categoria[], marcar: boolean) {
+    const secoes = { ...estado.secoes };
+    for (const c of cats) {
+      if (marcar) secoes[c] = "sem_ocorrencias";
+      else delete secoes[c];
     }
+    void salvarDia({ secoes }, "Seção");
   }
 
-  function atualizar() {
-    setAtualizando(true);
-    router.refresh();
-    setTimeout(() => setAtualizando(false), 800);
+  function alternarPrioridade(p: { ref: string | null; texto: string }) {
+    const existe = escolhidas.some((x) => x.texto === p.texto);
+    if (existe) setEscolhidas(escolhidas.filter((x) => x.texto !== p.texto));
+    else if (escolhidas.length < 5) setEscolhidas([...escolhidas, p]);
   }
 
-  const campoNumero = (k: keyof typeof numeros, label: string, modo: "numeric" | "decimal" | "text" = "numeric") => (
-    <Campo label={label}>
-      <Input inputMode={modo === "text" ? undefined : modo} value={numeros[k]} onChange={(e) => setNumeros({ ...numeros, [k]: e.target.value })} />
-    </Campo>
-  );
-  const botaoSalvar = (
-    <div className="mt-3 flex items-center gap-3">
-      <Button type="button" onClick={salvarNumeros} loading={salvandoNumeros} loadingText="Salvando…">Salvar</Button>
-      {msgNumeros && <span className={msgNumeros.ok ? "text-sm text-opportunity" : "text-sm text-critical"}>{msgNumeros.texto}</span>}
-    </div>
-  );
+  const dif = numeroBr(agenda.prevista) !== null && numeroBr(agenda.realizada) !== null ? (numeroBr(agenda.prevista)! - numeroBr(agenda.realizada)!) : null;
+  const diaUtil = `${dataBr(f.proximoDia)}`;
 
   return (
-    <div>
+    <ProvedorFila valor={{ hoje, proximoDiaUtil: f.proximoDia, usuarioId, perfis, pacientes, itens }}>
       <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
         <div>
           <p className="fb-eyebrow">Dra. Larissa Andrade · Fechamento do dia</p>
-          <h1 className="font-serif text-[26px] leading-tight text-text-primary">
-            Feedback diário <span className="px-1 text-accent">|</span> {usuario}
-          </h1>
+          <h1 className="font-serif text-[26px] leading-tight text-text-primary">Feedback diário <span className="px-1 text-accent">|</span> {usuario}</h1>
         </div>
         <div className="flex flex-wrap items-end gap-3 text-sm">
           <div>
@@ -162,21 +170,38 @@ export function FeedbackDiarioView({ dados, fechamento, gestao, usuario }: Props
         </div>
       </header>
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <Button type="button" onClick={() => abrirNovo()}>+ Adicionar registro do dia</Button>
+        <span className="text-xs text-text-muted">Para o que surgiu no expediente sem tarefa prévia.</span>
+        {msg && <span className={clsx("text-sm", msg.ok ? "text-opportunity" : "text-critical")}>{msg.texto}</span>}
+      </div>
+
+      {novo && (
+        <section className="fb-card mb-4 p-4">
+          <p className="mb-3 font-serif text-[19px] text-text-primary">Novo registro do dia</p>
+          <FormRegistro key={novo.chave} alvos={[]} tipoInicial={novo.tipo} onSalvo={() => setNovo(null)} onCancelar={() => setNovo(null)} />
+        </section>
+      )}
+
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_370px]">
         <div className="min-w-0">
           <Secao n="✓" titulo="Acompanhamento de hoje" abertaInicial
-            resumo={`${nItens(fila.atrasadas) + nItens(fila.hoje)} para hoje · ${nItens(fila.aguardando)} aguardando · ${nItens(proximasComuns)} futuras`}>
-            <p className="mt-2 text-sm text-text-secondary">Tarefas abertas da concierge, organizadas pelo que pedem hoje. Abra “Registrar” no cartão da paciente para lançar contato, resposta, agendamento, recebimento ou resultado.</p>
+            resumo={`${nItens(fila.atrasadas) + nItens(fila.hoje)} para hoje · ${nItens(fila.aguardando)} aguardando · ${nItens(proximasComuns)} próximas · ${nItens(fila.concluidas)} concluídas hoje`}>
+            {filaVazia && (
+              <div className="mt-3 rounded-[10px] border border-dashed border-border p-4 text-sm text-text-secondary">
+                Nenhuma tarefa aberta na fila. Se algo aconteceu hoje (falta, retorno de paciente, alerta), registre:{" "}
+                <button type="button" className="text-accent underline" onClick={() => abrirNovo()}>adicionar registro do dia</button>.
+              </div>
+            )}
             <Grupo titulo="Atrasadas" nota="prazo vencido" cartoes={fila.atrasadas} secao="atrasadas" grupo="atr" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            <Grupo titulo="Ações de hoje" nota="tarefas com prazo hoje" cartoes={fila.hoje} secao="hoje" grupo="hoj" gestao={gestao} aberto={aberto} setAberto={setAberto} />
+            <Grupo titulo="Ações de hoje" nota="prazo hoje" cartoes={fila.hoje} secao="hoje" grupo="hoj" gestao={gestao} aberto={aberto} setAberto={setAberto} />
             <Grupo titulo="Aguardando resposta" nota="contato feito, esperando retorno" cartoes={fila.aguardando} secao="aguardando" grupo="agu" gestao={gestao} aberto={aberto} setAberto={setAberto} />
             <Grupo titulo="Agendamentos a acompanhar" nota="confirmar comparecimento na data" cartoes={comparecimentosFuturos} secao="proximas" grupo="cmp" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-            <Grupo titulo="Próximos dias" nota="vira ação quando a data chegar" cartoes={proximasComuns} secao="proximas" grupo="prx" gestao={gestao} aberto={aberto} setAberto={setAberto} />
+            <Grupo titulo="Próximas" nota="viram ação quando a data chegar" cartoes={proximasComuns} secao="proximas" grupo="prx" gestao={gestao} aberto={aberto} setAberto={setAberto} />
             <Grupo titulo="Concluídas hoje" cartoes={fila.concluidas} secao="concluidas" grupo="con" gestao={gestao} aberto={aberto} setAberto={setAberto} />
-
             <div className="mt-5 border-t border-border pt-4">
               <p className="text-sm text-text-primary"><strong>Marcos de acompanhamento — 30 dias · 90 dias · 6 meses</strong></p>
-              <p className="text-xs text-text-muted">Criados automaticamente quando um atendimento é confirmado como realizado.{dados.maisTarde ? ` ${dados.maisTarde} item(ns) previstos para depois de 30 dias.` : ""}</p>
+              <p className="text-xs text-text-muted">Criados ao confirmar um atendimento realizado, só os marcos escolhidos.{dados.maisTarde ? ` ${dados.maisTarde} item(ns) previstos para depois de 30 dias.` : ""}</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {([["todos", "Todos"], ["d30", "30 dias"], ["d90", "90 dias"], ["m6", "6 meses"]] as const).map(([k, l]) => (
                   <button key={k} type="button" className="fb-chip" data-ativo={filtroMarco === k} onClick={() => setFiltroMarco(k)}>{l}</button>
@@ -186,33 +211,79 @@ export function FeedbackDiarioView({ dados, fechamento, gestao, usuario }: Props
             </div>
           </Secao>
 
-          <Secao n="1" titulo="Agenda e comparecimento" resumo={`${aConferir.length} a conferir`}>
-            <p className="mt-2 text-sm text-text-secondary">
-              Totais da agenda da clínica, do Simples Dental (opcionais — não são calculados a partir da fila).
-              {aConferir.length ? ` ${aConferir.length} atendimento(s) aguardam conferência no Simples Dental (em “Ações de hoje”).` : ""}
-            </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {campoNumero("agendaPrevista", "Agenda prevista")}
-              {campoNumero("agendaRealizada", "Agenda realizada")}
-            </div>
-            {botaoSalvar}
-          </Secao>
+          {BLOCOS.map((b, i) => {
+            const bloco = f.blocos.find((x) => x.id === b.id)!;
+            const marcada = b.categorias.some((c) => estado.secoes[c] === "sem_ocorrencias");
+            const n = bloco.linhas.length;
+            const resumo = n ? `${n} registro(s) hoje` : marcada ? "Sem ocorrências" : "Ainda não revisada";
+            return (
+              <Secao key={b.id} n={String(i + 1)} titulo={b.titulo} resumo={resumo} tom={n || marcada ? "ok" : "pendente"}>
+                {b.id === "agenda" && (
+                  <div className="mt-2 rounded-[10px] border border-border p-3">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <Campo label="Agenda prevista"><Input inputMode="numeric" value={agenda.prevista} onChange={(e) => setAgenda({ ...agenda, prevista: e.target.value })} /></Campo>
+                      <Campo label="Agenda realizada"><Input inputMode="numeric" value={agenda.realizada} onChange={(e) => setAgenda({ ...agenda, realizada: e.target.value })} /></Campo>
+                      <div className="flex items-end"><Button type="button" onClick={salvarAgenda} loading={salvando === "Agenda"} loadingText="Salvando…">Salvar agenda</Button></div>
+                    </div>
+                    {dif !== null && dif !== 0 && <p className="mt-2 text-xs text-text-muted">Diferença de {dif} para conferir — não é necessariamente falta.</p>}
+                    {f.aConferir > 0 && <p className="mt-1 text-xs text-text-secondary">{f.aConferir} atendimento(s) aguardando conferência no Simples Dental (em “Ações de hoje”).</p>}
+                  </div>
+                )}
+                {n > 0 ? (
+                  <ul className="mt-3 flex flex-col gap-1.5 text-sm">
+                    {bloco.linhas.map((l, j) => (
+                      <li key={j} className="text-text-secondary">
+                        {l.atencao && <span className="mr-1 text-critical">⚠</span>}
+                        {l.resultado && <span className="mr-1 rounded bg-accent-soft px-1.5 text-[11px] text-accent">resultado</span>}
+                        <span className="text-text-primary">{l.paciente}</span> · {l.item}: {l.texto}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-text-muted">{marcada ? "Marcada como sem ocorrências." : "Nenhum registro nesta área hoje."}</p>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button type="button" className="fb-chip" onClick={() => abrirNovo(TIPO_DO_BLOCO[b.id])}>+ Adicionar registro</button>
+                  {n === 0 && (
+                    <label className="flex items-center gap-2 text-sm text-text-secondary">
+                      <input type="checkbox" checked={marcada} disabled={salvando === "Seção"} onChange={(e) => marcarSemOcorrencias(b.categorias, e.target.checked)} /> Sem ocorrências
+                    </label>
+                  )}
+                </div>
+              </Secao>
+            );
+          })}
 
-          <Secao n="2" titulo="Pendências e alertas" resumo={`${f.atrasados} atrasada(s)`}>
-            <ul className="mt-2 list-disc pl-5 text-sm text-text-secondary">
-              <li>Para hoje ainda sem ação: {f.pendentesHoje}{f.atrasados ? ` (${f.atrasados} atrasadas)` : ""}</li>
-              <li>Aguardando resposta: {f.aguardando.length}</li>
-              <li>Atendimentos a conferir no Simples Dental: {f.aConferir}</li>
-            </ul>
-          </Secao>
-
-          <Secao n="3" titulo={`Prioridades para ${dataBr(f.proximoDia)}`} resumo={`${f.prioridades.length} item(ns)`}>
-            <ul className="mt-2 flex flex-col gap-1 text-sm text-text-secondary">
-              {f.prioridades.length === 0 && <li className="text-text-muted">Nada vencendo.</li>}
-              {f.prioridades.map((p) => (
-                <li key={p.ref}><span className="text-text-primary">{p.paciente}</span> — {p.item}{p.due < f.proximoDia ? ` (desde ${dataBr(p.due)})` : ""}</li>
+          <Secao n={String(BLOCOS.length + 1)} titulo={`Prioridades para o próximo dia útil (${diaUtil})`}
+            resumo={estado.prioridades.length ? `${estado.prioridades.length} escolhida(s)` : "Nenhuma escolhida — o feedback usa as sugeridas"} tom={estado.prioridades.length ? "ok" : "pendente"}>
+            <p className="mt-2 text-xs text-text-muted">Escolha até 5. Sugestões: vencidas, prazos até o próximo dia útil, pontos de atenção e respostas esperadas.</p>
+            <ul className="mt-2 flex flex-col gap-1.5 text-sm">
+              {f.sugestoes.map((s) => {
+                const marcada = escolhidas.some((x) => x.texto === s.texto);
+                return (
+                  <li key={s.ref}>
+                    <label className="flex items-start gap-2">
+                      <input type="checkbox" className="mt-1" checked={marcada} disabled={!marcada && escolhidas.length >= 5} onChange={() => alternarPrioridade({ ref: s.ref, texto: s.texto })} />
+                      <span>{s.texto} <span className="text-text-muted">· {s.motivo}</span></span>
+                    </label>
+                  </li>
+                );
+              })}
+              {!f.sugestoes.length && <li className="text-text-muted">Nenhuma sugestão automática.</li>}
+              {escolhidas.filter((x) => !x.ref).map((x) => (
+                <li key={x.texto} className="flex items-center gap-2">
+                  <input type="checkbox" checked onChange={() => alternarPrioridade(x)} /> <span>{x.texto} <span className="text-text-muted">· manual</span></span>
+                </li>
               ))}
             </ul>
+            <div className="mt-3 flex flex-wrap items-end gap-2">
+              <Campo label="Prioridade manual"><input value={manual} onChange={(e) => setManual(e.target.value)} className={classeInput} placeholder="ex.: confirmar agenda de segunda" /></Campo>
+              <button type="button" className="fb-chip" disabled={!manual.trim() || escolhidas.length >= 5} onClick={() => { alternarPrioridade({ ref: null, texto: manual.trim() }); setManual(""); }}>Incluir</button>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <Button type="button" loading={salvando === "Prioridades"} loadingText="Salvando…" onClick={() => salvarDia({ prioridades: escolhidas }, "Prioridades")}>Salvar prioridades</Button>
+              <span className="text-xs text-text-muted">{escolhidas.length}/5</span>
+            </div>
           </Secao>
         </div>
 
@@ -223,50 +294,50 @@ export function FeedbackDiarioView({ dados, fechamento, gestao, usuario }: Props
               <span className="text-[11.5px] text-text-muted">{dataBr(hoje)}</span>
             </div>
             <div className="grid grid-cols-4 gap-2 border-b border-border pb-3">
-              {[["Ações", f.acoes.length], ["Contatos", f.contagens.contatos], ["Agendam.", f.contagens.agendamentos], ["Respostas", f.contagens.respostas]].map(([k, v]) => (
-                <div key={k as string}>
-                  <p className="text-[9px] uppercase tracking-wide text-text-muted">{k}</p>
-                  <p className="font-serif text-[26px] leading-none text-text-primary">{v as number}</p>
-                </div>
+              {([["Registros", f.contadores.registros], ["Contatos", f.contadores.tentativasContato], ["Respostas", f.contadores.respostas], ["Resolvidos", f.contadores.resolvidos]] as const).map(([k, v]) => (
+                <div key={k}><p className="text-[9px] uppercase tracking-wide text-text-muted">{k}</p><p className="font-serif text-[26px] leading-none text-text-primary">{v}</p></div>
               ))}
             </div>
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               {([
-                ["Concluídas hoje", String(nItens(fila.concluidas))],
-                ["Aguardando resposta", String(f.aguardando.length)],
+                ["Pacientes contatadas", String(f.contadores.pacientesContatadas)],
+                ["Agendamentos", String(f.contadores.agendamentos)],
+                ["Comparecimentos", String(f.contadores.comparecimentos)],
+                ["Faltas", String(f.contadores.faltas)],
+                ["Aguardando resposta", String(nItens(fila.aguardando))],
                 ["Atrasadas", String(nItens(fila.atrasadas))],
-                ["Para hoje", String(nItens(fila.hoje))],
-                ["A conferir no SD", String(aConferir.length)],
-                ["Próximos 7 dias", String(proximos7)],
               ] as const).map(([k, v]) => (
-                <div key={k} className="flex items-baseline justify-between border-b border-border/60 pb-1">
-                  <dt className="text-text-secondary">{k}</dt>
-                  <dd className="font-medium text-text-primary">{v}</dd>
-                </div>
+                <div key={k} className="flex items-baseline justify-between border-b border-border/60 pb-1"><dt className="text-text-secondary">{k}</dt><dd className="font-medium text-text-primary">{v}</dd></div>
               ))}
             </dl>
+            <p className="mt-2 text-[11px] leading-snug text-text-muted">Contatos = registros com contato realizado; respostas não somam como contato; agendamento não é comparecimento.</p>
           </div>
 
           <div className="fb-card p-4">
             <h2 className="font-serif text-[20px] text-text-primary">Prévia da mensagem</h2>
-            <p className="text-xs text-text-muted">Atualizada a cada registro. É este texto que será copiado.</p>
+            <p className="text-xs text-text-muted">Montada dos registros salvos hoje e atualizada depois de cada gravação confirmada.</p>
             <pre className="mt-3 max-h-[55vh] overflow-auto whitespace-pre-wrap rounded-[10px] border border-border bg-surface-raised p-3 font-sans text-[13px] leading-relaxed text-text-primary">{fechamento.texto}</pre>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Button type="button" onClick={copiar}>Copiar para o WhatsApp</Button>
-              <button type="button" onClick={atualizar} className={clsx("h-10 rounded-[10px] border border-border bg-surface px-3 text-sm text-text-secondary", atualizando && "opacity-60")}>
-                {atualizando ? "Gerando…" : "Gerar feedback"}
-              </button>
-            </div>
-            {copia && <p className={clsx("mt-2 text-sm", copia.ok ? "text-opportunity" : "text-critical")}>{copia.texto}</p>}
+            <CopiarTexto texto={fechamento.texto} />
           </div>
         </aside>
       </div>
-    </div>
+    </ProvedorFila>
   );
 }
 
-function addDias(iso: string, n: number): string {
-  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
-  const dt = new Date(y, m - 1, d + n);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+function CopiarTexto({ texto }: { texto: string }) {
+  const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <Button type="button" onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(texto);
+          setMsg({ ok: true, t: "Copiado. Cole no WhatsApp." });
+        } catch {
+          setMsg({ ok: false, t: "Não consegui copiar. Selecione o texto e copie." });
+        }
+      }}>Copiar para o WhatsApp</Button>
+      {msg && <span className={clsx("text-sm", msg.ok ? "text-opportunity" : "text-critical")}>{msg.t}</span>}
+    </div>
+  );
 }
