@@ -20,6 +20,24 @@ const etapas: [string, () => Promise<unknown>][] = [
   ["resolverRef", () => store.resolverRef("tarefa", "abcdef")],
   ["eventosDoAlvo", () => store.eventosDoAlvo({ tarefaId: "00000000-0000-4000-8000-000000000000" }).then((r) => r.length)],
   ["numerosDoDia", () => store.numerosDoDia("2026-10-22")],
+  // 0014: configuração, nomes de exibição, leituras, feedbacks e lote retomável
+  ["config", () => store.config().then((c) => ({ concierge: !!c.conciergeId, nome: c.conciergeNome, gestor: !!c.gestorId, expediente: c.diasExpediente, fechamento: c.horarioFechamento, semAtualizacao: c.diasSemAtualizacao }))],
+  ["perfisExibicao", () => store.perfis().then((r) => r.map((p) => p.nome))],
+  ["carregarFilaComUsuario", async () => {
+    const c = await store.config();
+    const r = await carregarFila(store, undefined, c.gestorId ?? undefined);
+    const tarefas = r.itens.filter((i) => i.alvo?.tipo === "tarefa");
+    return { itens: r.itens.length, tarefas: tarefas.length, semResponsavel: tarefas.filter((i) => !i.responsavelId).length, naoLidos: r.itens.filter((i) => i.naoLido).length, ocorrencias: tarefas.map((i) => i.ocorrencia ?? "não informada") };
+  }],
+  ["fechamentoDaConcierge", async () => {
+    const c = await store.config();
+    const r = await carregarFechamento(store, undefined, c.conciergeId ?? undefined);
+    return { registros: r.fechamento.contadores.registros, pendentes: r.fechamento.pendentesAbertas.length };
+  }],
+  ["ultimosEventos", () => store.ultimosEventos(["00000000-0000-4000-8000-000000000000"])],
+  ["leituras", () => store.leituras("00000000-0000-4000-8000-000000000000", ["00000000-0000-4000-8000-000000000000"])],
+  ["feedbacks", () => store.feedbacks({ desde: "2026-10-01" }).then((r) => r.length)],
+  ["loteDoHash", () => store.loteDoHash("2fclbfjyabj").then((l) => l && { status: l.status, itens: l.itens.length, aplicados: l.itens.filter((i) => i.aplicado).length })],
 ];
 for (const [nome, f] of etapas) {
   try { console.log("OK  ", nome, JSON.stringify(await f())); } catch (e) { console.log("FALHA", nome, (e as Error).message); }
