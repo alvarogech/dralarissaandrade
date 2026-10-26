@@ -157,7 +157,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
             <span className="text-sm text-text-secondary">
               Seu trabalho: <strong className="text-text-primary">{meus.atrasada}</strong> atrasada(s) · <strong className="text-text-primary">{meus.hoje}</strong> para hoje ·{" "}
               <strong className="text-text-primary">{meus.aguardando_paciente}</strong> aguardando paciente · <strong className="text-text-primary">{meus.aguardando_gestao}</strong> aguardando gestão
-            {f.rotina && <><br />Rotina do dia: <strong className="text-text-primary">{f.rotina.feitos.length + f.rotina.naoSeAplica.length}</strong> marcados{f.rotina.impedimentos.length ? <> · <strong className="text-critical">{f.rotina.impedimentos.length}</strong> com impedimento</> : null} — entram no feedback automaticamente</>}
+            {f.rotina && <><br />Rotina do dia: <strong className="text-text-primary">{f.rotina.feitos.length + f.rotina.naoSeAplica.length}</strong> marcados{f.rotina.impedimentos.length ? <> · <strong className="text-critical">{f.rotina.impedimentos.length}</strong> com impedimento</> : null} · <strong className="text-text-primary">{f.rotina.pendentes.length}</strong> a fazer{f.rotina.quantidades.length ? <> · quantidades em {f.rotina.quantidades.length} item(ns)</> : null} — entram no feedback automaticamente</>}
             </span>
             <span className="text-sm text-accent">Abrir Meu trabalho →</span>
           </a>

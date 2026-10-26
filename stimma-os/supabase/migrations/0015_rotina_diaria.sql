@@ -1,6 +1,6 @@
 -- STIMMA OS — 0015: rotina diária da concierge (checklist por usuário e por dia).
 -- Aditiva: só cria a tabela nova; não altera nem apaga dados existentes.
--- Ver docs/DECISIONS.md (2026-10-26). NÃO APLICADA. Aplicar pelo SQL Editor e rodar a verificação ao final.
+-- Ver docs/DECISIONS.md (2026-10-26). Aplicada em 26/10/2026 pelo SQL Editor (verificação: tabela 1, linhas 0, políticas 1).
 --
 -- Um registro por (organização, usuário, dia, item). O catálogo de itens fica no código
 -- (lib/fila/rotina.ts); aqui só o estado. Dia novo começa sem linhas (todos "a fazer");

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
 import type { FeedbackComRegistros } from "@/lib/fila/entrega";
+import { CHAVES_LINK_ROTINA, ROTULO_LINK_ROTINA } from "@/lib/fila/rotina-itens";
 import { Campo, chamarApi, classeInput, dataBr, horaBr } from "./comum";
 
 /**
@@ -19,7 +20,7 @@ interface Props {
   feedbacks: FeedbackComRegistros[];
   conciergeNome: string;
   situacaoHoje: string;
-  expediente: { diasExpediente: number[] | null; horarioFechamento: string | null; excecoes: string[]; diasSemAtualizacao: number };
+  expediente: { diasExpediente: number[] | null; horarioFechamento: string | null; excecoes: string[]; diasSemAtualizacao: number; linksRotina?: Record<string, string> };
 }
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -80,6 +81,7 @@ export function FeedbacksView({ hoje, dia, feedbacks, conciergeNome, situacaoHoj
       ))}
 
       <Expediente inicial={expediente} />
+      <LinksRotina inicial={expediente.linksRotina ?? {}} />
     </div>
   );
 }
@@ -261,6 +263,45 @@ function Expediente({ inicial }: { inicial: Props["expediente"] }) {
       )}
       <div className="mt-3 flex items-center gap-3">
         <Button type="button" loading={salvando} loadingText="Salvando…" onClick={salvar}>Salvar expediente</Button>
+        {msg && <span role={msg.ok ? "status" : "alert"} className={clsx("text-sm", msg.ok ? "text-opportunity" : "text-critical")}>{msg.t}</span>}
+      </div>
+    </details>
+  );
+}
+
+/**
+ * Links da rotina da concierge (ex.: script aprovado de aniversário). Sem link configurado, o item
+ * da rotina aparece sem botão — nenhum endereço é inventado. Exige a migration 0016.
+ */
+function LinksRotina({ inicial }: { inicial: Record<string, string> }) {
+  const router = useRouter();
+  const [valores, setValores] = useState<Record<string, string>>(() => Object.fromEntries(CHAVES_LINK_ROTINA.map((k) => [k, inicial[k] ?? ""])));
+  const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar() {
+    setMsg(null);
+    setSalvando(true);
+    const r = await chamarApi("/api/fila/config", "POST", { linksRotina: Object.fromEntries(CHAVES_LINK_ROTINA.map((k) => [k, valores[k]?.trim() || null])) });
+    setSalvando(false);
+    if (!r.ok) return setMsg({ ok: false, t: r.erro });
+    setMsg({ ok: true, t: "Links da rotina salvos." });
+    router.refresh();
+  }
+
+  return (
+    <details className="fb-card p-5">
+      <summary className="cursor-pointer font-serif text-[22px] font-medium text-text-primary">Links da rotina</summary>
+      <p className="mt-2 text-xs text-text-muted">Endereços que aparecem como botão no item correspondente da rotina da concierge. Vazio = sem botão.</p>
+      <div className="mt-3 grid gap-3">
+        {CHAVES_LINK_ROTINA.map((k) => (
+          <Campo key={k} label={ROTULO_LINK_ROTINA[k]}>
+            <input type="url" inputMode="url" placeholder="https://…" value={valores[k] ?? ""} onChange={(e) => setValores({ ...valores, [k]: e.target.value })} className={classeInput} />
+          </Campo>
+        ))}
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <Button type="button" loading={salvando} loadingText="Salvando…" onClick={salvar}>Salvar links</Button>
         {msg && <span role={msg.ok ? "status" : "alert"} className={clsx("text-sm", msg.ok ? "text-opportunity" : "text-critical")}>{msg.t}</span>}
       </div>
     </details>

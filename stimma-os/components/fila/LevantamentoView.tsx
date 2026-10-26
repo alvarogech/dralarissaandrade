@@ -37,7 +37,15 @@ export interface LinhaEditor {
   a_conferir: string;
   evidencia: string;
   chave_origem: string;
+  /** Identificadores do Simples Dental, sempre separados (nunca equivalentes entre si). */
+  sd_numero: string;
+  sd_ficha_id: string;
+  /** Demais campos do item original (subtipo, data_aniversario, procedimento…), devolvidos intactos ao publicar. */
+  extras: Record<string, unknown>;
 }
+
+/** Campos que o editor já representa; o resto do item vai em `extras`. */
+const CAMPOS_EDITOR = ["tipo", "paciente", "acao", "contexto", "prazo", "valor", "vencimento", "data_atendimento", "status_no_sd", "data_ocorrencia", "ocorrencia", "para", "motivo", "a_conferir", "evidencia", "nota_ia", "chave_origem"];
 
 /** Rascunho local das propostas (conveniência do navegador: sobrevive a recarregar a página). */
 const CHAVE_RASCUNHO = "stimma-levantamento-rascunho";
@@ -46,7 +54,8 @@ let seq = 0;
 export function linhaVazia(extra: Partial<LinhaEditor> = {}): LinhaEditor {
   return {
     uid: `l${++seq}`, tipo: "outro", nome: "", sd_codigo: "", telefone: "", acao: "", contexto: "", prazo: "", valor: "", vencimento: "",
-    data_atendimento: "", status_no_sd: "", data_ocorrencia: "", ocorrencia: "", para: "", motivo: "", a_conferir: "", evidencia: "", chave_origem: "", ...extra,
+    data_atendimento: "", status_no_sd: "", data_ocorrencia: "", ocorrencia: "", para: "", motivo: "", a_conferir: "", evidencia: "", chave_origem: "",
+    sd_numero: "", sd_ficha_id: "", extras: {}, ...extra,
   };
 }
 
@@ -57,19 +66,22 @@ function s(v: unknown): string {
 export function linhaDeItem(o: Record<string, unknown>): LinhaEditor {
   const p = (o.paciente ?? {}) as Record<string, unknown>;
   return linhaVazia({
-    tipo: s(o.tipo) || "outro", nome: s(p.nome), sd_codigo: s(p.sd_codigo ?? p.sd_numero), telefone: s(p.telefone), acao: s(o.acao), contexto: s(o.contexto),
+    tipo: s(o.tipo) || "outro", nome: s(p.nome), sd_codigo: s(p.sd_codigo), sd_numero: s(p.sd_numero), sd_ficha_id: s(p.sd_ficha_id), telefone: s(p.telefone), acao: s(o.acao), contexto: s(o.contexto),
     prazo: s(o.prazo), valor: o.valor === undefined || o.valor === null ? "" : String(o.valor).replace(".", ","), vencimento: s(o.vencimento),
     data_atendimento: s(o.data_atendimento), status_no_sd: s(o.status_no_sd), data_ocorrencia: s(o.data_ocorrencia), ocorrencia: s(o.ocorrencia),
     para: s(o.para), motivo: s(o.motivo), a_conferir: Array.isArray(o.a_conferir) ? (o.a_conferir as string[]).join(", ") : "",
     evidencia: s(o.evidencia ?? o.nota_ia), chave_origem: s(o.chave_origem),
+    extras: Object.fromEntries(Object.entries(o).filter(([k]) => !CAMPOS_EDITOR.includes(k))),
   });
 }
 
 function itemDaLinha(l: LinhaEditor): Record<string, unknown> {
-  const o: Record<string, unknown> = { tipo: l.tipo, paciente: {} };
+  const o: Record<string, unknown> = { ...(l.extras ?? {}), tipo: l.tipo, paciente: {} };
   const p = o.paciente as Record<string, string>;
   if (l.nome.trim()) p.nome = l.nome.trim();
   if (l.sd_codigo.trim()) p.sd_codigo = l.sd_codigo.trim();
+  if ((l.sd_numero ?? "").trim()) p.sd_numero = l.sd_numero.trim();
+  if ((l.sd_ficha_id ?? "").trim()) p.sd_ficha_id = l.sd_ficha_id.trim();
   if (l.telefone.trim()) p.telefone = l.telefone.trim();
   for (const k of ["acao", "contexto", "prazo", "vencimento", "data_atendimento", "status_no_sd", "data_ocorrencia", "ocorrencia", "para", "motivo", "chave_origem"] as const) {
     if (l[k].trim()) o[k] = l[k].trim();
@@ -98,6 +110,13 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
   const [origem, setOrigem] = useState("Simples Dental (via extensão do navegador)");
   const [previa, setPrevia] = useState<ResultadoPrevia | null>(null);
   const [resolucoes, setResolucoes] = useState<Record<number, Resolucao>>({});
+  /** Cobranças marcadas como exceção (viram tarefa); as demais ficam na rotina de segunda e sexta. */
+  const [excecoesCobranca, setExcecoesCobranca] = useState<number[]>([]);
+  // Mudou a prévia/propostas: decisões anteriores (vínculo, duplicidade, exceção) deixam de valer.
+  const limparDecisoes = () => {
+    setResolucoes({});
+    setExcecoesCobranca([]);
+  };
   const [resultado, setResultado] = useState<ResultadoEntrada | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -113,7 +132,8 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
       if (r && !linhas.length) {
         const d = JSON.parse(r) as { linhas: LinhaEditor[]; origem: string };
         if (d.linhas?.length) {
-          setLinhas(() => d.linhas);
+          // Rascunhos antigos não têm os campos novos: completa com os padrões.
+          setLinhas(() => d.linhas.map((x) => ({ ...linhaVazia(), ...x })));
           if (d.origem) setOrigem(d.origem);
           setAviso(`Propostas recuperadas do rascunho deste navegador (${d.linhas.length}). Confira antes de publicar.`);
         }
@@ -142,7 +162,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
   function editar(uid: string, campo: keyof LinhaEditor, valor: string) {
     setLinhas((ls) => ls.map((l) => (l.uid === uid ? { ...l, [campo]: valor } : l)));
     setPrevia(null);
-    setResolucoes({});
+    limparDecisoes();
   }
 
   async function converter() {
@@ -168,7 +188,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
     setCarregando(null);
     if (!r.ok) return setErro(r.erro);
     setPrevia(r.data);
-    setResolucoes({});
+    setResolucoes({}); // exceções de cobrança continuam (mesmos itens)
     await consultarSalvos(loteAtual());
   }
 
@@ -187,7 +207,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
     setProgresso({ feitos: 0, total: indices.length });
     for (let k = 0; k < indices.length; k += TAMANHO_TRECHO) {
       const trecho = indices.slice(k, k + TAMANHO_TRECHO);
-      const r = await chamarApi<ResultadoEntrada>("/api/fila/entrada/confirmar", "POST", { texto, resolucoes, indices: trecho });
+      const r = await chamarApi<ResultadoEntrada>("/api/fila/entrada/confirmar", "POST", { texto, resolucoes, indices: trecho, excecoesCobranca });
       if (!r.ok) {
         const estado = await consultarSalvos(texto);
         setCarregando(null);
@@ -220,6 +240,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
     if (salvos?.aplicados.includes(p.index)) return false;
     const r = resolucoes[p.index];
     if (r?.acao === "ignorar") return false;
+    if (p.item?.tipo === "cobranca" && !excecoesCobranca.includes(p.index)) return false; // rotineira: fica no checklist
     return p.classificacao === "novo" || p.classificacao === "atualizacao" || (p.classificacao === "vinculo_pendente" && (r?.acao === "vincular" || r?.acao === "nova")) || (p.classificacao === "possivel_duplicidade" && r?.acao === "aceitar");
   }).length : 0;
 
@@ -284,7 +305,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
                   {salvos?.aplicados.includes(i) ? <Badge variant="opportunity">Já publicado</Badge> : p && <Badge variant={ROTULO[p.classificacao].variant}>{ROTULO[p.classificacao].label}</Badge>}
                   {salvos?.comErro.find((x) => x.index === i) && <Badge variant="critical">falhou: {salvos.comErro.find((x) => x.index === i)!.erro.slice(0, 60)}</Badge>}
                   {p && p.classificacao !== "erro" && <span className="text-text-secondary">{p.motivo}</span>}
-                  <button type="button" onClick={() => { setLinhas((ls) => ls.filter((x) => x.uid !== l.uid)); setPrevia(null); setResolucoes({}); }} className="ml-auto text-xs text-text-muted underline">remover</button>
+                  <button type="button" onClick={() => { setLinhas((ls) => ls.filter((x) => x.uid !== l.uid)); setPrevia(null); limparDecisoes(); }} className="ml-auto text-xs text-text-muted underline">remover</button>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-3">
                   <Campo label="Tipo de tarefa">
@@ -293,7 +314,9 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
                     </select>
                   </Campo>
                   <Campo label="Paciente"><input value={l.nome} onChange={(e) => editar(l.uid, "nome", e.target.value)} className={classeInput} /></Campo>
-                  <Campo label="Código no Simples Dental"><input value={l.sd_codigo} onChange={(e) => editar(l.uid, "sd_codigo", e.target.value)} className={classeInput} /></Campo>
+                  <Campo label="Código interno (SD)"><input value={l.sd_codigo} onChange={(e) => editar(l.uid, "sd_codigo", e.target.value)} className={classeInput} /></Campo>
+                  <Campo label="Número (SD)"><input value={l.sd_numero} onChange={(e) => editar(l.uid, "sd_numero", e.target.value)} className={classeInput} /></Campo>
+                  <Campo label="ID da ficha (SD)"><input value={l.sd_ficha_id} onChange={(e) => editar(l.uid, "sd_ficha_id", e.target.value)} className={classeInput} /></Campo>
                   {l.tipo !== "atendimento_realizado" && (
                     <>
                       <Campo label="Ação solicitada" largo><input value={l.acao} onChange={(e) => editar(l.uid, "acao", e.target.value)} className={classeInput} /></Campo>
@@ -354,6 +377,15 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
                     <option value="nova">É outra paciente: cadastrar nova</option>
                   </select>
                 )}
+                {l.tipo === "cobranca" && (
+                  <div className="mt-2 rounded-control border border-border bg-surface-raised px-3 py-2 text-[13px] text-text-secondary">
+                    <p>Cobrança rotineira <strong className="font-medium text-text-primary">não vira tarefa</strong>: a conferência de parcelas vencidas é feita pela concierge no Simples Dental, na rotina de segunda e sexta. Fica registrada no lote como não aplicada.</p>
+                    <label className="mt-1.5 flex items-start gap-2">
+                      <input type="checkbox" className="mt-0.5" checked={excecoesCobranca.includes(i)} onChange={(e) => setExcecoesCobranca(e.target.checked ? [...excecoesCobranca, i] : excecoesCobranca.filter((x) => x !== i))} />
+                      <span>É uma exceção que exige ação específica ou decisão da gestão — criar tarefa individual (descreva a ação em “Ação solicitada”).</span>
+                    </label>
+                  </div>
+                )}
                 {p?.classificacao === "possivel_duplicidade" && (
                   <label className="mt-2 flex items-center gap-2 text-sm text-text-secondary">
                     <input type="checkbox" checked={r?.acao === "aceitar"} onChange={(e) => { const n = { ...resolucoes }; if (e.target.checked) n[i] = { acao: "aceitar" }; else delete n[i]; setResolucoes(n); }} />
@@ -370,6 +402,10 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
                 {salvos?.aplicados.length ? `Retomar publicação (${vaiAplicar} restante(s))` : `Publicar ${vaiAplicar} para a concierge`}
               </Button>
             )}
+            {previa && (() => {
+              const rotineiras = previa.previa.filter((p) => p.item?.tipo === "cobranca" && !excecoesCobranca.includes(p.index)).length;
+              return rotineiras ? <span className="text-sm text-text-secondary">{rotineiras} cobrança(s) rotineira(s) não viram tarefa (ficam na rotina de segunda e sexta).</span> : null;
+            })()}
             {salvos && <span className="text-sm text-text-secondary">Este lote já existe no banco ({salvos.status === "confirmado" ? "concluído" : "publicação interrompida"}): {salvos.aplicados.length} item(ns) publicados. Só o que falta será enviado.</span>}
             {!previa && <span className="text-xs text-text-muted">A conferência verifica vínculo de paciente e duplicidade. Nada é gravado antes de publicar.</span>}
           </div>

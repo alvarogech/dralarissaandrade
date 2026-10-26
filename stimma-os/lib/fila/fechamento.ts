@@ -260,6 +260,8 @@ export function textoWhatsapp(f: Fechamento): string {
     else {
       if (r.feitos.length) l.push(`• Concluídos (${r.feitos.length}): ${r.feitos.join("; ")}`);
       if (r.naoSeAplica.length) l.push(`• Não se aplica (${r.naoSeAplica.length}): ${r.naoSeAplica.join("; ")}`);
+      // Quantidades da rotina (cobranças, aniversários, contatos, resgate): só números, sem pacientes.
+      for (const q of r.quantidades) l.push(`• ${q.atencao ? "⚠️ " : ""}${q.item} — ${q.texto}`);
       for (const i of r.impedimentos) l.push(`• ⚠️ Impedimento — ${i.item}: ${i.motivo}; próxima ação: ${i.proxima}${i.responsavel ? ` (${i.responsavel})` : ""}${i.prazo ? ` até ${dataBr(i.prazo)}` : ""}`);
       if (r.pendentes.length) l.push(`• Ainda a fazer (${r.pendentes.length}): ${r.pendentes.join("; ")}`);
     }

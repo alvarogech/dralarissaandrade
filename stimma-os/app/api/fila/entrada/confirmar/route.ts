@@ -12,9 +12,10 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest) {
   return rotaFila(async ({ ator, store }) => {
-    const { texto, resolucoes, indices } = (await request.json()) as { texto?: string; resolucoes?: Record<number, Resolucao>; indices?: number[] };
+    const { texto, resolucoes, indices, excecoesCobranca } = (await request.json()) as { texto?: string; resolucoes?: Record<number, Resolucao>; indices?: number[]; excecoesCobranca?: number[] };
     if (typeof texto !== "string" || !texto.trim()) throw new ErroRegra("Cole o conteúdo da entrada.");
     if (indices !== undefined && !(Array.isArray(indices) && indices.every((i) => Number.isInteger(i) && i >= 0))) throw new ErroRegra("Trecho inválido.");
-    return confirmarEntrada(store, ator, texto, resolucoes ?? {}, indices);
+    if (excecoesCobranca !== undefined && !(Array.isArray(excecoesCobranca) && excecoesCobranca.every((i) => Number.isInteger(i) && i >= 0))) throw new ErroRegra("Exceções de cobrança inválidas.");
+    return confirmarEntrada(store, ator, texto, resolucoes ?? {}, indices, excecoesCobranca ?? []);
   });
 }

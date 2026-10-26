@@ -9,6 +9,10 @@ import { Campo, Historico, ROTULO_TIPO, brl, chamarApi, classeInput, dataBr, num
 /** Gestão manual: criar, editar, atribuir, reagendar e cancelar tarefas — tudo com histórico. */
 interface TarefaG {
   id: string;
+  /** Cobrança rotineira (legado): fora da fila da concierge, preservada aqui. */
+  rotineira?: boolean;
+  /** Cobrança mantida como exceção na fila da concierge. */
+  excecao?: boolean;
   ref: string;
   paciente: string;
   kind: string;
@@ -77,6 +81,8 @@ export function TarefasGestaoView() {
               <Badge variant={t.kind === "cobranca" ? "important" : "informative"}>{ROTULO_TIPO[t.kind] ?? t.kind}</Badge>
               <Badge variant={["completed", "cancelled"].includes(t.status) ? "neutral" : t.status === "waiting" ? "important" : "opportunity"}>{statusDe(t)}</Badge>
               {t.prioridade === "alta" && <Badge variant="critical">Prioridade alta</Badge>}
+              {t.rotineira && <Badge variant="neutral">Cobrança rotineira · fora da fila da concierge</Badge>}
+              {t.excecao && !["completed", "cancelled"].includes(t.status) && <Badge variant="important">Exceção · na fila da concierge</Badge>}
               {!t.responsavel && !["completed", "cancelled"].includes(t.status) && <Badge variant="important">sem responsável</Badge>}
               <span className="text-xs text-text-muted">{t.ref}</span>
             </div>

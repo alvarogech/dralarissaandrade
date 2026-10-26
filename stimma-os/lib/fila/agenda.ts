@@ -14,7 +14,12 @@ export interface AgendaCarregada {
   ultimaSync: string | null;
   /** Houve sincronização concluída hoje (fuso de Brasília). */
   atualizada: boolean;
+  /** Minutos desde a última sincronização concluída (null = nunca sincronizou). */
+  minutosDesdeSync: number | null;
 }
+
+/** Acima disso, mesmo sincronizada hoje, a agenda é mostrada como "pode ter mudado". */
+export const AGENDA_RECENTE_MINUTOS = 240;
 
 export async function carregarAgenda(store: FilaStore, hoje = hojeSaoPaulo()): Promise<AgendaCarregada> {
   const amanha = somarDias(hoje, 1);
@@ -26,6 +31,7 @@ export async function carregarAgenda(store: FilaStore, hoje = hojeSaoPaulo()): P
     itensAmanha: itens.filter((i) => dia(i.inicio) === amanha),
     ultimaSync,
     atualizada: !!ultimaSync && dia(ultimaSync) === hoje,
+    minutosDesdeSync: ultimaSync && !Number.isNaN(Date.parse(ultimaSync)) ? Math.max(0, Math.round((Date.now() - Date.parse(ultimaSync)) / 60_000)) : null,
   };
 }
 

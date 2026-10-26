@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemEntrada } from "./contrato";
 import { hashConteudo, type RegistroExistente } from "./previa";
+import { itemDaRotina } from "./rotina-itens";
 import { CONFIG_VAZIA, type AtendimentoRow, type CompromissoAgenda, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type MarcoRow, type RotinaItemRow, type TarefaRow } from "./store";
 
 /**
@@ -45,7 +46,10 @@ function tarefaRow(t: Rec): TarefaRow {
 function rotinaRow(r: Rec): RotinaItemRow {
   return {
     userId: r.user_id, dia: r.day, itemKey: r.item_key, estado: r.estado, motivo: r.motivo ?? null, proximaAcao: r.proxima_acao ?? null,
-    prazo: r.prazo ?? null, responsavel: r.responsavel ?? null, tarefaId: r.task_id ?? null, updatedBy: r.updated_by, updatedAt: r.updated_at,
+    prazo: r.prazo ?? null, responsavel: r.responsavel ?? null, tarefaId: r.task_id ?? null,
+    // Antes da 0016 a coluna não existe: lê como "sem quantidades".
+    metricas: r.metricas && typeof r.metricas === "object" && !Array.isArray(r.metricas) ? r.metricas : {},
+    updatedBy: r.updated_by, updatedAt: r.updated_at,
   };
 }
 
@@ -99,6 +103,7 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       conciergeId: data.concierge_id ?? null, conciergeNome: data.concierge_nome ?? null, gestorId: data.gestor_id ?? null,
       diasExpediente: data.dias_expediente ?? null, horarioFechamento: data.horario_fechamento ? String(data.horario_fechamento).slice(0, 5) : null,
       excecoes: data.excecoes ?? [], diasSemAtualizacao: data.dias_sem_atualizacao ?? 3,
+      linksRotina: data.links_rotina && typeof data.links_rotina === "object" && !Array.isArray(data.links_rotina) ? data.links_rotina : {},
     };
   }
   const store: FilaStore = {
@@ -447,6 +452,8 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       falhou((await db.from("daily_routine_items").upsert({
         organization_id: org, user_id: r.userId, day: r.dia, item_key: r.itemKey, estado: r.estado, motivo: r.motivo, proxima_acao: r.proximaAcao,
         prazo: r.prazo, responsavel: r.responsavel, task_id: r.tarefaId, updated_by: r.updatedBy, updated_at: r.updatedAt,
+        // Só itens com quantidades gravam a coluna (0016): os demais continuam funcionando sem ela.
+        ...(itemDaRotina(r.itemKey)?.metricas ? { metricas: r.metricas } : {}),
       }, { onConflict: "organization_id,user_id,day,item_key" })).error, "salvarItemRotina");
     },
     async salvarConfig(c, ator) {
@@ -456,6 +463,7 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       if (c.horarioFechamento !== undefined) linha.horario_fechamento = c.horarioFechamento;
       if (c.excecoes !== undefined) linha.excecoes = c.excecoes;
       if (c.diasSemAtualizacao !== undefined) linha.dias_sem_atualizacao = c.diasSemAtualizacao;
+      if (c.linksRotina !== undefined) linha.links_rotina = c.linksRotina;
       falhou((await db.from("fila_config").upsert(linha, { onConflict: "organization_id" })).error, "salvarConfig");
     },
     async marcarLido(tarefaId, userId) {

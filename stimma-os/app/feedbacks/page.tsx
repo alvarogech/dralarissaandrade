@@ -35,7 +35,7 @@ export default async function FeedbacksPage({ searchParams }: { searchParams: { 
         <FeedbacksView
           hoje={hoje} dia={dia ?? null} feedbacks={feedbacks} conciergeNome={config.conciergeNome ?? "concierge"}
           situacaoHoje={hojeEstado ? textoSituacaoEntrega(hojeEstado.situacao) : "Concierge não configurada"}
-          expediente={{ diasExpediente: config.diasExpediente, horarioFechamento: config.horarioFechamento, excecoes: config.excecoes, diasSemAtualizacao: config.diasSemAtualizacao }}
+          expediente={{ diasExpediente: config.diasExpediente, horarioFechamento: config.horarioFechamento, excecoes: config.excecoes, diasSemAtualizacao: config.diasSemAtualizacao, linksRotina: config.linksRotina }}
         />
       </FilaShell>
     );

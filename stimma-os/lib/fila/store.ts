@@ -90,9 +90,11 @@ export interface FilaConfig {
   horarioFechamento: string | null;
   excecoes: string[];
   diasSemAtualizacao: number;
+  /** Links configuráveis da rotina (ex.: script aprovado de aniversário). Sem link, nada é exibido (migration 0016). */
+  linksRotina: Record<string, string>;
 }
 
-export const CONFIG_VAZIA: FilaConfig = { conciergeId: null, conciergeNome: null, gestorId: null, diasExpediente: null, horarioFechamento: null, excecoes: [], diasSemAtualizacao: 3 };
+export const CONFIG_VAZIA: FilaConfig = { conciergeId: null, conciergeNome: null, gestorId: null, diasExpediente: null, horarioFechamento: null, excecoes: [], diasSemAtualizacao: 3, linksRotina: {} };
 
 /** Versão do feedback diário: gerada (pronta para revisão) ou entregue à gestão. */
 export interface FeedbackRow {
@@ -125,6 +127,8 @@ export interface RotinaItemRow {
   prazo: string | null;
   responsavel: string | null;
   tarefaId: string | null;
+  /** Quantidades do item (sem nomes, telefones nem valores) — migration 0016. Vazio = nada registrado. */
+  metricas: Record<string, number | boolean>;
   updatedBy: string;
   updatedAt: string;
 }

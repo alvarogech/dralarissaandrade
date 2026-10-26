@@ -8,7 +8,8 @@ import { lerFeedback, linhaSemConteudo } from "./feedback";
 import { CATEGORIAS, type EstadoDoDia, type EventoRow, type FilaConfig, type FilaStore, type MarcoRow, type NumerosDoDia, type Prioridade, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 import { categoriaDaTarefa, rotuloResponsavel, type EtapaClinica } from "./registro";
 import { responsavelEfetivo } from "./trabalho";
-import { resumirRotina } from "./rotina-itens";
+import { CHAVES_LINK_ROTINA, linkSeguro, resumirRotina } from "./rotina-itens";
+import { cobrancaRotineira, type CobrancaLegada } from "./cobrancas";
 
 /**
  * Regras de negócio da fila. Os Route Handlers só autenticam e chamam daqui; o mesmo código
@@ -158,7 +159,16 @@ function dadosTarefa(it: ItemEntrada, hoje: string, config: FilaConfig) {
  * grava seu resultado logo depois de aplicado: se a requisição cair no meio, o que foi salvo fica
  * comprovado no banco e a retomada aplica só o que falta (itens já aplicados são pulados).
  */
-export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: string, resolucoes: Record<number, Resolucao> = {}, indices?: number[]): Promise<ResultadoEntrada> {
+/** Motivo gravado no lote quando uma cobrança rotineira não vira tarefa. */
+export const MOTIVO_COBRANCA_ROTINEIRA = "cobrança rotineira: não vira tarefa individual — a conferência é feita na rotina de segunda e sexta (Simples Dental)";
+
+/**
+ * `excecoesCobranca`: índices de itens de cobrança que a gestão marcou como exceção (exigem ação
+ * específica ou decisão da gestão). Os demais itens de cobrança não geram nem atualizam tarefas:
+ * a cobrança rotineira é o item da rotina de segunda e sexta. O contrato stimma-entrada-v1 e a
+ * validação não mudam; o item fica registrado no lote como não aplicado, com o motivo.
+ */
+export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: string, resolucoes: Record<number, Resolucao> = {}, indices?: number[], excecoesCobranca: number[] = []): Promise<ResultadoEntrada> {
   exigirGestao(ator, "lançar entradas");
   const p = await previaEntrada(store, texto, indices);
   const hoje = hojeSaoPaulo();
@@ -187,15 +197,17 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
     if (item.classificacao === "vinculo_pendente" && r?.acao === "nova") aplicar = true;
     if (item.classificacao === "possivel_duplicidade" && r?.acao === "aceitar") aplicar = true;
     if (r?.acao === "ignorar") aplicar = false;
+    const cobrancaRotineiraDaEntrada = item.item?.tipo === "cobranca" && !excecoesCobranca.includes(item.index);
 
     const registro = { index: item.index, tipo: item.item?.tipo ?? "invalido", chaveOrigem: item.item?.chave_origem, resultado: item.classificacao, payload: { item: item.item, erros: item.erros, avisos: item.avisos }, resolution: r ?? (aplicar ? { acao: "automatico" } : null) };
-    if (!aplicar || !item.item) {
-      await store.registrarItemLote(loteId, { ...registro, aplicado: false });
-      res.naoAplicados.push({ index: item.index, classificacao: item.classificacao, motivo: r?.acao === "ignorar" ? "ignorado pela gestão" : item.motivo });
+    if (!aplicar || !item.item || cobrancaRotineiraDaEntrada) {
+      const motivo = r?.acao === "ignorar" ? "ignorado pela gestão" : aplicar && cobrancaRotineiraDaEntrada ? MOTIVO_COBRANCA_ROTINEIRA : item.motivo;
+      await store.registrarItemLote(loteId, { ...registro, resolution: aplicar && cobrancaRotineiraDaEntrada ? { acao: "cobranca_rotineira" } : registro.resolution, aplicado: false });
+      res.naoAplicados.push({ index: item.index, classificacao: item.classificacao, motivo });
       continue;
     }
     try {
-      await aplicarItem(item.item, pacienteId);
+      await aplicarItem(item.item, pacienteId, excecoesCobranca.includes(item.index));
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       await store.registrarItemLote(loteId, { ...registro, aplicado: false, erro: msg }).catch(() => undefined);
@@ -214,7 +226,7 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
   }
   return res;
 
-  async function aplicarItem(it: ItemEntrada, pacienteId: string | null) {
+  async function aplicarItem(it: ItemEntrada, pacienteId: string | null, excecao: boolean) {
     if (!pacienteId) {
       const idSd = it.paciente.sd_codigo ?? it.paciente.sd_numero ?? it.paciente.sd_ficha_id;
       pacienteId = (idSd && criadosPorIdSd.get(idSd)) || (await store.criarPaciente(it.paciente, ator.id));
@@ -242,7 +254,9 @@ export async function confirmarEntrada(store: FilaStore, ator: Ator, texto: stri
         }
       }
     } else {
-      const t = dadosTarefa(it, hoje, config);
+      const base = dadosTarefa(it, hoje, config);
+      // Cobrança só chega aqui como exceção decidida pela gestão: fica na fila da concierge.
+      const t = { ...base, payload: it.tipo === "cobranca" && excecao ? { ...base.payload, excecao: true } : (base.payload as Record<string, unknown>) };
       const existente = it.chave_origem ? await store.tarefaPorChave(it.chave_origem) : null;
       if (existente) await store.atualizarTarefaEntrada(existente.id, { title: t.title, aConferir: it.a_conferir, payload: t.payload, financialImpact: t.financialImpact });
       else {
@@ -313,6 +327,8 @@ export async function criarTarefaManual(store: FilaStore, ator: Ator, t: NovaTar
     payload: {
       contexto: t.contexto?.trim() || undefined, orientacao: t.orientacao?.trim() || undefined, resultado_esperado: t.resultadoEsperado?.trim() || undefined,
       vencimento: t.vencimento || undefined, origem: t.origem || "manual", criada_por: ator.email,
+      // Cobrança criada à mão pela gestão é decisão explícita: exceção que fica na fila (cobrancas.ts).
+      ...(t.kind === "cobranca" ? { excecao: true } : {}),
       ...(t.kind === "recuperacao_falta" && t.ocorrencia ? { ocorrencia: t.ocorrencia } : {}),
       ...(t.kind === "recuperacao_falta" && t.dataOcorrencia ? { data_ocorrencia: t.dataOcorrencia } : {}),
     },
@@ -333,6 +349,8 @@ export interface EdicaoTarefa {
   responsavel?: string | null;
   cancelar?: boolean;
   motivo?: string;
+  /** Cobrança: true = exceção que fica na fila da concierge; false = volta a ser rotineira (só na visão da gestão). */
+  excecaoCobranca?: boolean;
 }
 
 /**
@@ -384,6 +402,14 @@ export async function editarTarefa(store: FilaStore, ator: Ator, id: string, e: 
     patch.assignedTo = e.responsavel;
     mudancas.push(`responsável: ${perfis.find((p) => p.id === e.responsavel)?.nome ?? "ninguém"}`);
   }
+  if (e.excecaoCobranca !== undefined) {
+    if (t.kind !== "cobranca") throw new ErroRegra("Só tarefas de cobrança podem ser marcadas como exceção.");
+    if (e.excecaoCobranca !== (t.payload.excecao === true)) {
+      if (!e.motivo?.trim()) throw new ErroRegra("Informe o motivo (qual ação específica ou decisão a exceção exige).");
+      patch.payload = { ...(patch.payload ?? t.payload), excecao: e.excecaoCobranca || undefined };
+      mudancas.push(e.excecaoCobranca ? "cobrança marcada como exceção (fica na fila da concierge)" : "cobrança volta a ser rotineira (sai da fila da concierge)");
+    }
+  }
   if (e.cancelar) {
     if (!e.motivo?.trim()) throw new ErroRegra("Cancelar exige motivo.");
     patch.status = "cancelled";
@@ -434,6 +460,7 @@ export async function listarTarefasGestao(store: FilaStore) {
         kind: t.kind, acao: t.title, contexto: String(t.payload.contexto ?? ""), prazo: t.due, valor: t.financialImpact,
         responsavel: t.assignedTo, status: t.status, proximaAcao: t.nextAction, resultado: t.closedReason, origem: t.origem,
         orientacao: String(t.payload.orientacao ?? ""), resultadoEsperado: String(t.payload.resultado_esperado ?? ""), prioridade: t.prioridade ?? null, aguardando: t.aguardando ?? null,
+        rotineira: cobrancaRotineira(t), excecao: t.kind === "cobranca" && t.payload.excecao === true,
       }))
       .sort((a, b) => Number(["completed", "cancelled"].includes(a.status)) - Number(["completed", "cancelled"].includes(b.status)) || a.prazo.localeCompare(b.prazo)),
   };
@@ -589,6 +616,11 @@ export interface FilaCarregada {
   maisTarde: number;
   itens: ItemFila[];
   config: FilaConfig;
+  /**
+   * Cobranças individuais antigas (rotineiras) fora da fila operacional — a conferência agora é o
+   * item da rotina de segunda e sexta. Preservadas no banco; listadas só para a gestão.
+   */
+  cobrancasRotineiras: CobrancaLegada[];
 }
 
 /** Encerradas há até 7 dias continuam consultáveis em "Concluídas". */
@@ -600,13 +632,16 @@ export const DIAS_CONCLUIDAS = 7;
  */
 export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?: string): Promise<FilaCarregada> {
   const desde = somarDias(hoje, -DIAS_CONCLUIDAS);
-  const [marcos, tarefas, pendentes, perfis, config] = await Promise.all([store.marcosAtivos(desde), store.tarefasAtivas(desde), store.atendimentosPendentes(), store.perfis(), store.config()]);
+  const [marcos, todasTarefas, pendentes, perfis, config] = await Promise.all([store.marcosAtivos(desde), store.tarefasAtivas(desde), store.atendimentosPendentes(), store.perfis(), store.config()]);
+  // Cobranças rotineiras (legado) saem da fila operacional sem tocar no banco (ver cobrancas.ts).
+  const rotineiras = todasTarefas.filter(cobrancaRotineira);
+  const tarefas = todasTarefas.filter((t) => !cobrancaRotineira(t));
   const idsTarefas = tarefas.map((t) => t.id);
   // Consultas independentes em paralelo (antes eram sequenciais).
   const [ultimos, lidas, nomes] = await Promise.all([
     store.ultimosEventos(idsTarefas),
     eu ? store.leituras(eu, idsTarefas) : Promise.resolve({} as Record<string, string>),
-    store.nomesPacientes(idsDePacientes([...marcos, ...tarefas, ...pendentes])),
+    store.nomesPacientes(idsDePacientes([...marcos, ...tarefas, ...rotineiras, ...pendentes])),
   ]);
   const nome = (id: string) => nomes[id] ?? "Paciente";
   const nomePerfil = new Map(perfis.map((p) => [p.id, p.nome]));
@@ -663,7 +698,10 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?:
   ];
   const limite = somarDias(hoje, HORIZONTE_PROXIMAS_DIAS);
   const visiveis = itens.filter((i) => i.status !== "aberta" || i.due <= limite);
-  return { hoje, fila: montarFila(visiveis, hoje), maisTarde: itens.length - visiveis.length, itens, config };
+  const cobrancasRotineiras = rotineiras
+    .map((t): CobrancaLegada => ({ id: t.id, ref: refDoItem({ tipo: "tarefa", id: t.id }), paciente: t.patientId ? nome(t.patientId) : t.assunto ?? "Assunto", titulo: t.title, due: t.due, aguardandoPaciente: t.status === "waiting" }))
+    .sort((a, b) => a.due.localeCompare(b.due));
+  return { hoje, fila: montarFila(visiveis, hoje), maisTarde: itens.length - visiveis.length, itens, config, cobrancasRotineiras };
 }
 
 export const ROTULO_DETALHE: Record<string, string> = {
@@ -693,7 +731,7 @@ export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo(),
     responsavel ? store.rotina(responsavel, dia) : Promise.resolve([]),
     responsavel ? store.perfis() : Promise.resolve([]),
   ]);
-  const rotina = responsavel ? resumirRotina(linhasRotina, (r) => rotuloResponsavel(r ?? undefined, perfis)) : null;
+  const rotina = responsavel ? resumirRotina(linhasRotina, dia, (r) => rotuloResponsavel(r ?? undefined, perfis)) : null;
   const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos, fila, itens, nomes, numeros, estado, rotina });
   return { fechamento, texto: textoWhatsapp(fechamento), eventos };
 }
@@ -828,7 +866,7 @@ export async function aplicarContinuidade(store: FilaStore, ator: Ator, p: { tar
 // ---------------------------------------------------------------- expediente (configuração da gestão)
 
 /** Dias de trabalho, horário de fechamento (fuso America/Sao_Paulo), exceções e critério de "sem atualização". */
-export async function salvarExpediente(store: FilaStore, ator: Ator, c: { diasExpediente?: unknown; horarioFechamento?: unknown; excecoes?: unknown; diasSemAtualizacao?: unknown }) {
+export async function salvarExpediente(store: FilaStore, ator: Ator, c: { diasExpediente?: unknown; horarioFechamento?: unknown; excecoes?: unknown; diasSemAtualizacao?: unknown; linksRotina?: unknown }) {
   exigirGestao(ator, "configurar o expediente");
   const patch: Partial<FilaConfig> = {};
   // Expediente só vale completo: ao menos um dia e o horário de fechamento (nada é presumido).
@@ -851,6 +889,21 @@ export async function salvarExpediente(store: FilaStore, ator: Ator, c: { diasEx
   if (c.diasSemAtualizacao !== undefined) {
     if (!(Number.isInteger(c.diasSemAtualizacao) && (c.diasSemAtualizacao as number) >= 1 && (c.diasSemAtualizacao as number) <= 60)) throw new ErroRegra("“Sem atualização” precisa ser de 1 a 60 dias.");
     patch.diasSemAtualizacao = c.diasSemAtualizacao as number;
+  }
+  if (c.linksRotina !== undefined) {
+    // Links da rotina (ex.: script aprovado de aniversário): só chaves conhecidas e URLs http(s).
+    if (!c.linksRotina || typeof c.linksRotina !== "object" || Array.isArray(c.linksRotina)) throw new ErroRegra("Links da rotina inválidos.");
+    const links: Record<string, string> = { ...(await store.config()).linksRotina };
+    for (const [k, v] of Object.entries(c.linksRotina as Record<string, unknown>)) {
+      if (!(CHAVES_LINK_ROTINA as readonly string[]).includes(k)) throw new ErroRegra(`Link de rotina desconhecido: ${k}.`);
+      if (v === null || v === "") delete links[k];
+      else {
+        const l = linkSeguro(v);
+        if (!l) throw new ErroRegra("Informe um endereço completo (https://…).");
+        links[k] = l;
+      }
+    }
+    patch.linksRotina = links;
   }
   await store.salvarConfig(patch, ator.id);
   await store.auditar({ actor: ator.email, action: "fila_expediente", target: "fila_config", after: patch });

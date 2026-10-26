@@ -4,6 +4,7 @@ import { Indisponivel } from "@/components/fila/Indisponivel";
 import { TrabalhoView } from "@/components/fila/TrabalhoView";
 import { RotinaView } from "@/components/fila/RotinaView";
 import { AgendaView } from "@/components/fila/AgendaView";
+import { CobrancasLegadasView } from "@/components/fila/CobrancasLegadasView";
 import { AreaIndisponivel } from "@/components/fila/AreaIndisponivel";
 import { carregarAgenda } from "@/lib/fila/agenda";
 import { carregarRotina } from "@/lib/fila/rotina";
@@ -52,8 +53,10 @@ export default async function TrabalhoPage({ searchParams }: { searchParams: Rec
     const antes = (
       <>
         {responsavel && (rotina
-          ? <RotinaView rotina={rotina} perfis={perfis} tarefas={tarefasRotina} hoje={hoje} titulo={gestao ? `Rotina da ${nomeConcierge}` : "Minha rotina de hoje"} abertaInicial={!gestao} />
+          ? <RotinaView rotina={rotina} perfis={perfis} tarefas={tarefasRotina} hoje={hoje} titulo={gestao ? `Rotina da ${nomeConcierge}` : "Minha rotina de hoje"} abertaInicial={!gestao}
+              gestao={gestao} motivoLeitura={gestao ? `quem marca é a ${nomeConcierge}, pela conta dela` : rotina.dia !== hoje ? "dia anterior" : undefined} />
           : <AreaIndisponivel titulo="Rotina do dia" motivo="Não foi possível carregar a rotina agora (se for a primeira vez, a migration 0015 pode não ter sido aplicada)." />)}
+        <CobrancasLegadasView itens={dados.cobrancasRotineiras} gestao={gestao} nomeConcierge={nomeConcierge} />
         {agenda ? <AgendaView agenda={agenda} /> : <AreaIndisponivel titulo="Agenda de hoje e amanhã" motivo="Não foi possível ler a agenda sincronizada. Confira a agenda no Simples Dental." />}
       </>
     );

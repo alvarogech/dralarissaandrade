@@ -11,7 +11,7 @@ import type { FilaStore, RotinaItemRow } from "./store";
  * e os anteriores ficam como histórico.
  */
 export * from "./rotina-itens";
-import { ESTADOS_ROTINA, ITENS_ROTINA, type EstadoRotina } from "./rotina-itens";
+import { CHAVES_LINK_ROTINA, ESTADOS_ROTINA, ITENS_ROTINA, itemValeNoDia, linkSeguro, normalizarMetricas, type ChaveLinkRotina, type EstadoRotina, type MetricasRotina } from "./rotina-itens";
 
 export interface EntradaRotina {
   itemKey: string;
@@ -22,6 +22,8 @@ export interface EntradaRotina {
   /** "perfil:<uuid>" | gestao | comercial_externa | dra_larissa */
   responsavel?: string | null;
   tarefaId?: string | null;
+  /** Quantidades do item (só as previstas no catálogo; sem nomes, telefones ou valores). */
+  metricas?: MetricasRotina | null;
 }
 
 const limpo = (v?: string | null) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 300) : null);
@@ -33,6 +35,8 @@ export interface RotinaCarregada {
   /** Impedimentos do último dia registrado antes deste (seguem visíveis no dia novo). */
   doDiaAnterior: { dia: string; linhas: RotinaItemRow[] } | null;
   editavel: boolean;
+  /** Links configurados (fila_config.links_rotina); ausente = item sem link. */
+  links: Partial<Record<ChaveLinkRotina, string>>;
 }
 
 /** Concierge lê e edita a própria rotina; a gestão consulta a da concierge (somente leitura). */
@@ -45,20 +49,31 @@ export async function carregarRotina(store: FilaStore, ator: Ator, p: { dia?: st
     if (!(await store.perfis()).some((x) => x.id === p.usuarioId)) throw new ErroRegra("Usuário não encontrado.", 404);
     usuarioId = p.usuarioId;
   }
-  const [linhas, anterior] = await Promise.all([store.rotina(usuarioId, dia), store.rotinaAnterior(usuarioId, dia)]);
+  const [linhas, anterior, config] = await Promise.all([store.rotina(usuarioId, dia), store.rotinaAnterior(usuarioId, dia), store.config()]);
   const impedimentos = anterior ? anterior.linhas.filter((l) => l.estado === "impedimento") : [];
+  const links: Partial<Record<ChaveLinkRotina, string>> = {};
+  for (const k of CHAVES_LINK_ROTINA) {
+    const l = linkSeguro(config.linksRotina?.[k]);
+    if (l) links[k] = l;
+  }
   return {
     dia, usuarioId, linhas,
     doDiaAnterior: anterior && impedimentos.length ? { dia: anterior.dia, linhas: impedimentos } : null,
     editavel: usuarioId === ator.id && !ator.gestao && dia === hoje,
+    links,
   };
 }
 
 export async function salvarItemRotina(store: FilaStore, ator: Ator, e: EntradaRotina): Promise<RotinaItemRow> {
   if (ator.gestao) throw new ErroRegra("A rotina é preenchida pela concierge; a gestão consulta.", 403);
-  if (!ITENS_ROTINA.some((i) => i.key === e.itemKey)) throw new ErroRegra("Item de rotina inválido.");
+  const item = ITENS_ROTINA.find((i) => i.key === e.itemKey);
+  if (!item) throw new ErroRegra("Item de rotina inválido.");
   if (!(ESTADOS_ROTINA as readonly string[]).includes(e.estado)) throw new ErroRegra("Estado inválido.");
   const hoje = hojeSaoPaulo();
+  // Itens semanais/mensais só valem no dia deles (data local da clínica).
+  if (!itemValeNoDia(item, hoje)) throw new ErroRegra("Este item não faz parte da rotina de hoje.");
+  const m = normalizarMetricas(item, e.metricas);
+  if (!m.ok) throw new ErroRegra(m.erro);
   const impedimento = e.estado === "impedimento";
   const motivo = impedimento ? limpo(e.motivo) : null;
   const proxima = impedimento ? limpo(e.proximaAcao) : null;
@@ -78,9 +93,18 @@ export async function salvarItemRotina(store: FilaStore, ator: Ator, e: EntradaR
   }
   const linha: RotinaItemRow = {
     userId: ator.id, dia: hoje, itemKey: e.itemKey, estado: e.estado, motivo, proximaAcao: proxima, prazo, responsavel, tarefaId,
-    updatedBy: ator.id, updatedAt: new Date().toISOString(),
+    metricas: m.metricas, updatedBy: ator.id, updatedAt: new Date().toISOString(),
   };
-  await store.salvarItemRotina(linha);
-  await store.auditar({ actor: ator.email, action: "fila_rotina_item", target: `daily_routine_items/${hoje}/${e.itemKey}`, after: { estado: e.estado, tarefaId, temImpedimento: impedimento } });
+  try {
+    await store.salvarItemRotina(linha);
+  } catch (err) {
+    // Banco sem a coluna de quantidades (0016 não aplicada): erro claro, nada salvo.
+    if (item.metricas && /metricas/i.test(err instanceof Error ? err.message : String(err))) {
+      throw new ErroRegra("As quantidades ainda não podem ser salvas: falta aplicar a migration 0016 no banco. Nada foi salvo; avise a gestão.", 503);
+    }
+    throw err;
+  }
+  // Auditoria só com estado e quantidades (nunca dados de paciente).
+  await store.auditar({ actor: ator.email, action: "fila_rotina_item", target: `daily_routine_items/${hoje}/${e.itemKey}`, after: { estado: e.estado, tarefaId, temImpedimento: impedimento, metricas: m.metricas } });
   return linha;
 }
