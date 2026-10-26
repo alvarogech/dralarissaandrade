@@ -1,4 +1,5 @@
 import type { PacienteRef } from "./contrato";
+import type { NormalizedAppointment } from "@/lib/sync/types";
 import type { TipoMarco } from "./marcos";
 import type { AtendimentoExistente, Classificacao, PacienteConhecido, RegistroExistente } from "./previa";
 
@@ -260,6 +261,8 @@ export interface FilaStore {
   salvarEstadoDoDia(dia: string, e: Partial<EstadoDoDia>, ator: string): Promise<void>;
   salvarConfig(c: Partial<FilaConfig>, ator: string): Promise<void>;
   salvarItemRotina(r: RotinaItemRow): Promise<void>;
+  /** Grava compromissos lidos do Simples Dental (motor idempotente de lib/sync), com a autoria de quem disparou. */
+  sincronizarAgenda(itens: NormalizedAppointment[], ator: string): Promise<{ total: number; created: number; updated: number; unchanged: number; requiresReview: number }>;
   marcarLido(tarefaId: string, userId: string): Promise<void>;
   /** Insere a versão (id do cliente; repetir não duplica). */
   inserirFeedback(f: FeedbackRow): Promise<void>;

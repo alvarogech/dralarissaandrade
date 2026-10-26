@@ -268,6 +268,17 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
     async salvarConfig(c) {
       config = { ...config, ...Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined)) };
     },
+    async sincronizarAgenda(itens) {
+      // Demonstração: espelha o resultado em memória (sem banco), para testar o botão.
+      let created = 0, updated = 0;
+      for (const n of itens) {
+        const i = agendaDemo.itens.findIndex((x) => x.id === n.sdAppointmentId);
+        const c: CompromissoAgenda = { id: n.sdAppointmentId ?? randomUUID(), inicio: n.startsAt, fim: n.endsAt, status: n.status as CompromissoAgenda["status"], paciente: n.patient.fullName, profissional: null, motivo: n.reason, revisar: !n.sdAppointmentId, sincronizadoEm: agora() };
+        if (i >= 0) { agendaDemo.itens[i] = c; updated++; } else { agendaDemo.itens.push(c); created++; }
+      }
+      agendaDemo.ultimaSync = agora();
+      return { total: itens.length, created, updated, unchanged: 0, requiresReview: 0 };
+    },
     async salvarItemRotina(r) {
       const i = rotinas.findIndex((x) => x.userId === r.userId && x.dia === r.dia && x.itemKey === r.itemKey);
       if (i >= 0) rotinas[i] = { ...r };

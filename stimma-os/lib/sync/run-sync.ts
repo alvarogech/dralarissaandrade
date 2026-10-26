@@ -16,7 +16,9 @@ import type { NormalizedAppointment, SyncItemResult, SyncRunSummary } from "./ty
 export async function runAgendaSync(
   supabase: SupabaseClient,
   organizationId: string,
-  items: NormalizedAppointment[]
+  items: NormalizedAppointment[],
+  /** Quem disparou: automação (padrão) ou uma pessoa logada (botão "Sincronizar agenda"). */
+  autoria: { actor: string; actorType: "claude" | "human" } = { actor: "claude", actorType: "claude" }
 ): Promise<SyncRunSummary> {
   const results: SyncItemResult[] = [];
 
@@ -62,8 +64,8 @@ export async function runAgendaSync(
 
   await supabase.from("audit_logs").insert({
     organization_id: organizationId,
-    actor: "claude",
-    actor_type: "claude",
+    actor: autoria.actor,
+    actor_type: autoria.actorType,
     action: "sync_agenda",
     target: "appointments",
     source: "sync_engine",

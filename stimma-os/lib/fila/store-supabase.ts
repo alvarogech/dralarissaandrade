@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemEntrada } from "./contrato";
 import { hashConteudo, type RegistroExistente } from "./previa";
 import { itemDaRotina } from "./rotina-itens";
+import { runAgendaSync } from "@/lib/sync/run-sync";
 import { CONFIG_VAZIA, type AtendimentoRow, type CompromissoAgenda, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type MarcoRow, type RotinaItemRow, type TarefaRow } from "./store";
 
 /**
@@ -447,6 +448,10 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       if (e.prioridades !== undefined) linha.prioridades = e.prioridades;
       if (e.secoes !== undefined) linha.secoes = e.secoes;
       falhou((await db.from("daily_manual_figures").upsert(linha, { onConflict: "organization_id,day" })).error, "salvarEstadoDoDia");
+    },
+    async sincronizarAgenda(itens, ator) {
+      const r = await runAgendaSync(db, org, itens, { actor: ator, actorType: "human" });
+      return { total: r.total, created: r.created, updated: r.updated, unchanged: r.unchanged, requiresReview: r.requiresReview };
     },
     async salvarItemRotina(r) {
       falhou((await db.from("daily_routine_items").upsert({
