@@ -413,7 +413,7 @@ function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode
 function DetalheItem({ item: i, pessoas, nomeResp, ...p }: PropsTrabalho & { item: ItemFila; pessoas: Pessoas; nomeResp: string | null }) {
   const [eventos, setEventos] = useState<EventoHist[] | null>(null);
   const [erroHist, setErroHist] = useState<string | null>(null);
-  const [acao, setAcao] = useState<"andamento" | "mensagem" | "editar" | null>(null);
+  const [acao, setAcao] = useState<"andamento" | "mensagem" | "editar" | "cancelar" | null>(null);
   const alvo = i.alvo;
   void pessoas;
 
@@ -481,11 +481,19 @@ function DetalheItem({ item: i, pessoas, nomeResp, ...p }: PropsTrabalho & { ite
             </Button>
           )}
           {p.gestao && i.alvo?.tipo === "tarefa" && <Button type="button" variante={acao === "editar" ? "primario" : "secundario"} aria-pressed={acao === "editar"} onClick={() => setAcao(acao === "editar" ? null : "editar")}>Editar tarefa</Button>}
+          {p.gestao && i.alvo?.tipo === "tarefa" && (
+            <button type="button" aria-pressed={acao === "cancelar"} onClick={() => setAcao(acao === "cancelar" ? null : "cancelar")}
+              className={clsx("inline-flex min-h-10 items-center rounded-control border px-4 text-sm font-medium transition-colors",
+                acao === "cancelar" ? "border-critical bg-critical text-white" : "border-critical bg-surface text-critical hover:bg-critical-bg")}>
+              Cancelar tarefa
+            </button>
+          )}
         </div>
       )}
       {acao === "andamento" && <PainelAndamento item={i} hoje={p.hoje} itens={p.itens} onSalvo={() => setAcao(null)} />}
       {acao === "mensagem" && <FormMensagem item={i} {...p} onSalvo={() => setAcao(null)} />}
       {acao === "editar" && <EditarTarefa item={i} perfis={p.perfis} onSalvo={() => setAcao(null)} />}
+      {acao === "cancelar" && <CancelarTarefa item={i} onFechar={() => setAcao(null)} />}
     </div>
   );
 }
@@ -580,6 +588,52 @@ function FormMensagem({ item, gestao, proximoDiaUtil, hoje, config, perfis, onSa
       <div className="flex items-center gap-3">
         <Button type="submit" loading={salvando} loadingText="Enviando…">{gestao ? "Registrar na tarefa" : "Enviar à gestão"}</Button>
         <span className="text-xs text-text-muted">Fica no histórico da tarefa. Nenhuma mensagem é enviada à paciente.</span>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Cancelamento pela gestão: motivo obrigatório e confirmação explícita. A tarefa não é apagada —
+ * fica como "cancelada" com o motivo, autor e horário no histórico (os registros da Gabi ficam
+ * intactos). A permissão é conferida no servidor (só gestão).
+ */
+function CancelarTarefa({ item, onFechar }: { item: ItemFila; onFechar: () => void }) {
+  const router = useRouter();
+  const [motivo, setMotivo] = useState("");
+  const [confirmar, setConfirmar] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  async function cancelar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    if (!motivo.trim()) return setErro("Informe o motivo do cancelamento.");
+    if (!confirmar) return setConfirmar(true);
+    setSalvando(true);
+    const r = await chamarApi(`/api/fila/tarefas/${item.alvo!.id}`, "PATCH", { cancelar: true, motivo: motivo.trim() });
+    setSalvando(false);
+    if (!r.ok) return setErro(r.incerto ? `${r.erro} Recarregue a página para ver se a tarefa já aparece como cancelada.` : r.erro);
+    router.refresh();
+    onFechar();
+  }
+
+  return (
+    <form onSubmit={cancelar} className="flex flex-col gap-3 rounded-[10px] border border-critical bg-critical-bg p-3">
+      <p className="text-sm text-text-primary">
+        Cancelar <strong>{item.titulo}</strong> ({item.pacienteNome}). A tarefa sai da fila da Gabi, mas não é apagada: fica como cancelada, com o motivo e o histórico preservados.
+      </p>
+      <Campo label="Motivo do cancelamento *">
+        <input required value={motivo} onChange={(e) => { setMotivo(e.target.value); setConfirmar(false); }} className={classeInput} placeholder="ex.: paciente já resolveu direto com a Dra." />
+      </Campo>
+      {erro && <p role="alert" className="text-sm text-critical">{erro}</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="submit" disabled={salvando}
+          className="inline-flex min-h-10 items-center rounded-control bg-critical px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+          {salvando ? "Cancelando…" : confirmar ? "Confirmar cancelamento" : "Cancelar tarefa"}
+        </button>
+        <Button type="button" variante="discreto" onClick={onFechar}>Voltar</Button>
+        {confirmar && !salvando && <span role="status" className="text-[13px] text-critical">Clique em “Confirmar cancelamento” para concluir.</span>}
       </div>
     </form>
   );
