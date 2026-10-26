@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { ItemFila } from "@/lib/fila/agrupamento";
 import {
@@ -20,6 +19,10 @@ import { FormRegistro } from "./FormRegistro";
  * trabalho"). Os indicadores contam com os mesmos filtros e critérios da lista que abrem; os
  * filtros ficam na URL (abrir/fechar um detalhe ou recarregar não perde a seleção). Marcos
  * futuros ficam recolhidos; o padrão mostra o que é executável hoje.
+ *
+ * Composição: indicadores de urgência em destaque (atrasadas, hoje, decisões da gestão), estados
+ * de acompanhamento em linha secundária; busca, situação e responsável sempre à mão, o resto em
+ * "Mais filtros". No desktop o detalhe abre num painel lateral; no celular, no próprio cartão.
  */
 export interface PropsTrabalho {
   hoje: string;
@@ -33,9 +36,24 @@ export interface PropsTrabalho {
   /** Situação da entrega do feedback de hoje (texto pronto) — null se não se aplica. */
   feedbackHoje: { texto: string; tipo: string } | null;
   filtrosIniciais: FiltrosTrabalho;
+  /** Seleção padrão do perfil (destino de "Limpar filtros"). */
+  filtrosPadrao: FiltrosTrabalho;
 }
 
 const ROTULO_PRIORIDADE = { alta: "Prioridade alta", normal: "Prioridade normal", baixa: "Prioridade baixa" } as const;
+const ROTULO_SITUACAO_ITEM: Record<SituacaoTrabalho, string> = {
+  atrasada: "Atrasada", hoje: "Hoje", aguardando_paciente: "Aguardando paciente", aguardando_gestao: "Aguardando gestão", proxima: "Próxima", concluida: "Concluída",
+};
+const TOM_SITUACAO: Record<SituacaoTrabalho, string> = {
+  atrasada: "border-critical bg-critical-bg text-critical",
+  hoje: "border-graphite bg-graphite text-white",
+  aguardando_gestao: "border-important bg-important-bg text-important",
+  aguardando_paciente: "border-border-strong bg-surface text-text-secondary",
+  proxima: "border-border bg-surface-raised text-text-secondary",
+  concluida: "border-opportunity bg-opportunity-bg text-opportunity",
+};
+const PRIMARIOS: SituacaoTrabalho[] = ["atrasada", "hoje", "aguardando_gestao"];
+const SECUNDARIOS: SituacaoTrabalho[] = ["aguardando_paciente", "proxima", "concluida"];
 
 function diasDesde(iso: string | undefined, hoje: string): number | null {
   if (!iso) return null;
@@ -44,11 +62,30 @@ function diasDesde(iso: string | undefined, hoje: string): number | null {
   return Math.round((b! - a!) / 86_400_000);
 }
 
+function dataPorExtenso(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
+  return new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long" }).format(new Date(y, m - 1, d));
+}
+
+/** Painel lateral só quando há largura (≥ 1280px, já com a navegação); abaixo disso o detalhe abre no cartão. */
+function useLargo(): boolean {
+  const [largo, setLargo] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const at = () => setLargo(mq.matches);
+    at();
+    mq.addEventListener("change", at);
+    return () => mq.removeEventListener("change", at);
+  }, []);
+  return largo;
+}
+
 export function TrabalhoView(p: PropsTrabalho) {
-  const router = useRouter();
   const pathname = usePathname();
   const [f, setF] = useState<FiltrosTrabalho>(p.filtrosIniciais);
   const [aberto, setAberto] = useState<string | null>(null);
+  const [maisFiltros, setMaisFiltros] = useState(!!(p.filtrosIniciais.tipo || p.filtrosIniciais.origem || p.filtrosIniciais.prioridade || p.filtrosIniciais.ate));
+  const largo = useLargo();
   const pessoas: Pessoas = { eu: p.eu, conciergeId: p.config.conciergeId, gestorId: p.config.gestorId };
   const nomeConcierge = p.config.conciergeNome ?? "concierge";
 
@@ -69,163 +106,280 @@ export function TrabalhoView(p: PropsTrabalho) {
   const novidades = base.filter((i) => i.naoLido && i.status !== "concluida" && !lista.includes(i));
   const dependeDeMim = filtrarBase(p.itens, { ...f, dependeDeMim: true, responsavel: "todos" }, pessoas).filter((i) => situacaoTrabalho(i, p.hoje) !== "concluida");
   const semResponsavel = p.itens.filter((i) => i.status !== "concluida" && !responsavelEfetivo(i, pessoas));
-  const naoLidos = p.itens.filter((i) => i.naoLido && i.status !== "concluida").length;
   const origens = [...new Set(p.itens.map((i) => i.origem).filter((x): x is string => !!x))].sort();
   const tipos = [...new Set(p.itens.map((i) => (i.subtipo === "comparecimento" ? "comparecimento" : i.tipo)))].sort();
+  const selecionado = p.itens.find((i) => i.id === aberto) ?? null;
 
   const so = (s: SituacaoTrabalho) => setF({ ...f, situacoes: [s], dependeDeMim: false });
   const alternarSituacao = (s: SituacaoTrabalho) => setF({ ...f, situacoes: f.situacoes.includes(s) ? f.situacoes.filter((x) => x !== s) : [...f.situacoes, s] });
+  const alterado = filtrosParaQuery(f) !== filtrosParaQuery(p.filtrosPadrao);
+  const rotuloResp = { todos: "Todos os responsáveis", eu: "Só meus", concierge: nomeConcierge, gestor: "Gestão", sem: "Sem responsável" } as const;
+  const ativos: { k: string; t: string; limpar: () => void }[] = [
+    ...(f.dependeDeMim ? [{ k: "mim", t: "Depende de mim", limpar: () => setF({ ...f, dependeDeMim: false }) }] : []),
+    ...(f.busca ? [{ k: "busca", t: `“${f.busca}”`, limpar: () => setF({ ...f, busca: "" }) }] : []),
+    ...(f.tipo ? [{ k: "tipo", t: `Tipo: ${f.tipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[f.tipo] ?? f.tipo}`, limpar: () => setF({ ...f, tipo: "" }) }] : []),
+    ...(f.origem ? [{ k: "origem", t: `Origem: ${f.origem}`, limpar: () => setF({ ...f, origem: "" }) }] : []),
+    ...(f.prioridade ? [{ k: "prio", t: ROTULO_PRIORIDADE[f.prioridade], limpar: () => setF({ ...f, prioridade: "" }) }] : []),
+    ...(f.ate ? [{ k: "ate", t: `Prazo até ${dataBr(f.ate)}`, limpar: () => setF({ ...f, ate: "" }) }] : []),
+  ];
+  const abrir = (id: string) => setAberto(aberto === id ? null : id);
+  const cartao = (i: ItemFila) => (
+    <CartaoTrabalho key={i.id} item={i} {...p} pessoas={pessoas} aberto={aberto === i.id} inline={!largo} onToggle={() => abrir(i.id)} />
+  );
+
+  const indicador = (s: SituacaoTrabalho, primario: boolean) => {
+    const ativo = f.situacoes.length === 1 && f.situacoes[0] === s && !f.dependeDeMim;
+    return (
+      <button key={s} type="button" onClick={() => so(s)} aria-pressed={ativo}
+        className={clsx(
+          "group relative rounded-card border bg-surface text-left transition-colors hover:border-border-strong",
+          primario ? "px-4 pb-3 pt-3.5" : "flex items-baseline justify-between gap-3 px-3.5 py-2.5",
+          ativo ? "border-graphite ring-1 ring-graphite" : "border-border",
+        )}>
+        {ativo && <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 rounded-t-card bg-accent" />}
+        <span className={clsx("block font-medium text-text-secondary", primario ? "text-[12.5px]" : "text-[13px]")}>
+          {s === "aguardando_gestao" && p.gestao ? <><span className="sm:hidden">Decisão da gestão</span><span className="hidden sm:inline">Aguardando decisão da gestão</span></> : ROTULO_SITUACAO_TRABALHO[s]}
+          {ativo && <span className="sr-only"> (filtro ativo)</span>}
+        </span>
+        <span className={clsx("tabular-nums", primario ? "mt-1 block font-serif text-[40px] font-medium leading-none" : "text-[18px] font-medium", s === "atrasada" && contagem[s] ? "text-critical" : "text-text-primary")}>
+          {contagem[s]}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <ProvedorFila valor={{ hoje: p.hoje, proximoDiaUtil: p.proximoDiaUtil, usuarioId: p.eu, perfis: p.perfis, pacientes: p.pacientes, itens: p.itens, gestao: p.gestao, conciergeId: p.config.conciergeId, gestorId: p.config.gestorId }}>
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="fb-eyebrow">Dra. Larissa Andrade · {dataBr(p.hoje)}</p>
-          <h1 className="font-serif text-[26px] leading-tight text-text-primary">{p.gestao ? `Trabalho da ${nomeConcierge}` : "Meu trabalho"}</h1>
+          <p className="fb-eyebrow">{dataPorExtenso(p.hoje)}</p>
+          <h1 className="fb-titulo mt-2">{p.gestao ? `Trabalho da ${nomeConcierge}` : "Meu trabalho"}</h1>
+          <p className="mt-1.5 text-sm text-text-secondary">{p.gestao ? "Tarefas, marcos e conferências da concierge, numa única lista." : "Comece pelas atrasadas e pelas de hoje."}</p>
         </div>
         {p.feedbackHoje && (
-          <a href={p.gestao ? "/feedbacks" : "/fila"} className={clsx("rounded-full border px-3 py-1 text-xs", p.feedbackHoje.tipo === "pendente" ? "border-critical text-critical" : p.feedbackHoje.tipo === "entregue" ? "border-opportunity text-opportunity" : "border-border text-text-secondary")}>
+          <a href={p.gestao ? "/feedbacks" : "/fila"}
+            className={clsx("inline-flex min-h-9 items-center gap-2 rounded-control border px-3 text-[13px] transition-colors hover:bg-surface-hover",
+              p.feedbackHoje.tipo === "pendente" ? "border-critical text-critical" : p.feedbackHoje.tipo === "entregue" ? "border-opportunity text-opportunity" : "border-border-strong text-text-secondary")}>
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
             Feedback de hoje: {p.feedbackHoje.texto}
           </a>
         )}
       </header>
 
       {p.gestao && !p.config.conciergeId && (
-        <p className="mb-4 rounded-md border border-important bg-important-bg p-3 text-sm text-important">
-          Configuração pendente: a conta da concierge não está identificada de forma inequívoca. Tarefas importadas ficam sem responsável até a configuração (migration 0014).
+        <p role="status" className="mb-6 rounded-card border border-important bg-important-bg p-3 text-sm text-important">
+          Configuração pendente: a conta da concierge não está identificada de forma inequívoca. Tarefas importadas ficam sem responsável até a configuração.
         </p>
       )}
 
       {/* Indicadores: cada um abre exatamente a lista que contou (mesmos filtros). */}
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        {SITUACOES_TRABALHO.map((s) => (
-          <button key={s} type="button" onClick={() => so(s)} aria-pressed={f.situacoes.length === 1 && f.situacoes[0] === s && !f.dependeDeMim}
-            className={clsx("fb-card px-3 py-2 text-left", f.situacoes.includes(s) && !f.dependeDeMim && "ring-2 ring-accent")}>
-            <span className="block text-[10px] uppercase tracking-wide text-text-muted">{ROTULO_SITUACAO_TRABALHO[s]}</span>
-            <span className={clsx("font-serif text-[24px] leading-none", s === "atrasada" && contagem[s] ? "text-critical" : "text-text-primary")}>{contagem[s]}</span>
-          </button>
-        ))}
-      </div>
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
-        {p.gestao && (
-          <button type="button" className="fb-chip" data-ativo={f.dependeDeMim} onClick={() => setF({ ...f, dependeDeMim: !f.dependeDeMim, situacoes: f.dependeDeMim ? f.situacoes : [], responsavel: "todos" })}>
-            Depende de mim · {dependeDeMim.length}
-          </button>
-        )}
-        {p.gestao && semResponsavel.length > 0 && <span className="text-xs text-important">{semResponsavel.length} sem responsável (aparecem em “Depende de mim”)</span>}
-        {naoLidos > 0 && <span className="text-xs text-accent">● {naoLidos} com atualização não lida</span>}
-        <span className="text-xs text-text-muted">Cada item conta em uma situação só. “Sem atualização” = nada registrado há {p.config.diasSemAtualizacao}+ dias.</span>
-      </div>
-
-      <details className="fb-card mb-4 p-3" open={f.situacoes.length !== 2 || f.responsavel !== (p.gestao ? "todos" : "eu") || !!f.busca}>
-        <summary className="cursor-pointer text-sm text-text-secondary">Filtros {f.busca || f.tipo || f.origem || f.prioridade || f.ate ? "(ativos)" : ""}</summary>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {SITUACOES_TRABALHO.map((s) => (
-            <button key={s} type="button" className="fb-chip" data-ativo={f.situacoes.includes(s)} onClick={() => alternarSituacao(s)}>{ROTULO_SITUACAO_TRABALHO[s]}</button>
-          ))}
-          <button type="button" className="fb-chip" data-ativo={f.situacoes.length === 0} onClick={() => setF({ ...f, situacoes: [] })}>Todas</button>
+      <section aria-label="Indicadores" className="mb-6">
+        <div className="grid grid-cols-3 gap-2.5">{PRIMARIOS.map((s) => indicador(s, true))}</div>
+        <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {SECUNDARIOS.map((s) => indicador(s, false))}
+          {p.gestao && (
+            <button type="button" aria-pressed={f.dependeDeMim}
+              onClick={() => setF({ ...f, dependeDeMim: !f.dependeDeMim, situacoes: f.dependeDeMim ? p.filtrosPadrao.situacoes : [], responsavel: "todos" })}
+              className={clsx("relative col-span-2 flex items-baseline justify-between gap-3 rounded-card border px-3.5 py-2.5 text-left transition-colors sm:col-span-3 lg:col-span-1",
+                f.dependeDeMim ? "border-accent bg-accent text-white" : "border-transparent bg-accent-soft text-accent hover:bg-[#efdfe1]")}>
+              <span className="text-[13px] font-medium">Depende de mim</span>
+              <span className="text-[18px] font-medium tabular-nums">{dependeDeMim.length}</span>
+            </button>
+          )}
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          <Campo label="Responsável">
-            <select value={f.responsavel} onChange={(e) => setF({ ...f, responsavel: e.target.value as FiltrosTrabalho["responsavel"] })} className={classeInput}>
-              <option value="todos">Todos</option>
-              <option value="eu">Eu</option>
+        <p className="mt-2.5 text-[12.5px] text-text-muted">
+          Cada item conta em uma situação só{p.gestao && semResponsavel.length ? ` · ${semResponsavel.length} sem responsável (em “Depende de mim”)` : ""} · “sem atualização” = nada registrado há {p.config.diasSemAtualizacao}+ dias.
+        </p>
+      </section>
+
+      {/* Filtros: busca, situação e responsável à mão; o resto recolhido. */}
+      <section aria-label="Filtros" className="mb-5 rounded-card border border-border bg-surface p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative min-w-[200px] flex-1">
+            <span className="sr-only">Buscar paciente ou assunto</span>
+            <svg aria-hidden viewBox="0 0 20 20" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="9" cy="9" r="5.5" /><path d="m13.5 13.5 3.5 3.5" /></svg>
+            <input value={f.busca} onChange={(e) => setF({ ...f, busca: e.target.value })} className={clsx(classeInput, "pl-9")} placeholder="Buscar paciente ou assunto" />
+          </label>
+          <label>
+            <span className="sr-only">Responsável</span>
+            <select value={f.responsavel} onChange={(e) => setF({ ...f, responsavel: e.target.value as FiltrosTrabalho["responsavel"] })} className={clsx(classeInput, "w-auto")}>
+              <option value="todos">{rotuloResp.todos}</option>
+              <option value="eu">{rotuloResp.eu}</option>
               {p.gestao && <option value="concierge">{nomeConcierge}</option>}
-              {!p.gestao && <option value="gestor">Gestão</option>}
-              <option value="sem">Sem responsável</option>
+              {!p.gestao && <option value="gestor">{rotuloResp.gestor}</option>}
+              <option value="sem">{rotuloResp.sem}</option>
             </select>
-          </Campo>
-          <Campo label="Tipo">
-            <select value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })} className={classeInput}>
-              <option value="">Todos</option>
-              {tipos.map((t) => <option key={t} value={t}>{t === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[t] ?? t}</option>)}
-            </select>
-          </Campo>
-          <Campo label="Origem">
-            <select value={f.origem} onChange={(e) => setF({ ...f, origem: e.target.value })} className={classeInput}>
-              <option value="">Todas</option>
-              {origens.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </Campo>
-          <Campo label="Prioridade">
-            <select value={f.prioridade} onChange={(e) => setF({ ...f, prioridade: e.target.value as FiltrosTrabalho["prioridade"] })} className={classeInput}>
-              <option value="">Todas</option><option value="alta">Alta</option><option value="normal">Normal</option><option value="baixa">Baixa</option>
-            </select>
-          </Campo>
-          <Campo label="Prazo até"><input type="date" value={f.ate} onChange={(e) => setF({ ...f, ate: e.target.value })} className={classeInput} /></Campo>
-          <Campo label="Paciente ou assunto"><input value={f.busca} onChange={(e) => setF({ ...f, busca: e.target.value })} className={classeInput} placeholder="buscar" /></Campo>
+          </label>
+          <button type="button" className="fb-chip" aria-expanded={maisFiltros} onClick={() => setMaisFiltros(!maisFiltros)}>
+            Mais filtros{ativos.filter((a) => ["tipo", "origem", "prio", "ate"].includes(a.k)).length ? ` (${ativos.filter((a) => ["tipo", "origem", "prio", "ate"].includes(a.k)).length})` : ""} {maisFiltros ? "▴" : "▾"}
+          </button>
         </div>
-      </details>
+        <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Situação">
+          {SITUACOES_TRABALHO.map((s) => (
+            <button key={s} type="button" className="fb-chip" data-ativo={f.situacoes.includes(s)} aria-pressed={f.situacoes.includes(s)} onClick={() => alternarSituacao(s)}>
+              {f.situacoes.includes(s) && <span aria-hidden>✓</span>}{ROTULO_SITUACAO_TRABALHO[s]}
+            </button>
+          ))}
+          <button type="button" className="fb-chip" data-ativo={f.situacoes.length === 0} aria-pressed={f.situacoes.length === 0} onClick={() => setF({ ...f, situacoes: [] })}>Todas</button>
+        </div>
+        {maisFiltros && (
+          <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Campo label="Tipo">
+              <select value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })} className={classeInput}>
+                <option value="">Todos</option>
+                {tipos.map((t) => <option key={t} value={t}>{t === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[t] ?? t}</option>)}
+              </select>
+            </Campo>
+            <Campo label="Origem">
+              <select value={f.origem} onChange={(e) => setF({ ...f, origem: e.target.value })} className={classeInput}>
+                <option value="">Todas</option>
+                {origens.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </Campo>
+            <Campo label="Prioridade">
+              <select value={f.prioridade} onChange={(e) => setF({ ...f, prioridade: e.target.value as FiltrosTrabalho["prioridade"] })} className={classeInput}>
+                <option value="">Todas</option><option value="alta">Alta</option><option value="normal">Normal</option><option value="baixa">Baixa</option>
+              </select>
+            </Campo>
+            <Campo label="Prazo até"><input type="date" value={f.ate} onChange={(e) => setF({ ...f, ate: e.target.value })} className={classeInput} /></Campo>
+          </div>
+        )}
+        {(ativos.length > 0 || alterado) && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5 text-[13px]">
+            <span className="text-text-muted">Filtrando:</span>
+            {ativos.map((a) => (
+              <button key={a.k} type="button" onClick={a.limpar} className="inline-flex items-center gap-1 rounded-sm bg-surface-raised px-2 py-0.5 text-text-secondary hover:text-text-primary" aria-label={`Remover filtro ${a.t}`}>
+                {a.t} <span aria-hidden>×</span>
+              </button>
+            ))}
+            {f.responsavel !== p.filtrosPadrao.responsavel && <span className="rounded-sm bg-surface-raised px-2 py-0.5 text-text-secondary">{rotuloResp[f.responsavel]}</span>}
+            <button type="button" className="ml-auto text-accent underline-offset-4 hover:underline" onClick={() => setF(p.filtrosPadrao)}>Limpar filtros</button>
+          </div>
+        )}
+      </section>
 
-      {novidades.length > 0 && (
-        <section className="mb-4">
-          <h2 className="mb-2 text-sm font-semibold text-accent">● Atualizações novas fora desta seleção ({novidades.length})</h2>
-          <ul className="flex flex-col gap-2.5">
-            {novidades.map((i) => <CartaoTrabalho key={i.id} item={i} {...p} pessoas={pessoas} aberto={aberto === i.id} onToggle={() => setAberto(aberto === i.id ? null : i.id)} />)}
-          </ul>
-        </section>
-      )}
-      {executaveis.length === 0 && marcosFuturos.length === 0 ? (
-        <div className="rounded-[12px] border border-dashed border-border p-5 text-sm text-text-secondary">
-          {p.itens.length === 0 ? "Nenhuma tarefa cadastrada ainda." : `Nenhum item nesta seleção (${f.situacoes.map((s) => ROTULO_SITUACAO_TRABALHO[s]).join(", ") || "todas as situações"}).`}{" "}
-          {f.situacoes.length > 0 && <button type="button" className="text-accent underline" onClick={() => setF({ ...f, situacoes: [] })}>ver todas</button>}
-          {!p.gestao && <> · Algo novo no expediente? Registre em <a className="text-accent underline" href="/fila">Feedback diário</a>.</>}
+      <div className={clsx("grid items-start gap-5", largo && selecionado && "xl:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]")}>
+        <div className="min-w-0">
+          {novidades.length > 0 && (
+            <section className="mb-5" aria-label="Atualizações novas">
+              <h2 className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-accent"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />Atualizações novas fora desta seleção ({novidades.length})</h2>
+              <ul className="flex flex-col gap-2">{novidades.map(cartao)}</ul>
+            </section>
+          )}
+          <h2 className="sr-only">Lista de trabalho</h2>
+          {executaveis.length === 0 && marcosFuturos.length === 0 ? (
+            <div className="rounded-card border border-dashed border-border-strong px-5 py-6 text-sm text-text-secondary">
+              <p className="font-medium text-text-primary">
+                {p.itens.length === 0 ? "Nenhuma tarefa cadastrada ainda." : f.situacoes.length === 1 && f.situacoes[0] === "atrasada" ? "Nenhuma tarefa atrasada." : f.situacoes.length === 1 && f.situacoes[0] === "hoje" ? "Nenhuma tarefa para hoje." : "Nenhum resultado para os filtros selecionados."}
+              </p>
+              <p className="mt-1">
+                {alterado ? <button type="button" className="text-accent underline-offset-4 hover:underline" onClick={() => setF(p.filtrosPadrao)}>Limpar filtros</button> : f.situacoes.length > 0 && <button type="button" className="text-accent underline-offset-4 hover:underline" onClick={() => setF({ ...f, situacoes: [] })}>Ver todas as situações</button>}
+                {!p.gestao && <> · Algo novo no expediente? Registre em <a className="text-accent underline-offset-4 hover:underline" href="/fila">Feedback diário</a>.</>}
+              </p>
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-2">{executaveis.map(cartao)}</ul>
+          )}
+          {marcosFuturos.length > 0 && (
+            <details className="mt-5 rounded-card border border-border bg-surface">
+              <summary className="cursor-pointer px-4 py-3 text-sm text-text-secondary">Marcos de acompanhamento futuros ({marcosFuturos.length}) — previstos para depois de {JANELA_MARCOS_DIAS} dias</summary>
+              <ul className="flex flex-col gap-2 border-t border-border p-3">{marcosFuturos.map(cartao)}</ul>
+            </details>
+          )}
         </div>
-      ) : (
-        <ul className="flex flex-col gap-2.5">
-          {executaveis.map((i) => <CartaoTrabalho key={i.id} item={i} {...p} pessoas={pessoas} aberto={aberto === i.id} onToggle={() => setAberto(aberto === i.id ? null : i.id)} />)}
-        </ul>
-      )}
-      {marcosFuturos.length > 0 && (
-        <details className="mt-4">
-          <summary className="cursor-pointer text-sm text-text-secondary">Marcos de acompanhamento futuros ({marcosFuturos.length}) — previstos para depois de {JANELA_MARCOS_DIAS} dias</summary>
-          <ul className="mt-2 flex flex-col gap-2.5">
-            {marcosFuturos.map((i) => <CartaoTrabalho key={i.id} item={i} {...p} pessoas={pessoas} aberto={aberto === i.id} onToggle={() => setAberto(aberto === i.id ? null : i.id)} />)}
-          </ul>
-        </details>
-      )}
+        {largo && selecionado && (
+          <aside className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-auto rounded-card border border-border bg-surface shadow-raised" aria-label="Detalhe da tarefa">
+            <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface px-5 py-4">
+              <div className="min-w-0">
+                <p className="fb-eyebrow">{ROTULO_SITUACAO_ITEM[situacaoTrabalho(selecionado, p.hoje)]} · {selecionado.subtipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[selecionado.tipo] ?? selecionado.tipo}</p>
+                <h2 className="mt-1 font-serif text-[24px] font-medium leading-tight text-text-primary">{selecionado.pacienteNome}</h2>
+              </div>
+              <button type="button" onClick={() => setAberto(null)} className="rounded-control px-2 py-1 text-text-muted hover:bg-surface-hover hover:text-text-primary" aria-label="Fechar detalhe">✕</button>
+            </div>
+            <div className="px-5 pb-5">
+              <DetalheItem key={selecionado.id} item={selecionado} {...p} pessoas={pessoas} nomeResp={nomeDoResponsavel(selecionado, pessoas, p.perfis)} />
+            </div>
+          </aside>
+        )}
+      </div>
     </ProvedorFila>
   );
 }
 
-function CartaoTrabalho({ item: i, aberto, onToggle, pessoas, ...p }: PropsTrabalho & { item: ItemFila; aberto: boolean; onToggle: () => void; pessoas: Pessoas }) {
-  const sit = situacaoTrabalho(i, p.hoje);
+function nomeDoResponsavel(i: ItemFila, pessoas: Pessoas, perfis: { id: string; nome: string }[]): string | null {
   const resp = responsavelEfetivo(i, pessoas);
-  const nomeResp = resp ? p.perfis.find((x) => x.id === resp)?.nome ?? "—" : i.responsavel ?? null;
+  return resp ? perfis.find((x) => x.id === resp)?.nome ?? "—" : i.responsavel ?? null;
+}
+
+function CartaoTrabalho({ item: i, aberto, inline, onToggle, pessoas, ...p }: PropsTrabalho & { item: ItemFila; aberto: boolean; inline: boolean; onToggle: () => void; pessoas: Pessoas }) {
+  const sit = situacaoTrabalho(i, p.hoje);
+  const nomeResp = nomeDoResponsavel(i, pessoas, p.perfis);
   const parado = i.status !== "concluida" && i.alvo?.tipo === "tarefa" ? diasDesde(i.atualizadoEm, p.hoje) : null;
   const semProxima = i.status !== "concluida" && i.alvo?.tipo === "tarefa" && !i.proximaAcao && i.status === "aguardando";
+  const sinais = [
+    i.prioridade === "alta" ? { t: "Prioridade alta", c: "text-critical" } : null,
+    i.atencao ? { t: "Atenção", c: "text-critical" } : null,
+    i.adiamentos ? { t: `Adiada ${i.adiamentos}×`, c: "text-important" } : null,
+    parado !== null && parado >= p.config.diasSemAtualizacao ? { t: `Sem atualização há ${parado} dias`, c: "text-important" } : null,
+    semProxima ? { t: "Sem próxima ação", c: "text-important" } : null,
+    i.aConferir?.length ? { t: "Dados a conferir", c: "text-important" } : null,
+  ].filter((x): x is { t: string; c: string } => !!x);
+  const prazo = i.status === "concluida"
+    ? `Concluída${i.concluidaEm ? ` em ${dataBr(i.concluidaEm)}` : ""}`
+    : `${sit === "aguardando_paciente" || sit === "aguardando_gestao" ? "Revisar em" : "Prazo"} ${dataBr(i.due)}`;
   return (
-    <li className={clsx("rounded-[12px] border bg-surface p-4", i.naoLido ? "border-accent" : "border-border")}>
-      <button type="button" onClick={onToggle} className="flex w-full items-start justify-between gap-3 text-left" aria-expanded={aberto}>
+    <li className={clsx("overflow-hidden rounded-card border bg-surface transition-colors", aberto ? "border-graphite ring-1 ring-graphite" : i.naoLido ? "border-accent" : "border-border hover:border-border-strong")}>
+      <button type="button" onClick={onToggle} className="flex w-full items-start gap-3 px-4 py-3.5 text-left" aria-expanded={aberto}>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {i.naoLido && <span className="text-xs font-medium text-accent">● nova atualização</span>}
-            <Badge variant={sit === "atrasada" ? "critical" : sit === "aguardando_gestao" ? "important" : "informative"}>{ROTULO_SITUACAO_TRABALHO[sit].replace(/s$/, "")}</Badge>
-            <Badge variant="neutral">{i.subtipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[i.tipo] ?? i.tipo}</Badge>
-            {i.prioridade === "alta" && <Badge variant="critical">Prioridade alta</Badge>}
-            {i.atencao && <Badge variant="critical">Atenção</Badge>}
-            {!!i.adiamentos && <Badge variant="important">{i.adiamentos} adiamento(s)</Badge>}
-            {parado !== null && parado >= p.config.diasSemAtualizacao && <Badge variant="important">sem atualização há {parado} dias</Badge>}
-            {semProxima && <Badge variant="important">sem próxima ação</Badge>}
+          {/* Nível 1 — paciente ou assunto */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {i.naoLido && <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-accent"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />Nova atualização</span>}
+            <p className="truncate text-[15.5px] font-semibold text-text-primary">
+              {i.pacienteNome}
+              {i.semPaciente && <span className="ml-1.5 text-[12.5px] font-normal text-text-muted">assunto administrativo</span>}
+            </p>
           </div>
-          <p className="mt-1 font-medium text-text-primary">{i.pacienteNome}{i.semPaciente && <span className="ml-1 text-xs font-normal text-text-muted">(assunto administrativo)</span>}</p>
-          <p className="text-sm text-text-primary">{i.titulo}{i.valor !== undefined ? ` · ${brl(i.valor)}` : ""}</p>
-          <p className="mt-0.5 text-xs text-text-secondary">
-            {i.status === "concluida" ? `Concluída${i.concluidaEm ? ` em ${dataBr(i.concluidaEm)}` : ""}` : `${sit === "aguardando_paciente" || sit === "aguardando_gestao" ? "Revisar em" : "Prazo"} ${dataBr(i.due)}`}
-            {" · "}{nomeResp ? `Responsável: ${nomeResp}` : <span className="text-important">sem responsável</span>}
-            {i.proximaAcao && i.status !== "concluida" ? ` · Próxima ação: ${i.proximaAcao}` : ""}
+          {/* Nível 2 — ação esperada */}
+          <p className="mt-0.5 text-[14.5px] text-text-primary">{i.titulo}{i.valor !== undefined ? ` · ${brl(i.valor)}` : ""}</p>
+          {i.proximaAcao && i.status !== "concluida" && i.proximaAcao !== i.titulo && <p className="mt-0.5 text-[13.5px] text-text-secondary">Próxima ação: {i.proximaAcao}</p>}
+          {/* Nível 3 — situação e prazo (+ sinais de continuidade, sempre em texto) */}
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+            <span className={clsx("inline-flex items-center rounded-sm border px-1.5 text-[12px] font-medium leading-5", TOM_SITUACAO[sit])}>{ROTULO_SITUACAO_ITEM[sit]}</span>
+            <span className={clsx("tabular-nums", sit === "atrasada" ? "font-medium text-critical" : "text-text-secondary")}>{prazo}</span>
+            {sinais.map((s) => <span key={s.t} className={clsx("before:mr-2 before:text-text-muted before:content-['·']", s.c)}>{s.t}</span>)}
+          </p>
+          {/* Nível 4 — metadados */}
+          <p className="mt-1 text-[12.5px] text-text-muted">
+            {nomeResp ? `Responsável: ${nomeResp}` : <span className="font-medium text-important">Sem responsável</span>}
+            {" · "}{i.subtipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[i.tipo] ?? i.tipo}
+            {i.origem ? ` · ${i.origem}` : ""}
           </p>
         </div>
-        <span className="shrink-0 text-text-muted">{aberto ? "▴" : "▾"}</span>
+        <span aria-hidden className="mt-1 shrink-0 text-[13px] text-text-muted">{aberto ? (inline ? "▴" : "◂") : inline ? "▾" : "▸"}</span>
+        <span className="sr-only">{aberto ? "Fechar tarefa" : "Abrir tarefa"}</span>
       </button>
-      {aberto && <DetalheItem item={i} {...p} pessoas={pessoas} nomeResp={nomeResp} />}
+      {aberto && inline && <div className="border-t border-border px-4 pb-4"><DetalheItem item={i} {...p} pessoas={pessoas} nomeResp={nomeResp} /></div>}
     </li>
   );
 }
 
 function Linha({ k, v }: { k: string; v?: React.ReactNode }) {
   if (v === undefined || v === null || v === "") return null;
-  return <div className="flex gap-2 text-sm"><dt className="w-36 shrink-0 text-text-muted">{k}</dt><dd className="min-w-0 text-text-primary">{v}</dd></div>;
+  return (
+    <div className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 py-1 text-[14px]">
+      <dt className="text-text-muted">{k}</dt>
+      <dd className="min-w-0 text-text-primary">{v}</dd>
+    </div>
+  );
+}
+
+function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-border pt-4 first:border-t-0 first:pt-0">
+      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">{titulo}</h3>
+      {children}
+    </section>
+  );
 }
 
 function DetalheItem({ item: i, pessoas, nomeResp, ...p }: PropsTrabalho & { item: ItemFila; pessoas: Pessoas; nomeResp: string | null }) {
@@ -233,6 +387,7 @@ function DetalheItem({ item: i, pessoas, nomeResp, ...p }: PropsTrabalho & { ite
   const [erroHist, setErroHist] = useState<string | null>(null);
   const [acao, setAcao] = useState<"andamento" | "mensagem" | "editar" | null>(null);
   const alvo = i.alvo;
+  void pessoas;
 
   useEffect(() => {
     if (!alvo || alvo.tipo === "atendimento") return;
@@ -240,67 +395,64 @@ function DetalheItem({ item: i, pessoas, nomeResp, ...p }: PropsTrabalho & { ite
     void chamarApi<{ eventos: EventoHist[] }>(`/api/fila/historico?tipo=${alvo.tipo}&id=${alvo.id}&ler=1`, "GET").then((r) => (r.ok ? setEventos(r.data.eventos) : setErroHist(r.erro)));
   }, [alvo]);
 
-  if (alvo?.tipo === "atendimento") return <div className="mt-3 border-t border-border pt-3"><ConferirAtendimento item={i} gestao={p.gestao} /></div>;
+  if (alvo?.tipo === "atendimento") return <div className="pt-4"><ConferirAtendimento item={i} gestao={p.gestao} /></div>;
   const aberta = i.status !== "concluida";
   const ROT_AGUARDANDO = { paciente: "Aguardando paciente", gestao: "Aguardando gestão" } as const;
   return (
-    <div className="mt-3 flex flex-col gap-4 border-t border-border pt-3">
-      <section>
-        <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">O que fazer</h3>
-        <dl className="flex flex-col gap-1">
+    <div className="flex flex-col gap-4 pt-4">
+      <Bloco titulo="O que fazer">
+        <dl>
           <Linha k="Ação" v={i.titulo} />
           <Linha k={i.semPaciente ? "Assunto" : "Paciente"} v={i.pacienteNome} />
           <Linha k="Contexto" v={i.contexto} />
           <Linha k="Orientação da gestão" v={i.orientacao} />
           <Linha k="Resultado esperado" v={i.resultadoEsperado} />
-          <Linha k="Ocorrência" v={i.tipo === "recuperacao_falta" ? (i.ocorrencia ? `${i.ocorrencia === "falta" ? "Falta" : "Cancelamento"}${i.dataOcorrencia ? ` em ${dataBr(i.dataOcorrencia)}` : ""}` : <span className="text-important">não informada — confira antes de agir</span>) : undefined} />
+          <Linha k="Ocorrência" v={i.tipo === "recuperacao_falta" ? (i.ocorrencia ? `${i.ocorrencia === "falta" ? "Falta" : "Cancelamento"}${i.dataOcorrencia ? ` em ${dataBr(i.dataOcorrencia)}` : ""}` : <span className="text-important">Não informada — confira antes de agir</span>) : undefined} />
           <Linha k="Atendimento de referência" v={i.tipo === "marco" && i.dataAtendimento ? dataBr(i.dataAtendimento) : undefined} />
           <Linha k="Prazo original" v={i.prazoOriginal && i.prazoOriginal !== i.due ? dataBr(i.prazoOriginal) : undefined} />
-          <Linha k="Responsável" v={nomeResp ?? <span className="text-important">sem responsável</span>} />
           <Linha k="Prioridade" v={i.alvo?.tipo === "tarefa" ? ROTULO_PRIORIDADE[i.prioridade ?? "normal"] : undefined} />
-          <Linha k="Prazo" v={dataBr(i.due)} />
           <Linha k="Origem" v={i.origem ? `${i.origem}${i.origemData ? ` · informação de ${dataBr(i.origemData)}` : ""}` : undefined} />
-          <Linha k="A conferir" v={i.aConferir?.length ? <span className="text-important">{i.aConferir.join(", ")} (dado pendente de conferência)</span> : undefined} />
+          <Linha k="A conferir" v={i.aConferir?.length ? <span className="text-important">{i.aConferir.join(", ")} (pendente de conferência)</span> : undefined} />
         </dl>
-      </section>
+      </Bloco>
 
-      <section>
-        <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">O que aconteceu</h3>
-        {erroHist && <p className="text-sm text-critical">Não consegui carregar o histórico: {erroHist}</p>}
-        {!erroHist && !eventos && <p className="text-sm text-text-muted">Carregando histórico…</p>}
+      <Bloco titulo="O que aconteceu">
+        {erroHist && <p role="alert" className="text-sm text-critical">Não consegui carregar o histórico: {erroHist}</p>}
+        {!erroHist && !eventos && <p className="text-sm text-text-muted" aria-live="polite">Carregando histórico…</p>}
         {eventos && !eventos.length && <p className="text-sm text-text-muted">Nenhum registro ainda.</p>}
         {eventos && eventos.length > 0 && (
-          <ol className="flex flex-col gap-1.5">
+          <ol className="relative ml-1.5 border-l border-border pl-4">
             {eventos.map((e) => (
-              <li key={e.id} className={clsx("rounded-[8px] border px-2.5 py-1.5 text-sm", e.kind === "nota" ? "border-accent/40 bg-accent-soft/40" : "border-border")}>
-                <span className="text-xs text-text-muted">{e.registradoEm ? horaBr(e.registradoEm) : dataBr(e.occurredOn)} · {e.autor}</span>
-                <span className="ml-1.5 text-xs font-semibold text-text-secondary">{rotuloEvento(e)}</span>
-                {e.notes && <p className="text-text-primary">{e.notes}</p>}
+              <li key={e.id} className="relative pb-3 last:pb-0">
+                <span aria-hidden className={clsx("absolute -left-[21px] top-1.5 h-2 w-2 rounded-full border-2 border-surface", e.kind === "nota" ? "bg-accent" : "bg-border-strong")} />
+                <p className="text-[12.5px] text-text-muted">
+                  <span className="font-medium text-text-secondary">{rotuloEvento(e)}</span> · {e.autor} · {e.registradoEm ? horaBr(e.registradoEm) : dataBr(e.occurredOn)}
+                </p>
+                {e.notes && <p className="text-[14px] text-text-primary">{e.notes}</p>}
               </li>
             ))}
           </ol>
         )}
-      </section>
+      </Bloco>
 
-      <section>
-        <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">O que vem agora</h3>
-        <dl className="flex flex-col gap-1">
-          <Linha k="Situação" v={i.status === "concluida" ? `Concluída${i.detalhe ? ` — ${i.detalhe}` : ""}` : i.status === "aguardando" ? ROT_AGUARDANDO[i.aguardando ?? "paciente"] : "Aberta / a fazer"} />
-          <Linha k="Próxima ação" v={aberta ? i.proximaAcao ?? <span className="text-text-muted">não definida — a ação é a do título</span> : undefined} />
-          <Linha k="Responsável" v={aberta ? nomeResp ?? "—" : undefined} />
+      <Bloco titulo="O que vem agora">
+        <dl>
+          <Linha k="Situação" v={i.status === "concluida" ? `Concluída${i.detalhe ? ` — ${i.detalhe}` : ""}` : i.status === "aguardando" ? ROT_AGUARDANDO[i.aguardando ?? "paciente"] : "Aberta — a fazer"} />
+          <Linha k="Próxima ação" v={aberta ? i.proximaAcao ?? <span className="text-text-muted">A ação do título</span> : undefined} />
+          <Linha k="Responsável" v={aberta ? nomeResp ?? <span className="font-medium text-important">Sem responsável</span> : undefined} />
           <Linha k={i.status === "aguardando" ? "Revisar em" : "Prazo"} v={aberta ? dataBr(i.due) : undefined} />
         </dl>
-      </section>
+      </Bloco>
 
       {aberta && (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="fb-chip" data-ativo={acao === "andamento"} onClick={() => setAcao(acao === "andamento" ? null : "andamento")}>Registrar andamento</button>
+        <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+          <Button type="button" variante={acao === "andamento" ? "primario" : "secundario"} aria-pressed={acao === "andamento"} onClick={() => setAcao(acao === "andamento" ? null : "andamento")}>Registrar andamento</Button>
           {i.alvo?.tipo === "tarefa" && (
-            <button type="button" className="fb-chip" data-ativo={acao === "mensagem"} onClick={() => setAcao(acao === "mensagem" ? null : "mensagem")}>
-              {p.gestao ? "Orientar / responder" : "Pedir orientação à gestão"}
-            </button>
+            <Button type="button" variante={acao === "mensagem" ? "primario" : "secundario"} aria-pressed={acao === "mensagem"} onClick={() => setAcao(acao === "mensagem" ? null : "mensagem")}>
+              {p.gestao ? "Orientar / responder" : "Pedir orientação"}
+            </Button>
           )}
-          {p.gestao && i.alvo?.tipo === "tarefa" && <button type="button" className="fb-chip" data-ativo={acao === "editar"} onClick={() => setAcao(acao === "editar" ? null : "editar")}>Editar tarefa</button>}
+          {p.gestao && i.alvo?.tipo === "tarefa" && <Button type="button" variante={acao === "editar" ? "primario" : "secundario"} aria-pressed={acao === "editar"} onClick={() => setAcao(acao === "editar" ? null : "editar")}>Editar tarefa</Button>}
         </div>
       )}
       {acao === "andamento" && <PainelAndamento item={i} hoje={p.hoje} itens={p.itens} onSalvo={() => setAcao(null)} />}

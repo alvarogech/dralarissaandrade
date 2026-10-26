@@ -9,10 +9,18 @@ const config: Config = {
       md: "768px",
       lg: "1024px",
       xl: "1280px",
+      "2xl": "1440px",
     },
     extend: {
       colors: {
         ink: "var(--color-ink)",
+        graphite: "#252827",
+        canvas: "#f5f2ed",
+        bordeaux: "#642e35",
+        cream: "#f1ede5",
+        "surface-hover": "var(--color-surface-hover)",
+        "border-strong": "var(--color-border-strong)",
+        "text-disabled": "var(--color-text-disabled)",
         surface: "var(--color-surface)",
         "surface-raised": "var(--color-surface-raised)",
         border: "var(--color-border)",
@@ -21,6 +29,7 @@ const config: Config = {
         "text-muted": "var(--color-text-muted)",
         accent: {
           DEFAULT: "var(--color-accent)",
+          hover: "var(--color-accent-hover)",
           soft: "var(--color-accent-soft)",
         },
         critical: {
@@ -46,9 +55,14 @@ const config: Config = {
       },
       borderRadius: {
         sm: "4px",
+        control: "var(--radius-control)",
+        card: "var(--radius-card)",
         DEFAULT: "8px",
         md: "10px",
         lg: "14px",
+      },
+      boxShadow: {
+        raised: "var(--shadow-raised)",
       },
       maxWidth: {
         cockpit: "1180px",

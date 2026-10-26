@@ -9,7 +9,7 @@ export default function Erro({ error, reset }: { error: Error & { digest?: strin
     console.error("[fila] erro ao renderizar fechamento", error.digest ?? "", error);
   }, [error]);
   return (
-    <div className="tema-feedback min-h-screen p-6">
+    <div className="tema-la min-h-screen p-6 md:p-10">
       <div className="mx-auto max-w-2xl">
         <Indisponivel titulo="Fechamento" motivo={`Ocorreu um erro inesperado ao carregar a página${error.digest ? ` (código ${error.digest})` : ""}.`} onTentar={reset} />
       </div>

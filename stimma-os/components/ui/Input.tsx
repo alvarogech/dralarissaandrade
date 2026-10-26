@@ -4,7 +4,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   return (
     <input
       className={clsx(
-        "w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-accent",
+        "min-h-10 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted hover:border-text-muted focus:border-accent focus:ring-2 focus:ring-accent-soft disabled:bg-surface-raised disabled:text-text-disabled",
         className
       )}
       {...props}

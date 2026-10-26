@@ -9,7 +9,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
  * protegida sai do histórico, e o "Voltar" cai no middleware, que exige login de novo.
  * Qualquer chamada de API depois da saída responde 401.
  */
-export function SairButton({ className }: { className?: string }) {
+export function SairButton({ className, escuro }: { className?: string; escuro?: boolean }) {
   const [saindo, setSaindo] = useState(false);
   const [erro, setErro] = useState(false);
 
@@ -30,7 +30,11 @@ export function SairButton({ className }: { className?: string }) {
 
   return (
     <button type="button" onClick={sair} disabled={saindo} title={erro ? "Sessão local encerrada" : undefined}
-      className={clsx("rounded-sm border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-raised disabled:opacity-60", className)}>
+      className={clsx(
+        "inline-flex min-h-9 items-center rounded-control px-3 text-sm transition-colors disabled:opacity-60",
+        escuro ? "text-cream/80 hover:bg-white/10 hover:text-white" : "border border-border-strong text-text-secondary hover:bg-surface-hover",
+        className,
+      )}>
       {saindo ? "Saindo…" : "Sair"}
     </button>
   );

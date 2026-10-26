@@ -46,14 +46,14 @@ export const ROTULO_TIPO: Record<string, string> = {
 
 export function Campo({ label, largo, children }: { label: string; largo?: boolean; children: React.ReactNode }) {
   return (
-    <label className={clsx("flex flex-col gap-1 text-xs text-text-secondary", largo && "sm:col-span-2")}>
+    <label className={clsx("flex flex-col gap-1.5 text-[12.5px] font-medium text-text-secondary", largo && "sm:col-span-2")}>
       {label}
       {children}
     </label>
   );
 }
 
-export const classeInput = "w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-accent";
+export const classeInput = "min-h-10 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted hover:border-text-muted focus:border-accent focus:ring-2 focus:ring-accent-soft disabled:bg-surface-raised";
 
 const ROTULO_EVENTO: Record<string, string> = {
   contato: "Contato", resposta: "Resposta", agendamento_obtido: "Agendamento", cancelamento: "Faltou", recebimento_confirmado: "Recebimento",

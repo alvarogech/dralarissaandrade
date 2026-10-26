@@ -21,9 +21,10 @@ export default async function EntradaPage() {
   if (!ctx.ator.gestao) redirect("/trabalho"); // área só da gestão (as rotas também checam o papel)
   return (
     <FilaShell atual="Entrada e tarefas" demo={ctx.demo} gestao>
-      <header className="mb-6">
-        <h1 className="font-serif text-2xl text-text-primary">Entrada e tarefas</h1>
-        <p className="text-sm text-text-secondary">Cole levantamentos, revise e publique propostas, crie e edite tarefas. Nada é publicado sem sua confirmação.</p>
+      <header className="mb-8">
+        <p className="fb-eyebrow">Gestão</p>
+        <h1 className="fb-titulo mt-2">Entrada e tarefas</h1>
+        <p className="mt-1.5 text-sm text-text-secondary">Cole levantamentos, revise e publique propostas, crie e edite tarefas. Nada é publicado sem sua confirmação.</p>
       </header>
       <GestaoView iaDisponivel={iaConfigurada()} />
     </FilaShell>

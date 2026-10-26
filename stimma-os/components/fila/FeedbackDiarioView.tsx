@@ -43,7 +43,7 @@ function Secao({ n, titulo, resumo, tom, abertaInicial = false, children }: { n:
       <button type="button" onClick={() => setAberta(!aberta)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left" aria-expanded={aberta}>
         <span className="fb-num">{n}</span>
         <span className="min-w-0 flex-1">
-          <span className="block font-serif text-[19px] leading-tight text-text-primary">{titulo}</span>
+          <span className="block font-serif text-[22px] font-medium leading-tight text-text-primary">{titulo}</span>
           {resumo && <span className={clsx("mt-0.5 block text-xs", tom === "ok" ? "text-opportunity" : "text-text-muted")}>{resumo}</span>}
         </span>
         <span className="text-text-muted">{aberta ? "▴" : "▾"}</span>
@@ -124,10 +124,10 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
 
   return (
     <ProvedorFila valor={{ hoje, proximoDiaUtil: f.proximoDia, usuarioId, perfis, pacientes, itens }}>
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="fb-eyebrow">Dra. Larissa Andrade · Fechamento do dia</p>
-          <h1 className="font-serif text-[26px] leading-tight text-text-primary">Feedback diário <span className="px-1 text-accent">|</span> {usuario}</h1>
+          <p className="fb-eyebrow">Fechamento do dia</p>
+          <h1 className="fb-titulo mt-2">Feedback diário <span className="px-1 text-accent">|</span> {usuario}</h1>
         </div>
         <div className="flex flex-wrap items-end gap-3 text-sm">
           <div>
@@ -146,7 +146,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
 
       {novo && (
         <section className="fb-card mb-4 p-4">
-          <p className="mb-3 font-serif text-[19px] text-text-primary">Novo registro do dia</p>
+          <p className="mb-3 font-serif text-[22px] font-medium text-text-primary">Novo registro do dia</p>
           <FormRegistro key={novo.chave} alvos={[]} tipoInicial={novo.tipo} onSalvo={() => setNovo(null)} onCancelar={() => setNovo(null)} />
         </section>
       )}
@@ -245,7 +245,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
             </div>
             <div className="grid grid-cols-4 gap-2 border-b border-border pb-3">
               {([["Registros", f.contadores.registros], ["Contatos", f.contadores.tentativasContato], ["Respostas", f.contadores.respostas], ["Resolvidos", f.contadores.resolvidos]] as const).map(([k, v]) => (
-                <div key={k}><p className="text-[9px] uppercase tracking-wide text-text-muted">{k}</p><p className="font-serif text-[26px] leading-none text-text-primary">{v}</p></div>
+                <div key={k}><p className="text-[11.5px] text-text-muted">{k}</p><p className="font-serif text-[30px] font-medium leading-none tabular-nums text-text-primary">{v}</p></div>
               ))}
             </div>
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -308,14 +308,14 @@ function Entrega({ entrega, textoAoVivo, eventosAoVivo, hoje }: { entrega: Estad
   return (
     <div className="fb-card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-serif text-[20px] text-text-primary">Entrega do feedback</h2>
+        <h2 className="font-serif text-[22px] font-medium text-text-primary">Entrega do feedback</h2>
         <span className="text-xs text-text-muted">{textoSituacaoEntrega(entrega.situacao)}</span>
       </div>
       <p className="mt-1 text-sm">
         <span className={clsx("rounded-full px-2 py-0.5 text-xs", estado === "entregue" ? "bg-opportunity-bg text-opportunity" : estado === "gerado" ? "bg-accent-soft text-accent" : "bg-surface-raised text-text-secondary")}>
           {ROTULO_ESTADO[estado]}{ultima ? ` · versão ${ultima.versao}` : ""}
         </span>
-        {entregue?.entregueEm && <span className="ml-2 text-xs text-text-muted">versão {entregue.versao} entregue {horaBr(entregue.entregueEm)}</span>}
+        {entregue?.entregueEm && <span className="ml-2 text-xs text-text-muted">{entregue.versao !== ultima?.versao ? `versão ${entregue.versao} ` : ""}entregue {horaBr(entregue.entregueEm)}</span>}
       </p>
       {entregue?.ajusteSolicitadoEm && !entrega.versoes.some((v) => v.versao > entregue.versao) && (
         <div className="mt-2 rounded-[8px] border border-important bg-important-bg p-2 text-sm text-important">
@@ -353,7 +353,7 @@ function Entrega({ entrega, textoAoVivo, eventosAoVivo, hoje }: { entrega: Estad
 function HistoricoFeedbacks({ historico }: { historico: FeedbackComRegistros[] }) {
   return (
     <section id="feedbacks-anteriores" className="mt-6">
-      <h2 className="mb-2 font-serif text-[20px] text-text-primary">Feedbacks anteriores</h2>
+      <h2 className="mb-2 font-serif text-[22px] font-medium text-text-primary">Feedbacks anteriores</h2>
       {!historico.length && <p className="text-sm text-text-muted">Nenhum feedback dos últimos 30 dias.</p>}
       <ul className="flex flex-col gap-2">
         {historico.map((h) => (

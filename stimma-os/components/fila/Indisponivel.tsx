@@ -12,8 +12,8 @@ export function Indisponivel({ titulo, motivo, onTentar }: { titulo: string; mot
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   return (
-    <div role="alert" className="rounded-[14px] border border-critical bg-critical-bg p-5">
-      <p className="font-serif text-[19px] text-critical">{titulo} indisponível no momento</p>
+    <div role="alert" className="rounded-card border border-critical bg-critical-bg p-5">
+      <p className="font-serif text-[22px] font-medium text-critical">{titulo} indisponível no momento</p>
       <p className="mt-1 text-sm text-text-secondary">{motivo}</p>
       <p className="mt-1 text-xs text-text-muted">Nada foi perdido: o que já estava registrado continua no banco.</p>
       <Button type="button" className="mt-3" loading={pendente} loadingText="Tentando…" onClick={() => (onTentar ? onTentar() : iniciar(() => router.refresh()))}>

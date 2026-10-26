@@ -68,10 +68,10 @@ export function TarefasGestaoView() {
         </label>
       </div>
       {criando && <NovaTarefaForm dados={dados} onCriada={() => { setCriando(false); void carregar(); }} />}
-      {!lista.length && <p className="rounded-md border border-border p-4 text-sm text-text-muted">Nenhuma tarefa.</p>}
+      {!lista.length && <p className="rounded-card border border-border p-4 text-sm text-text-muted">Nenhuma tarefa.</p>}
       <ul className="flex flex-col gap-2">
         {lista.map((t) => (
-          <li key={t.id} className="rounded-md border border-border p-3 text-sm">
+          <li key={t.id} className="rounded-card border border-border bg-surface p-4 text-sm">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium text-text-primary">{t.paciente}</span>
               <Badge variant={t.kind === "cobranca" ? "important" : "informative"}>{ROTULO_TIPO[t.kind] ?? t.kind}</Badge>
@@ -170,7 +170,7 @@ function NovaTarefaForm({ dados, onCriada }: { dados: Dados; onCriada: () => voi
   }
 
   return (
-    <form onSubmit={criar} className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-3">
+    <form onSubmit={criar} className="grid gap-2 rounded-card border border-border p-3 sm:grid-cols-3">
       <div className="flex flex-wrap gap-1.5 sm:col-span-3">
         {([["existente", "Paciente cadastrada"], ["nova", "Paciente nova"], ["assunto", "Assunto administrativo (sem paciente)"]] as const).map(([m, l]) => (
           <button key={m} type="button" className="fb-chip" data-ativo={modo === m} onClick={() => setModo(m)}>{l}</button>

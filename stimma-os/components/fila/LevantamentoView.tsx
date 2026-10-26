@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import clsx from "clsx";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { Classificacao, ItemPrevia } from "@/lib/fila/previa";
@@ -222,10 +223,26 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
     return p.classificacao === "novo" || p.classificacao === "atualizacao" || (p.classificacao === "vinculo_pendente" && (r?.acao === "vincular" || r?.acao === "nova")) || (p.classificacao === "possivel_duplicidade" && r?.acao === "aceitar");
   }).length : 0;
 
+  // Etapas reais do fluxo (só indicam onde se está; nenhuma é obrigatória a mais).
+  const etapa = resultado && !linhas.length ? 4 : previa ? 3 : linhas.length ? 2 : 1;
+  const ETAPAS = ["Colar levantamento", "Revisar propostas", "Conferir prévia", "Publicar"];
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
+      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Etapas da entrada">
+        {ETAPAS.map((t, k) => {
+          const n = k + 1;
+          const estado = n < etapa ? "feita" : n === etapa ? "atual" : "futura";
+          return (
+            <li key={t} aria-current={estado === "atual" ? "step" : undefined}
+              className={clsx("flex items-center gap-2 border-t-2 pt-2 text-[13px]", estado === "atual" ? "border-accent font-medium text-text-primary" : estado === "feita" ? "border-graphite text-text-secondary" : "border-border text-text-muted")}>
+              <span className="tabular-nums">{estado === "feita" ? "✓" : `${n}.`}</span>{t}
+            </li>
+          );
+        })}
+      </ol>
       {resultado && (
-        <div className="rounded-md border border-opportunity bg-opportunity-bg p-4 text-sm text-text-primary">
+        <div className="rounded-card border border-opportunity bg-opportunity-bg p-4 text-sm text-text-primary">
           <p className="font-medium">Publicado na fila da concierge.</p>
           <p>
             {resultado.tarefas} tarefa(s), {resultado.atendimentosConfirmados} atendimento(s) com os três marcos criados, {resultado.atendimentosPendentes} a conferir.
@@ -238,7 +255,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
 
       <section className="flex flex-col gap-3">
         <Campo label="Cole o levantamento (texto, Markdown ou JSON stimma-entrada-v1)">
-          <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={7} className={`${classeInput} font-mono text-xs`}
+          <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={9} className={`${classeInput} font-mono text-[12.5px] leading-relaxed`}
             placeholder={"Ex.: Joana Teste (cód. 877) — parcela 3/6 de R$ 450,00 vencida em 18/10, sem pagamento no SD.\nLia Exemplo (cód. 878) faltou à consulta de 18/10."} />
         </Campo>
         <Campo label="Origem da informação">
@@ -246,7 +263,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
         </Campo>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={converter} loading={carregando === "converter"} loadingText="Convertendo…" disabled={!texto.trim()}>Converter em propostas</Button>
-          <button type="button" onClick={() => { setLinhas((ls) => [...ls, linhaVazia()]); setPrevia(null); }} className="rounded-sm border border-border px-3 py-2 text-sm text-text-secondary hover:bg-surface-raised">
+          <button type="button" onClick={() => { setLinhas((ls) => [...ls, linhaVazia()]); setPrevia(null); }} className="fb-chip">
             + Item manual
           </button>
         </div>
@@ -261,7 +278,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
             const p = porIndice.get(i);
             const r = resolucoes[i];
             return (
-              <div key={l.uid} className="rounded-md border border-border p-3">
+              <div key={l.uid} className="rounded-card border border-border bg-surface p-4">
                 <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
                   <span className="text-text-muted">#{i + 1}</span>
                   {salvos?.aplicados.includes(i) ? <Badge variant="opportunity">Já publicado</Badge> : p && <Badge variant={ROTULO[p.classificacao].variant}>{ROTULO[p.classificacao].label}</Badge>}

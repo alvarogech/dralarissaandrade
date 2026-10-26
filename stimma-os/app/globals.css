@@ -2,48 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design system "Arquitetura do Olhar" (identidade Dra. Larissa Andrade).
+ * Paleta de marca → tokens semânticos. Contraste conferido (WCAG 2.2 AA):
+ *  texto principal #252827 / canvas 13,3:1 · secundário #4A4744 8,3:1 · apagado #6B645D 5,2:1
+ *  bordô #642E35 / branco 10,6:1. #827B74 (muted da marca) só em elementos não textuais.
+ * Tipografia: Cormorant Garamond (serifa editorial, títulos) + Inter (funcional) — alternativas
+ * livres a Canela Deck / Neue Haas Grotesk, que não têm licença no projeto.
+ */
 :root {
-  --color-ink: #0b0c0e;
+  /* marca */
+  --color-graphite: #252827;
+  --color-canvas: #f5f2ed;
+  --color-bordeaux: #642e35;
+  --color-brand-muted: #827b74;
+  --color-cream: #f1ede5;
+
+  /* semânticos */
+  --color-ink: var(--color-graphite);
   --color-surface: #ffffff;
-  --color-surface-raised: #f7f7f8;
-  --color-border: #e6e6e9;
-  --color-text-primary: #16171a;
-  --color-text-secondary: #55575e;
-  --color-text-muted: #8a8d94;
+  --color-surface-raised: #faf8f4;
+  --color-surface-hover: #f7f4ef;
+  --color-border: #e3ded7;
+  --color-border-strong: #cfc8be;
+  --color-text-primary: #252827;
+  --color-text-secondary: #4a4744;
+  --color-text-muted: #6b645d;
+  --color-text-disabled: #a59e96;
 
-  --color-accent: #6b4e3d;
-  --color-accent-soft: #f1e9e3;
+  --color-accent: var(--color-bordeaux);
+  --color-accent-hover: #521f27;
+  --color-accent-soft: #f4eaeb;
+  --color-focus: #642e35;
 
-  --color-critical: #b3261e;
-  --color-critical-bg: #fbeceb;
-  --color-important: #a15c00;
-  --color-important-bg: #fdf1e0;
-  --color-opportunity: #1f6f4a;
-  --color-opportunity-bg: #e9f5ef;
-  --color-informative: #3a5ba0;
-  --color-informative-bg: #eaf0fb;
+  --color-critical: #8e2f2f;
+  --color-critical-bg: #f8edec;
+  --color-important: #7a5214;
+  --color-important-bg: #f6efe2;
+  --color-opportunity: #2f5d4a;
+  --color-opportunity-bg: #e9f1ed;
+  --color-informative: #3f5566;
+  --color-informative-bg: #ecf0f3;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  /* escala (múltiplos de 4px), raios e elevação */
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --shadow-raised: 0 1px 2px rgba(37, 40, 39, 0.05), 0 4px 16px rgba(37, 40, 39, 0.04);
+  --control-height: 40px;
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-serif: var(--font-cormorant), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 }
 
+/* Telas legadas fora das áreas operacionais (ex.: pipeline) mantêm o modo escuro do sistema. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color-ink: #f5f5f6;
-    --color-surface: #101113;
-    --color-surface-raised: #17181b;
-    --color-border: #26282c;
-    --color-text-primary: #f2f2f3;
-    --color-text-secondary: #b4b6bc;
-    --color-text-muted: #7d7f86;
-
-    --color-accent: #d9b79e;
-    --color-accent-soft: #2a2321;
-
-    --color-critical-bg: #2a1613;
-    --color-important-bg: #2a2011;
-    --color-opportunity-bg: #10241a;
-    --color-informative-bg: #121d30;
+  :root:not(.forca-claro) {
+    --color-ink: #f2efea;
+    --color-surface: #171918;
+    --color-surface-raised: #1d201f;
+    --color-surface-hover: #232625;
+    --color-border: #2e3230;
+    --color-border-strong: #3c413e;
+    --color-text-primary: #f2efea;
+    --color-text-secondary: #c9c3bb;
+    --color-text-muted: #a39c94;
+    --color-accent: #c98d95;
+    --color-accent-hover: #d9a3aa;
+    --color-accent-soft: #2c1f21;
+    --color-focus: #c98d95;
+    --color-critical-bg: #2c1716;
+    --color-important-bg: #2a2111;
+    --color-opportunity-bg: #142219;
+    --color-informative-bg: #151d24;
   }
 }
 
@@ -51,37 +81,89 @@ body {
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Tema "Feedback diário" — mesmo padrão visual do feedback-concierge.html (tons claros, verde
-   discreto, títulos com serifa). Sempre claro, também no modo escuro do sistema. */
-.tema-feedback {
-  --color-ink: #1f2421;
+/* Serifa editorial com algarismos alinhados (os antigos da Cormorant leem 1 e 0 como I e O). */
+.font-serif, .fb-titulo {
+  --tw-numeric-figure: lining-nums;
+  font-variant-numeric: lining-nums;
+}
+
+/* Foco sempre visível para teclado (nunca removido sem substituto). */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Tema operacional (sempre claro): canvas marfim, superfícies brancas, grafite estrutural e bordô
+ * para seleção e ações prioritárias. Usado pelas telas de trabalho, entrada, feedbacks e login.
+ */
+.tema-la {
+  --color-ink: #252827;
   --color-surface: #ffffff;
-  --color-surface-raised: #fbfaf7;
-  --color-border: #e6e2d9;
-  --color-text-primary: #1f2421;
-  --color-text-secondary: #464c48;
-  --color-text-muted: #767b77;
-  --color-accent: #3d6b55;
-  --color-accent-soft: #e6efe9;
-  --color-critical: #8a3f3a;
-  --color-critical-bg: #f9eeeb;
-  --color-important: #86652a;
-  --color-important-bg: #f7f0e1;
-  --color-opportunity: #3d6b55;
-  --color-opportunity-bg: #e6efe9;
-  --color-informative: #4a5f6e;
-  --color-informative-bg: #eef2f4;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: #f6f4ef;
+  --color-surface-raised: #faf8f4;
+  --color-surface-hover: #f7f4ef;
+  --color-border: #e3ded7;
+  --color-border-strong: #cfc8be;
+  --color-text-primary: #252827;
+  --color-text-secondary: #4a4744;
+  --color-text-muted: #6b645d;
+  --color-accent: #642e35;
+  --color-accent-hover: #521f27;
+  --color-accent-soft: #f4eaeb;
+  --color-focus: #642e35;
+  --color-critical: #8e2f2f;
+  --color-critical-bg: #f8edec;
+  --color-important: #7a5214;
+  --color-important-bg: #f6efe2;
+  --color-opportunity: #2f5d4a;
+  --color-opportunity-bg: #e9f1ed;
+  --color-informative: #3f5566;
+  --color-informative-bg: #ecf0f3;
+  background: var(--color-canvas);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
   color-scheme: light;
 }
-.tema-feedback .fb-card { background: #ffffff; border: 1px solid #e6e2d9; border-radius: 14px; }
-.tema-feedback .fb-eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #767b77; }
-.tema-feedback .fb-num { width: 28px; height: 28px; border-radius: 9999px; border: 1px solid #d5d0c5; display: grid; place-items: center; font-size: 13px; color: #464c48; flex: none; }
-.tema-feedback .fb-chip { height: 34px; padding: 0 14px; border-radius: 9999px; border: 1px solid #d5d0c5; background: #fff; font-size: 13.5px; }
-.tema-feedback .fb-chip[data-ativo="true"] { background: #3d6b55; border-color: #3d6b55; color: #fff; }
+
+@layer components {
+  /* Superfície de trabalho: borda fina, raio discreto, sem sombra forte. */
+  .tema-la .fb-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-card); }
+  /* Sobretítulo editorial: caixa-alta com espaçamento moderado (legível, não decorativo). */
+  .tema-la .fb-eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); }
+  .tema-la .fb-num {
+    width: 28px; height: 28px; border-radius: 4px; border: 1px solid var(--color-border-strong);
+    display: grid; place-items: center; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); flex: none;
+  }
+  /* Chip de filtro/ação secundária: retangular, alvo de toque ≥ 32px, estado selecionado além da cor (peso + borda). */
+  .tema-la .fb-chip {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px;
+    border-radius: var(--radius-control); border: 1px solid var(--color-border-strong); background: var(--color-surface);
+    font-size: 13.5px; color: var(--color-text-secondary); transition: background-color .15s, border-color .15s, color .15s;
+  }
+  .tema-la .fb-chip:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+  .tema-la .fb-chip:disabled { opacity: .5; cursor: not-allowed; }
+  .tema-la .fb-chip[data-ativo="true"] { background: var(--color-graphite); border-color: var(--color-graphite); color: #fff; font-weight: 500; }
+  /* Título de página: serifa editorial, peso médio. */
+  .tema-la .fb-titulo { font-family: var(--font-serif); font-weight: 500; font-size: 32px; line-height: 1.1; letter-spacing: -0.005em; color: var(--color-text-primary); }
+  /* Linha fina de composição (régua arquitetônica). */
+  .tema-la .fb-regua { height: 1px; background: var(--color-border); }
+}
+
+@media (max-width: 767px) {
+  .tema-la .fb-titulo { font-size: 27px; }
+}

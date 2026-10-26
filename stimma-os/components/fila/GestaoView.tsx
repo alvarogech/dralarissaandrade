@@ -16,15 +16,16 @@ export function GestaoView({ iaDisponivel }: { iaDisponivel: boolean }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap gap-1">
+      <div role="tablist" aria-label="Área da entrada" className="flex w-full flex-wrap gap-1 border-b border-border">
         {([["levantamento", `Levantamento${linhas.length ? ` (${linhas.length})` : ""}`], ["feedback", "Feedback anterior"], ["tarefas", "Tarefas"]] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setAba(k)} className={clsx("rounded-sm px-3 py-1.5 text-sm", k === aba ? "bg-accent-soft font-medium text-text-primary" : "text-text-secondary hover:bg-surface-raised")}>
+          <button key={k} role="tab" aria-selected={k === aba} onClick={() => setAba(k)}
+            className={clsx("-mb-px shrink-0 border-b-2 px-3 py-2.5 text-sm transition-colors", k === aba ? "border-accent font-medium text-text-primary" : "border-transparent text-text-secondary hover:text-text-primary")}>
             {label}
           </button>
         ))}
       </div>
       {!iaDisponivel && (
-        <p className="rounded-md border border-border p-3 text-xs text-text-secondary">
+        <p className="rounded-card border border-border bg-surface-raised p-3 text-[13px] text-text-secondary">
           Conversão de texto livre por IA desativada neste servidor (falta configurar a chave). Funcionam: JSON estruturado, itens manuais e o feedback gerado pela plataforma.
         </p>
       )}

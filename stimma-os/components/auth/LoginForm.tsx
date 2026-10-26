@@ -130,29 +130,31 @@ export function LoginForm() {
   }
 
   const campoEmail = (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-text-secondary">E-mail</span>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[12.5px] font-medium text-text-secondary">E-mail</span>
       <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={codigoEnviado} />
     </label>
   );
 
   const mensagens = (
     <>
-      {error && <p role="alert" className="text-sm text-critical">{error}</p>}
-      {aviso && <p className="text-sm text-text-secondary">{aviso}</p>}
+      {error && <p role="alert" className="rounded-control border border-critical bg-critical-bg px-3 py-2 text-sm text-critical">{error}</p>}
+      {aviso && <p role="status" className="rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-text-secondary">{aviso}</p>}
     </>
   );
 
   return (
-    <div className="flex flex-col gap-4 text-left">
+    <div className="flex flex-col gap-5 text-left">
       {modo !== "recuperar" && (
-        <div className="grid grid-cols-2 gap-1 rounded-sm border border-border p-1 text-sm">
+        <div role="tablist" aria-label="Forma de entrar" className="grid grid-cols-2 gap-1 rounded-control border border-border bg-surface-raised p-1 text-sm">
           {(["senha", "codigo"] as const).map((m) => (
             <button
               key={m}
               type="button"
+              role="tab"
+              aria-selected={m === modo}
               onClick={() => trocarModo(m)}
-              className={m === modo ? "rounded-sm bg-accent-soft py-1.5 font-medium text-text-primary" : "rounded-sm py-1.5 text-text-secondary hover:bg-surface-raised"}
+              className={m === modo ? "min-h-9 rounded-[4px] bg-surface font-medium text-text-primary shadow-raised" : "min-h-9 rounded-[4px] text-text-secondary hover:text-text-primary"}
             >
               {m === "senha" ? "Senha" : "Código por e-mail"}
             </button>
@@ -163,13 +165,13 @@ export function LoginForm() {
       {modo === "senha" && (
         <form onSubmit={entrarComSenha} className="flex flex-col gap-4">
           {campoEmail}
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-text-secondary">Senha</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12.5px] font-medium text-text-secondary">Senha</span>
             <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>
           {mensagens}
           <Button type="submit" loading={loading} className="w-full">Entrar</Button>
-          <button type="button" onClick={() => trocarModo("recuperar")} className="text-center text-xs text-text-muted underline">
+          <button type="button" onClick={() => trocarModo("recuperar")} className="self-center text-[13px] text-text-secondary underline-offset-4 hover:text-text-primary hover:underline">
             Esqueci minha senha
           </button>
         </form>
@@ -186,8 +188,8 @@ export function LoginForm() {
       {modo === "codigo" && codigoEnviado && (
         <form onSubmit={confirmarCodigo} className="flex flex-col gap-4">
           {campoEmail}
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-text-secondary">Código de {OTP_DIGITOS} dígitos recebido por e-mail</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12.5px] font-medium text-text-secondary">Código de {OTP_DIGITOS} dígitos recebido por e-mail</span>
             <Input
               type="text"
               inputMode="numeric"
@@ -203,13 +205,13 @@ export function LoginForm() {
                 setCodigo(limparEntradaCodigo(e.clipboardData.getData("text")));
               }}
               onChange={(e) => setCodigo(limparEntradaCodigo(e.target.value))}
-              className="text-center text-lg tracking-[0.3em]"
+              className="text-center font-mono text-lg tracking-[0.3em]"
             />
             <span className="text-[11px] text-text-muted">{codigo.length}/{OTP_DIGITOS} — pode colar o código direto do e-mail.</span>
           </label>
           {mensagens}
           <Button type="submit" loading={loading} loadingText="Conferindo…" className="w-full">Entrar</Button>
-          <button type="button" onClick={() => trocarModo("codigo")} className="text-center text-xs text-text-muted underline">
+          <button type="button" onClick={() => trocarModo("codigo")} className="self-center text-[13px] text-text-secondary underline-offset-4 hover:text-text-primary hover:underline">
             Usar outro e-mail ou pedir novo código
           </button>
         </form>
@@ -221,7 +223,7 @@ export function LoginForm() {
           {campoEmail}
           {mensagens}
           <Button type="submit" loading={loading} loadingText="Enviando…" className="w-full">Enviar link</Button>
-          <button type="button" onClick={() => trocarModo("senha")} className="text-center text-xs text-text-muted underline">
+          <button type="button" onClick={() => trocarModo("senha")} className="self-center text-[13px] text-text-secondary underline-offset-4 hover:text-text-primary hover:underline">
             Voltar para o login
           </button>
         </form>

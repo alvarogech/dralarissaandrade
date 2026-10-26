@@ -496,3 +496,25 @@ Decisões:
 - **Código de acesso**: `lib/auth/otp.ts` (8 dígitos, texto, colagem com espaços/hífen).
 
 Migration 0014 (aditiva) precisa ser aplicada **antes** do deploy: o código seleciona as colunas e tabelas novas.
+
+## 2026-10-26 — Redesign "Arquitetura do Olhar" (identidade Dra. Larissa Andrade)
+
+- **Tokens** em `app/globals.css`: grafite #252827 (estrutura), canvas #F5F2ED (fundo), branco (superfícies), bordô
+  #642E35 (seleção e ação principal), borda #E3DED7. Contraste AA conferido; o "muted" da marca #827B74 (3,7:1)
+  fica só em elementos não textuais — texto apagado usa #6B645D (5,2:1). Estados (erro, atenção, sucesso, informação)
+  com fundo suave e sempre com texto. Escala de 4px, raio 6px (controles) / 8px (cards), sombra mínima.
+- **Tipografia**: Canela Deck e Neue Haas Grotesk não têm licença no projeto → Cormorant Garamond (títulos, números de
+  destaque, com algarismos alinhados) + Inter (todo o resto), auto-hospedadas por `next/font`.
+- **Tema operacional `.tema-la`** sempre claro; o modo escuro do sistema continua só nas telas legadas (pipeline).
+- **Monograma oficial** (arquivo enviado pela gestão) em `public/brand/` (creme e grafite) e no ícone da aba.
+- **Shell**: coluna grafite com monograma e navegação por perfil (item ativo com régua bordô + `aria-current`);
+  no celular, barra grafite curta com "Sair" e abas logo abaixo.
+- **/trabalho**: atrasadas, hoje e decisão da gestão em destaque; acompanhamento em linha secundária; busca, situação
+  e responsável sempre visíveis, tipo/origem/prioridade/prazo em "Mais filtros", filtros ativos removíveis e "Limpar
+  filtros". Cartão em quatro níveis (paciente → ação → situação e prazo → metadados), sinais em texto. Detalhe em
+  painel lateral a partir de 1280px; abaixo disso, no próprio cartão.
+- **/entrada**: régua das etapas reais (colar → revisar → conferir → publicar), abas em linha.
+- **/feedbacks**: números do dia gravados na entrega, "o que foi realizado" × "o que segue · decisões" lidos do mesmo
+  texto do WhatsApp (o texto copiado não muda), registros de origem em tabela.
+- **Login**: painel institucional grafite (monograma, assinatura) + formulário claro; no celular, faixa curta.
+- Nenhuma regra de negócio, contrato de API, migração, permissão ou autenticação foi alterada.

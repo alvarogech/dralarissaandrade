@@ -37,20 +37,21 @@ export default async function TrabalhoPage({ searchParams }: { searchParams: Rec
       ? { ...FILTROS_PADRAO, situacoes: ["atrasada", "hoje", "aguardando_gestao"] as const, responsavel: "todos" as const }
       : { ...FILTROS_PADRAO, responsavel: "eu" as const };
     return (
-      <FilaShell atual={atual} demo={ctx.demo} gestao={gestao}>
+      <FilaShell atual={atual} demo={ctx.demo} gestao={gestao} largo>
         <TrabalhoView
           hoje={hoje} proximoDiaUtil={proximoDiaUtil(hoje)} itens={dados.itens} eu={ctx.ator.id} gestao={gestao} perfis={perfis}
           pacientes={pacientes.map((p) => ({ id: p.id, nome: p.nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))}
           config={{ conciergeId: c.conciergeId, gestorId: c.gestorId, conciergeNome: c.conciergeNome, diasSemAtualizacao: c.diasSemAtualizacao }}
           feedbackHoje={fb ? { texto: textoSituacaoEntrega(fb.situacao), tipo: fb.situacao.tipo } : null}
           filtrosIniciais={filtrosDaQuery(searchParams, { ...base, situacoes: [...base.situacoes] })}
+          filtrosPadrao={{ ...base, situacoes: [...base.situacoes] }}
         />
       </FilaShell>
     );
   } catch (e) {
     console.error("[fila] /trabalho: falha ao carregar", e);
     return (
-      <FilaShell atual={atual} demo={ctx.demo} gestao={gestao}>
+      <FilaShell atual={atual} demo={ctx.demo} gestao={gestao} largo>
         <Indisponivel titulo={titulo} motivo={motivoIndisponivel(e)} />
       </FilaShell>
     );

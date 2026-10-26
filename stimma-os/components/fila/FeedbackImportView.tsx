@@ -79,7 +79,7 @@ export function FeedbackImportView({ adicionarAoLevantamento }: { adicionarAoLev
           </p>
           <ul className="flex flex-col gap-2">
             {resp.analise.linhas.map((l, i) => (
-              <li key={i} className="rounded-md border border-border p-3 text-sm">
+              <li key={i} className="rounded-card border border-border p-3 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={SITUACAO[l.situacao].variant}>{SITUACAO[l.situacao].label}</Badge>
                   {l.ref && <span className="text-xs text-text-muted">{l.ref}</span>}
@@ -111,7 +111,7 @@ export function FeedbackImportView({ adicionarAoLevantamento }: { adicionarAoLev
               <h3 className="text-sm font-medium text-text-primary">Sugestões da IA — revise uma a uma</h3>
               {!resp.propostas.length && <p className="text-sm text-text-muted">Nenhuma sugestão.</p>}
               {resp.propostas.map((p, i) => (
-                <div key={i} className="rounded-md border border-border p-3 text-sm">
+                <div key={i} className="rounded-card border border-border p-3 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={p.tipo === "revisar" ? "critical" : p.tipo === "nova_tarefa" ? "opportunity" : "informative"}>
                       {{ nova_tarefa: "Nova tarefa", atualizar_tarefa: "Atualizar tarefa", encerrar_tarefa: "Encerrar tarefa", revisar: "Revisar" }[p.tipo]}
