@@ -131,7 +131,8 @@ export async function converterLevantamento(texto: string, dataReferencia: strin
 }
 
 export interface PropostaContinuidade {
-  tipo: "nova_tarefa" | "atualizar_tarefa" | "encerrar_tarefa" | "revisar";
+  /** "duplicada" só sai da revisão determinística (lib/fila/continuidade.ts), nunca da IA. */
+  tipo: "nova_tarefa" | "atualizar_tarefa" | "encerrar_tarefa" | "revisar" | "duplicada";
   ref: string | null;
   nova_data: string | null;
   proxima_acao: string | null;

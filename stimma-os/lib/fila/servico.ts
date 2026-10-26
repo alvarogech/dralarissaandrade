@@ -8,6 +8,7 @@ import { lerFeedback, linhaSemConteudo } from "./feedback";
 import { CATEGORIAS, type EstadoDoDia, type EventoRow, type FilaConfig, type FilaStore, type MarcoRow, type NumerosDoDia, type Prioridade, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 import { categoriaDaTarefa, rotuloResponsavel, type EtapaClinica } from "./registro";
 import { responsavelEfetivo } from "./trabalho";
+import { resumirRotina } from "./rotina-itens";
 
 /**
  * Regras de negócio da fila. Os Route Handlers só autenticam e chamam daqui; o mesmo código
@@ -601,8 +602,12 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?:
   const desde = somarDias(hoje, -DIAS_CONCLUIDAS);
   const [marcos, tarefas, pendentes, perfis, config] = await Promise.all([store.marcosAtivos(desde), store.tarefasAtivas(desde), store.atendimentosPendentes(), store.perfis(), store.config()]);
   const idsTarefas = tarefas.map((t) => t.id);
-  const [ultimos, lidas] = await Promise.all([store.ultimosEventos(idsTarefas), eu ? store.leituras(eu, idsTarefas) : Promise.resolve({} as Record<string, string>)]);
-  const nomes = await store.nomesPacientes(idsDePacientes([...marcos, ...tarefas, ...pendentes]));
+  // Consultas independentes em paralelo (antes eram sequenciais).
+  const [ultimos, lidas, nomes] = await Promise.all([
+    store.ultimosEventos(idsTarefas),
+    eu ? store.leituras(eu, idsTarefas) : Promise.resolve({} as Record<string, string>),
+    store.nomesPacientes(idsDePacientes([...marcos, ...tarefas, ...pendentes])),
+  ]);
   const nome = (id: string) => nomes[id] ?? "Paciente";
   const nomePerfil = new Map(perfis.map((p) => [p.id, p.nome]));
 
@@ -683,8 +688,13 @@ export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo(),
   const pessoas = { eu: responsavel ?? "", conciergeId: carregada.config.conciergeId, gestorId: carregada.config.gestorId };
   const itens = responsavel ? carregada.itens.filter((i) => { const r = responsavelEfetivo(i, pessoas); return !r || r === responsavel || i.aguardando === "gestao"; }) : carregada.itens;
   const fila = responsavel ? montarFila(itens, dia) : carregada.fila;
-  const nomes = await store.nomesPacientes(idsDePacientes(eventos));
-  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos, fila, itens, nomes, numeros, estado });
+  const [nomes, linhasRotina, perfis] = await Promise.all([
+    store.nomesPacientes(idsDePacientes(eventos)),
+    responsavel ? store.rotina(responsavel, dia) : Promise.resolve([]),
+    responsavel ? store.perfis() : Promise.resolve([]),
+  ]);
+  const rotina = responsavel ? resumirRotina(linhasRotina, (r) => rotuloResponsavel(r ?? undefined, perfis)) : null;
+  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos, fila, itens, nomes, numeros, estado, rotina });
   return { fechamento, texto: textoWhatsapp(fechamento), eventos };
 }
 
@@ -821,6 +831,11 @@ export async function aplicarContinuidade(store: FilaStore, ator: Ator, p: { tar
 export async function salvarExpediente(store: FilaStore, ator: Ator, c: { diasExpediente?: unknown; horarioFechamento?: unknown; excecoes?: unknown; diasSemAtualizacao?: unknown }) {
   exigirGestao(ator, "configurar o expediente");
   const patch: Partial<FilaConfig> = {};
+  // Expediente só vale completo: ao menos um dia e o horário de fechamento (nada é presumido).
+  if (c.diasExpediente !== undefined || c.horarioFechamento !== undefined) {
+    if (!Array.isArray(c.diasExpediente) || !c.diasExpediente.length) throw new ErroRegra("Escolha ao menos um dia de expediente.");
+    if (typeof c.horarioFechamento !== "string" || !c.horarioFechamento) throw new ErroRegra("Informe o horário de fechamento.");
+  }
   if (c.diasExpediente !== undefined) {
     if (c.diasExpediente !== null && !(Array.isArray(c.diasExpediente) && c.diasExpediente.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))) throw new ErroRegra("Dias de expediente inválidos.");
     patch.diasExpediente = c.diasExpediente === null ? null : [...new Set(c.diasExpediente as number[])].sort();
@@ -839,4 +854,15 @@ export async function salvarExpediente(store: FilaStore, ator: Ator, c: { diasEx
   }
   await store.salvarConfig(patch, ator.id);
   await store.auditar({ actor: ator.email, action: "fila_expediente", target: "fila_config", after: patch });
+}
+
+/** Tarefas abertas com nome completo e identificadores do Simples Dental (comparação com o feedback anterior). */
+export async function tarefasAbertasDetalhadas(store: FilaStore) {
+  const tarefas = (await store.tarefasAtivas(hojeSaoPaulo())).filter((t) => !["completed", "cancelled"].includes(t.status));
+  const [nomes, pacientes] = await Promise.all([store.nomesPacientes(idsDePacientes(tarefas)), store.pacientes()]);
+  const ids = new Map(pacientes.map((p) => [p.id, [p.sd_codigo, p.sd_numero, p.sd_ficha_id].filter((x): x is string => !!x)]));
+  return tarefas.map((t) => ({
+    id: t.id, ref: refDoItem({ tipo: "tarefa", id: t.id }), paciente: t.patientId ? nomes[t.patientId] ?? "Paciente" : t.assunto ?? "Assunto",
+    idsSd: t.patientId ? ids.get(t.patientId) ?? [] : [], tipo: t.kind, titulo: t.title,
+  }));
 }

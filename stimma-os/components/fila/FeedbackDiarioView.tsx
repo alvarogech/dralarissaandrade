@@ -157,6 +157,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
             <span className="text-sm text-text-secondary">
               Seu trabalho: <strong className="text-text-primary">{meus.atrasada}</strong> atrasada(s) · <strong className="text-text-primary">{meus.hoje}</strong> para hoje ·{" "}
               <strong className="text-text-primary">{meus.aguardando_paciente}</strong> aguardando paciente · <strong className="text-text-primary">{meus.aguardando_gestao}</strong> aguardando gestão
+            {f.rotina && <><br />Rotina do dia: <strong className="text-text-primary">{f.rotina.feitos.length + f.rotina.naoSeAplica.length}</strong> marcados{f.rotina.impedimentos.length ? <> · <strong className="text-critical">{f.rotina.impedimentos.length}</strong> com impedimento</> : null} — entram no feedback automaticamente</>}
             </span>
             <span className="text-sm text-accent">Abrir Meu trabalho →</span>
           </a>
@@ -263,7 +264,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
             <p className="mt-2 text-[11px] leading-snug text-text-muted">Só os seus registros de hoje. Contatos = registros com contato realizado (um contato com vários marcos conta uma vez); respostas não somam como contato; agendamento não é comparecimento.</p>
           </div>
 
-          <Entrega entrega={entrega} textoAoVivo={fechamento.texto} eventosAoVivo={eventosDoDia} hoje={hoje} />
+          <Entrega entrega={entrega} textoAoVivo={fechamento.texto} eventosAoVivo={eventosDoDia} rotinaAoVivo={f.rotina?.assinatura ?? ""} hoje={hoje} />
         </aside>
       </div>
       <HistoricoFeedbacks historico={historico.filter((h) => h.dia !== hoje)} />
@@ -273,11 +274,12 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
 
 const ROTULO_ESTADO = { rascunho: "Rascunho", gerado: "Gerado — pronto para revisão", entregue: "Entregue à gestão" } as const;
 
-function Entrega({ entrega, textoAoVivo, eventosAoVivo, hoje }: { entrega: EstadoDoFeedback; textoAoVivo: string; eventosAoVivo: string[]; hoje: string }) {
+function Entrega({ entrega, textoAoVivo, eventosAoVivo, rotinaAoVivo, hoje }: { entrega: EstadoDoFeedback; textoAoVivo: string; eventosAoVivo: string[]; rotinaAoVivo: string; hoje: string }) {
   const router = useRouter();
   const ultima: FeedbackRow | undefined = [...entrega.versoes].sort((a, b) => b.versao - a.versao)[0];
   const entregue = entrega.versoes.filter((v) => v.status === "entregue").sort((a, b) => b.versao - a.versao)[0];
-  const desatualizado = ultima?.status === "gerado" && [...ultima.eventos].sort().join(",") !== [...eventosAoVivo].sort().join(",");
+  // Registros novos ou rotina alterada depois de gerar: a versão gerada não vale mais.
+  const desatualizado = ultima?.status === "gerado" && ([...ultima.eventos].sort().join(",") !== [...eventosAoVivo].sort().join(",") || String(ultima.contadores.rotina_assinatura ?? "") !== rotinaAoVivo);
   const estado = !ultima ? "rascunho" : ultima.status;
   const [idGerar, setIdGerar] = useState(() => crypto.randomUUID());
   const [ocupado, setOcupado] = useState<string | null>(null);
@@ -323,7 +325,7 @@ function Entrega({ entrega, textoAoVivo, eventosAoVivo, hoje }: { entrega: Estad
         </div>
       )}
       {entregue?.observacaoGestao && !entregue.ajusteSolicitadoEm && <p className="mt-2 text-sm text-text-secondary">Observação da gestão: “{entregue.observacaoGestao}”</p>}
-      {desatualizado && <p className="mt-2 text-xs text-important">Há registros novos desde que a versão foi gerada: gere de novo antes de entregar.</p>}
+      {desatualizado && <p className="mt-2 text-xs text-important">Há registros ou itens da rotina alterados desde que a versão foi gerada: gere de novo antes de entregar.</p>}
       <p className="mt-2 text-xs text-text-muted">{estado === "rascunho" || desatualizado ? "Prévia ao vivo, montada dos registros salvos hoje." : "Versão congelada para revisão e entrega."}</p>
       <pre className="mt-2 max-h-[50vh] overflow-auto whitespace-pre-wrap rounded-[10px] border border-border bg-surface-raised p-3 font-sans text-[13px] leading-relaxed text-text-primary">{textoMostrado}</pre>
       <div className="mt-3 flex flex-wrap items-center gap-2">

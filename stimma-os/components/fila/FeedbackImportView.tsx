@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { LinhaAnalisada } from "@/lib/fila/servico";
-import type { PropostaContinuidade } from "@/lib/fila/ia";
+import type { PropostaRevisada } from "@/lib/fila/continuidade";
 import { Campo, chamarApi, classeInput, dataBr } from "./comum";
 import { linhaDeItem, linhaVazia, type LinhaEditor } from "./LevantamentoView";
 
@@ -15,7 +15,7 @@ import { linhaDeItem, linhaVazia, type LinhaEditor } from "./LevantamentoView";
  */
 interface Resposta {
   analise: { dia: string | null; formatoDaPlataforma: boolean; linhas: LinhaAnalisada[] };
-  propostas: (PropostaContinuidade & { tarefaId?: string })[] | null;
+  propostas: PropostaRevisada[] | null;
   iaDisponivel: boolean;
   precisaDia: boolean;
 }
@@ -47,7 +47,7 @@ export function FeedbackImportView({ adicionarAoLevantamento }: { adicionarAoLev
     setEdicoes(Object.fromEntries((r.data.propostas ?? []).map((p, i) => [i, { novaData: p.nova_data ?? "", proximaAcao: p.proxima_acao ?? "", motivo: p.motivo ?? p.evidencia }])));
   }
 
-  async function aplicar(i: number, p: PropostaContinuidade & { tarefaId?: string }) {
+  async function aplicar(i: number, p: PropostaRevisada) {
     const e = edicoes[i]!;
     const diaFeedback = resp?.analise.dia ?? dia;
     const r = await chamarApi<{ ok: true }>("/api/fila/feedback/aplicar", "POST", { tarefaId: p.tarefaId, tipo: p.tipo, novaData: e.novaData || null, proximaAcao: e.proximaAcao || null, motivo: e.motivo, diaFeedback });
@@ -109,17 +109,18 @@ export function FeedbackImportView({ adicionarAoLevantamento }: { adicionarAoLev
           {resp.propostas && (
             <div className="flex flex-col gap-2">
               <h3 className="text-sm font-medium text-text-primary">Sugestões da IA — revise uma a uma</h3>
+              <p className="text-[12.5px] text-text-muted">Cada sugestão foi comparada com a fila atual: o motivo de incluir, ignorar ou tratar como duplicada aparece em cada item. Nada é aplicado sem o seu clique.</p>
               {!resp.propostas.length && <p className="text-sm text-text-muted">Nenhuma sugestão.</p>}
               {resp.propostas.map((p, i) => (
                 <div key={i} className="rounded-card border border-border p-3 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={p.tipo === "revisar" ? "critical" : p.tipo === "nova_tarefa" ? "opportunity" : "informative"}>
-                      {{ nova_tarefa: "Nova tarefa", atualizar_tarefa: "Atualizar tarefa", encerrar_tarefa: "Encerrar tarefa", revisar: "Revisar" }[p.tipo]}
+                    <Badge variant={p.tipo === "revisar" ? "critical" : p.tipo === "duplicada" ? "neutral" : p.tipo === "nova_tarefa" ? "opportunity" : "informative"}>
+                      {{ nova_tarefa: "Nova tarefa", atualizar_tarefa: "Atualizar tarefa", encerrar_tarefa: "Encerrar tarefa", revisar: "Revisar", duplicada: "Já na fila — ignorada" }[p.tipo]}
                     </Badge>
                     {p.ref && <span className="text-xs text-text-muted">{p.ref}</span>}
                   </div>
                   <p className="mt-1 text-xs text-text-muted">Trecho: “{p.evidencia}”</p>
-                  {p.tipo === "revisar" && <p className="text-text-secondary">{p.motivo}</p>}
+                  <p className="mt-1 text-[13px] text-text-secondary"><span className="font-medium">Motivo:</span> {p.razao}</p>
                   {p.tipo === "nova_tarefa" && p.item && (
                     <button type="button" className="mt-1 text-xs text-text-muted underline" onClick={() => adicionarAoLevantamento([linhaDeItem({ ...p.item!, evidencia: p.evidencia })])}>
                       Levar para o Levantamento (revisar e publicar lá)

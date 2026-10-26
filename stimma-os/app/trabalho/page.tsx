@@ -2,10 +2,15 @@ import { redirect } from "next/navigation";
 import { FilaShell } from "@/components/fila/FilaShell";
 import { Indisponivel } from "@/components/fila/Indisponivel";
 import { TrabalhoView } from "@/components/fila/TrabalhoView";
+import { RotinaView } from "@/components/fila/RotinaView";
+import { AgendaView } from "@/components/fila/AgendaView";
+import { AreaIndisponivel } from "@/components/fila/AreaIndisponivel";
+import { carregarAgenda } from "@/lib/fila/agenda";
+import { carregarRotina } from "@/lib/fila/rotina";
 import { motivoIndisponivel, sessaoDaPagina } from "@/lib/fila/acesso";
 import { hojeSaoPaulo } from "@/lib/fila/datas";
 import { estadoFeedback } from "@/lib/fila/entrega";
-import { textoSituacaoEntrega } from "@/lib/fila/expediente";
+import { expedienteConfigurado, textoSituacaoEntrega } from "@/lib/fila/expediente";
 import { proximoDiaUtil } from "@/lib/fila/fechamento";
 import { carregarFila } from "@/lib/fila/servico";
 import { FILTROS_PADRAO, filtrosDaQuery } from "@/lib/fila/trabalho";
@@ -29,10 +34,29 @@ export default async function TrabalhoPage({ searchParams }: { searchParams: Rec
   const atual = gestao ? "Trabalho da Gabi" : "Meu trabalho";
   try {
     const hoje = hojeSaoPaulo();
-    const [dados, perfis, pacientes] = await Promise.all([carregarFila(ctx.store, hoje, ctx.ator.id), ctx.store.perfis(), ctx.store.pacientes()]);
+    const config = await ctx.store.config(); // lida uma vez por requisição (cache do store)
+    const responsavel = gestao ? config.conciergeId : ctx.ator.id;
+    // Tudo em paralelo; rotina e agenda são áreas próprias: se falharem, só elas mostram erro.
+    const [dados, perfis, pacientes, fb, agenda, rotina] = await Promise.all([
+      carregarFila(ctx.store, hoje, ctx.ator.id), ctx.store.perfis(), ctx.store.pacientes(),
+      responsavel ? estadoFeedback(ctx.store, responsavel, hoje) : Promise.resolve(null),
+      carregarAgenda(ctx.store, hoje).catch((e) => { console.error("[fila] /trabalho: agenda", e); return null; }),
+      responsavel ? carregarRotina(ctx.store, ctx.ator, { usuarioId: responsavel }).catch((e) => { console.error("[fila] /trabalho: rotina", e); return null; }) : Promise.resolve(null),
+    ]);
     const c = dados.config;
-    const responsavelFeedback = gestao ? c.conciergeId : ctx.ator.id;
-    const fb = responsavelFeedback ? await estadoFeedback(ctx.store, responsavelFeedback, hoje) : null;
+    const nomeConcierge = c.conciergeNome ?? "concierge";
+    // Tarefas abertas da responsável: um item da rotina pode apontar para elas em vez de duplicar.
+    const tarefasRotina = dados.itens
+      .filter((i) => i.alvo?.tipo === "tarefa" && i.status !== "concluida" && (!responsavel || i.responsavelId === responsavel))
+      .map((i) => ({ id: i.alvo!.id, rotulo: `${i.pacienteNome} — ${i.titulo}` }));
+    const antes = (
+      <>
+        {responsavel && (rotina
+          ? <RotinaView rotina={rotina} perfis={perfis} tarefas={tarefasRotina} hoje={hoje} titulo={gestao ? `Rotina da ${nomeConcierge}` : "Minha rotina de hoje"} abertaInicial={!gestao} />
+          : <AreaIndisponivel titulo="Rotina do dia" motivo="Não foi possível carregar a rotina agora (se for a primeira vez, a migration 0015 pode não ter sido aplicada)." />)}
+        {agenda ? <AgendaView agenda={agenda} /> : <AreaIndisponivel titulo="Agenda de hoje e amanhã" motivo="Não foi possível ler a agenda sincronizada. Confira a agenda no Simples Dental." />}
+      </>
+    );
     const base = gestao
       ? { ...FILTROS_PADRAO, situacoes: ["atrasada", "hoje", "aguardando_gestao"] as const, responsavel: "todos" as const }
       : { ...FILTROS_PADRAO, responsavel: "eu" as const };
@@ -45,6 +69,8 @@ export default async function TrabalhoPage({ searchParams }: { searchParams: Rec
           feedbackHoje={fb ? { texto: textoSituacaoEntrega(fb.situacao), tipo: fb.situacao.tipo } : null}
           filtrosIniciais={filtrosDaQuery(searchParams, { ...base, situacoes: [...base.situacoes] })}
           filtrosPadrao={{ ...base, situacoes: [...base.situacoes] }}
+          expedienteConfigurado={expedienteConfigurado(c)}
+          antes={antes}
         />
       </FilaShell>
     );

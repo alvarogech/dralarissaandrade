@@ -57,6 +57,7 @@ export function FeedbacksView({ hoje, dia, feedbacks, conciergeNome, situacaoHoj
         <div className="rounded-card border border-border bg-surface px-4 py-3">
           <p className="text-[12px] text-text-muted">Hoje · {dataBr(hoje)}</p>
           <p className="mt-0.5 text-sm font-medium text-text-primary">{situacaoHoje}</p>
+          {!expediente.diasExpediente?.length || !expediente.horarioFechamento ? <a href="#expediente" className="text-[13px] text-accent underline underline-offset-4">Configurar expediente</a> : null}
         </div>
       </header>
 
@@ -224,18 +225,22 @@ function Expediente({ inicial }: { inicial: Props["expediente"] }) {
 
   async function salvar() {
     setMsg(null);
+    // Nada é presumido: precisa de ao menos um dia e do horário de fechamento.
+    if (!dias.length) return setMsg({ ok: false, t: "Escolha ao menos um dia de expediente." });
+    if (!horario) return setMsg({ ok: false, t: "Informe o horário de fechamento." });
     setSalvando(true);
-    const r = await chamarApi("/api/fila/config", "POST", { diasExpediente: dias.length ? dias : null, horarioFechamento: horario || null, excecoes, diasSemAtualizacao: Number(semAtualizacao) });
+    const r = await chamarApi("/api/fila/config", "POST", { diasExpediente: dias, horarioFechamento: horario, excecoes, diasSemAtualizacao: Number(semAtualizacao) });
     setSalvando(false);
     if (!r.ok) return setMsg({ ok: false, t: r.erro });
-    setMsg({ ok: true, t: "Expediente salvo." });
+    setMsg({ ok: true, t: `Expediente salvo: ${dias.map((d) => DIAS[d]).join(", ")} · fechamento às ${horario}${excecoes.length ? ` · ${excecoes.length} exceção(ões)` : ""}. A cobrança do feedback passa a seguir este horário.` });
     router.refresh();
   }
 
   return (
-    <details className="fb-card p-5" open={!configurado}>
+    <details id="expediente" className="fb-card scroll-mt-6 p-5" open={!configurado}>
       <summary className="cursor-pointer font-serif text-[22px] font-medium text-text-primary">Expediente da concierge{configurado ? "" : <span className="ml-2 align-middle font-sans text-[13px] font-medium text-important">não configurado</span>}</summary>
-      <p className="mt-2 text-xs text-text-muted">Fuso America/Sao_Paulo. Sem dias e horário configurados, o sistema não cobra a entrega nem declara atraso.</p>
+      <p className="mt-2 text-xs text-text-muted">Fuso America/Sao_Paulo. Sem dias e horário configurados, o sistema não cobra a entrega nem declara atraso. Nenhum padrão é gravado automaticamente.</p>
+      {configurado && <p className="mt-1 text-[13px] text-text-secondary">Atual: {(inicial.diasExpediente ?? []).map((d) => DIAS[d]).join(", ")} · fechamento às {inicial.horarioFechamento}</p>}
       <div className="mt-3 flex flex-wrap gap-1.5">
         {DIAS.map((d, i) => (
           <button key={d} type="button" className="fb-chip" data-ativo={dias.includes(i)} onClick={() => setDias(dias.includes(i) ? dias.filter((x) => x !== i) : [...dias, i].sort())}>{d}</button>
@@ -256,7 +261,7 @@ function Expediente({ inicial }: { inicial: Props["expediente"] }) {
       )}
       <div className="mt-3 flex items-center gap-3">
         <Button type="button" loading={salvando} loadingText="Salvando…" onClick={salvar}>Salvar expediente</Button>
-        {msg && <span className={clsx("text-sm", msg.ok ? "text-opportunity" : "text-critical")}>{msg.t}</span>}
+        {msg && <span role={msg.ok ? "status" : "alert"} className={clsx("text-sm", msg.ok ? "text-opportunity" : "text-critical")}>{msg.t}</span>}
       </div>
     </details>
   );

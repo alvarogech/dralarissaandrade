@@ -114,6 +114,35 @@ export interface FeedbackRow {
   ajusteSolicitadoPor: string | null;
 }
 
+/** Item da rotina diária (migration 0015). Sem linha = "a fazer". */
+export interface RotinaItemRow {
+  userId: string;
+  dia: string;
+  itemKey: string;
+  estado: "a_fazer" | "feito" | "nao_se_aplica" | "impedimento";
+  motivo: string | null;
+  proximaAcao: string | null;
+  prazo: string | null;
+  responsavel: string | null;
+  tarefaId: string | null;
+  updatedBy: string;
+  updatedAt: string;
+}
+
+/** Compromisso sincronizado do Simples Dental (somente leitura). */
+export interface CompromissoAgenda {
+  id: string;
+  inicio: string;
+  fim: string | null;
+  status: "scheduled" | "confirmed" | "completed" | "cancelled" | "no_show" | "rescheduled";
+  paciente: string;
+  profissional: string | null;
+  motivo: string | null;
+  /** Sincronizado sem identificador do Simples Dental: precisa conferência humana. */
+  revisar: boolean;
+  sincronizadoEm: string | null;
+}
+
 /** Estado persistido de um lote de entrada (para retomar sem duplicar). */
 export interface LoteEstado {
   id: string;
@@ -199,6 +228,11 @@ export interface FilaStore {
   feedbacks(filtro: { dia?: string; responsavel?: string; desde?: string }): Promise<FeedbackRow[]>;
   feedback(id: string): Promise<FeedbackRow | null>;
   loteDoHash(hash: string): Promise<LoteEstado | null>;
+  rotina(userId: string, dia: string): Promise<RotinaItemRow[]>;
+  /** Último dia com rotina registrada antes de `dia` (para mostrar impedimentos que seguem). */
+  rotinaAnterior(userId: string, dia: string): Promise<{ dia: string; linhas: RotinaItemRow[] } | null>;
+  /** Agenda sincronizada (origem simples_dental_browser) entre dois dias, e a última sincronização concluída. */
+  agenda(de: string, ate: string): Promise<{ itens: CompromissoAgenda[]; ultimaSync: string | null }>;
 
   // escrita
   criarLote(l: { hash: string; origem: string; consultadoEm: string; criadoPor: string; itens: { index: number; tipo: string; chaveOrigem?: string; resultado: Classificacao; payload: unknown; resolution?: unknown }[] }): Promise<string>;
@@ -221,6 +255,7 @@ export interface FilaStore {
   salvarNumeros(dia: string, n: NumerosDoDia, ator: string): Promise<void>;
   salvarEstadoDoDia(dia: string, e: Partial<EstadoDoDia>, ator: string): Promise<void>;
   salvarConfig(c: Partial<FilaConfig>, ator: string): Promise<void>;
+  salvarItemRotina(r: RotinaItemRow): Promise<void>;
   marcarLido(tarefaId: string, userId: string): Promise<void>;
   /** Insere a versão (id do cliente; repetir não duplica). */
   inserirFeedback(f: FeedbackRow): Promise<void>;

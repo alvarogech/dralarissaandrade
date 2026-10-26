@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { hashConteudo } from "./previa";
 import { planejarAnulacao, planejarMarcos } from "./marcos";
 import type { ItemEntrada } from "./contrato";
-import { CONFIG_VAZIA, type AtendimentoRow, type EstadoDoDia, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type LoteEstado, type MarcoRow, type NumerosDoDia, type TarefaRow } from "./store";
+import { CONFIG_VAZIA, type AtendimentoRow, type CompromissoAgenda, type EstadoDoDia, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type LoteEstado, type MarcoRow, type NumerosDoDia, type RotinaItemRow, type TarefaRow } from "./store";
 
 /**
  * Store em memória: testes e modo demonstração (sem Supabase configurado). Espelha as regras
@@ -24,6 +24,9 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
   let config: FilaConfig = { ...CONFIG_VAZIA, ...configInicial };
   const leituras = new Map<string, string>();
   const feedbacks: FeedbackRow[] = [];
+  const rotinas: RotinaItemRow[] = [];
+  /** Demonstração/testes: agenda vazia e sem sincronização (nunca inventa compromissos). */
+  const agendaDemo: { itens: CompromissoAgenda[]; ultimaSync: string | null } = { itens: [], ultimaSync: null };
   const numeros = new Map<string, NumerosDoDia>();
   const estados = new Map<string, EstadoDoDia>();
   const auditoria: { action: string; target: string }[] = [];
@@ -145,6 +148,17 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
       const x = feedbacks.find((y) => y.id === id);
       return x ? { ...x } : null;
     },
+    async rotina(userId, d) {
+      return rotinas.filter((r) => r.userId === userId && r.dia === d).map((r) => ({ ...r }));
+    },
+    async rotinaAnterior(userId, d) {
+      const dias = [...new Set(rotinas.filter((r) => r.userId === userId && r.dia < d).map((r) => r.dia))].sort();
+      const ultimo = dias.pop();
+      return ultimo ? { dia: ultimo, linhas: rotinas.filter((r) => r.userId === userId && r.dia === ultimo).map((r) => ({ ...r })) } : null;
+    },
+    async agenda(de, ate) {
+      return { itens: agendaDemo.itens.filter((i) => i.inicio.slice(0, 10) >= de && i.inicio.slice(0, 10) <= ate), ultimaSync: agendaDemo.ultimaSync };
+    },
     async loteDoHash(hash) {
       const l = lotes.find((x) => x.hash === hash);
       if (!l) return null;
@@ -254,6 +268,11 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
     async salvarConfig(c) {
       config = { ...config, ...Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined)) };
     },
+    async salvarItemRotina(r) {
+      const i = rotinas.findIndex((x) => x.userId === r.userId && x.dia === r.dia && x.itemKey === r.itemKey);
+      if (i >= 0) rotinas[i] = { ...r };
+      else rotinas.push({ ...r });
+    },
     async marcarLido(tarefaId, userId) {
       leituras.set(`${tarefaId}|${userId}`, agora());
     },
@@ -271,7 +290,7 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
     },
   };
 
-  return { store, _dados: { pacientes, atendimentos, marcos, tarefas, eventos, lotes, auditoria, feedbacks }, falhaSimulada };
+  return { store, _dados: { pacientes, atendimentos, marcos, tarefas, eventos, lotes, auditoria, feedbacks, rotinas, agendaDemo }, falhaSimulada };
 }
 
 // Modo demonstração: uma instância por processo do servidor de desenvolvimento.

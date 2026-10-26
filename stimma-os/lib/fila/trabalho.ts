@@ -10,14 +10,15 @@ import type { ItemFila } from "./agrupamento";
  *  - hoje                → aberta (ou aguardando paciente com revisão marcada) para hoje;
  *  - aguardando_paciente → contato feito, revisão marcada para depois de hoje;
  *  - aguardando_gestao   → pergunta/impedimento com a gestão, qualquer data;
- *  - proxima             → aberta com data futura;
+ *  - proxima             → ação aberta com data futura (marcos só dentro da janela de 7 dias);
+ *  - marco_futuro        → marco de acompanhamento previsto para depois da janela (não é tarefa do dia);
  *  - concluida           → resolvida ou encerrada (recentemente).
  */
-export const SITUACOES_TRABALHO = ["atrasada", "hoje", "aguardando_paciente", "aguardando_gestao", "proxima", "concluida"] as const;
+export const SITUACOES_TRABALHO = ["atrasada", "hoje", "aguardando_paciente", "aguardando_gestao", "proxima", "marco_futuro", "concluida"] as const;
 export type SituacaoTrabalho = (typeof SITUACOES_TRABALHO)[number];
 
 export const ROTULO_SITUACAO_TRABALHO: Record<SituacaoTrabalho, string> = {
-  atrasada: "Atrasadas", hoje: "Hoje", aguardando_paciente: "Aguardando paciente", aguardando_gestao: "Aguardando gestão", proxima: "Próximas", concluida: "Concluídas",
+  atrasada: "Atrasadas", hoje: "Hoje", aguardando_paciente: "Aguardando paciente", aguardando_gestao: "Aguardando gestão", proxima: "Próximas ações", marco_futuro: "Marcos futuros", concluida: "Concluídas",
 };
 
 /** Marcos de acompanhamento só entram na lista padrão quando faltam até tantos dias (registro agrupado também usa). */
@@ -28,7 +29,8 @@ export function situacaoTrabalho(i: ItemFila, hoje: string): SituacaoTrabalho {
   if (i.status === "aguardando" && i.aguardando === "gestao") return "aguardando_gestao";
   if (i.due < hoje) return "atrasada";
   if (i.due === hoje) return "hoje";
-  return i.status === "aguardando" ? "aguardando_paciente" : "proxima";
+  if (i.status === "aguardando") return "aguardando_paciente";
+  return i.tipo === "marco" && i.due > somarDias(hoje, JANELA_MARCOS_DIAS) ? "marco_futuro" : "proxima";
 }
 
 export type Responsavel = "eu" | "concierge" | "gestor" | "sem" | "todos";

@@ -518,3 +518,32 @@ Migration 0014 (aditiva) precisa ser aplicada **antes** do deploy: o código sel
   texto do WhatsApp (o texto copiado não muda), registros de origem em tabela.
 - **Login**: painel institucional grafite (monograma, assinatura) + formulário claro; no celular, faixa curta.
 - Nenhuma regra de negócio, contrato de API, migração, permissão ou autenticação foi alterada.
+
+## 2026-10-26 — Rotina diária da concierge, agenda em leitura e indicadores separados
+
+- **Rotina** (`lib/fila/rotina-itens.ts` catálogo puro, `lib/fila/rotina.ts` regras, migration 0015 `daily_routine_items`):
+  20 itens fixos em três grupos (início, durante, fechamento), estado por usuário × dia (America/Sao_Paulo):
+  a fazer · feito · não se aplica · com impedimento (motivo e próxima ação obrigatórios — também por constraint;
+  prazo, responsável e tarefa relacionada opcionais). Dia novo começa do zero; impedimentos do último dia
+  registrado aparecem como aviso. Só o estado da conferência é gravado: sem valores, dados bancários, documentos
+  ou conteúdo clínico, e nenhum item cria tarefa por paciente (pode apontar para uma tarefa existente).
+  Concierge edita a própria rotina de hoje; gestão só consulta (POST da gestão = 403). Cada marcação vai para o
+  audit log com usuário e horário.
+- **Feedback**: a montagem do fechamento de uma pessoa inclui a seção "Rotina do dia" (concluídos, não se aplica,
+  impedimentos com motivo/próxima ação/responsável/prazo, ainda a fazer). A assinatura da rotina fica nos
+  contadores da versão gerada: mudar o checklist depois de gerar exige gerar de novo (mesma regra dos registros).
+  Nada é entregue, copiado ou enviado automaticamente.
+- **Indicadores**: nova situação `marco_futuro` (marco previsto para depois de 7 dias), separada de "Próximas
+  ações"; indicador "Sem responsável" com o mesmo universo da lista que abre. Marcos futuros só aparecem
+  expandidos quando escolhidos sozinhos.
+- **Agenda** (`lib/fila/agenda.ts`): leitura dos compromissos sincronizados (`appointments.source =
+  simples_dental_browser`) de hoje e amanhã e da última execução concluída de `agenda_sync`; sem sincronização no
+  dia, a tela manda conferir no Simples Dental. Nada é confirmado, remarcado ou inventado.
+- **Expediente**: salvar exige ao menos um dia e o horário; a gestão vê aviso com link quando não configurado;
+  nenhum padrão é gravado.
+- **Feedback anterior** (`lib/fila/continuidade.ts`): depois da IA, revisão determinística — nova tarefa igual a
+  uma aberta (mesma paciente e ação) vira "Já na fila — ignorada"; sem ação explícita vira "revisar"; "encerrar"
+  baseado só em contato vira acompanhamento. Cada sugestão mostra o motivo.
+- **Desempenho**: configuração lida uma vez por requisição (cache no store), consultas independentes da fila e
+  da página de trabalho em paralelo; rotina e agenda falham isoladas, com "tentar novamente".
+- Migration 0015 precisa ser aplicada **antes** do deploy (o feedback da concierge lê a rotina).

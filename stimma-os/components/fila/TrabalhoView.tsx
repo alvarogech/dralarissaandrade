@@ -38,11 +38,15 @@ export interface PropsTrabalho {
   filtrosIniciais: FiltrosTrabalho;
   /** Seleção padrão do perfil (destino de "Limpar filtros"). */
   filtrosPadrao: FiltrosTrabalho;
+  /** Expediente da concierge configurado (sem ele, a gestão vê o aviso com link). */
+  expedienteConfigurado?: boolean;
+  /** Rotina do dia e agenda (montadas na página), exibidas logo abaixo do cabeçalho. */
+  antes?: React.ReactNode;
 }
 
 const ROTULO_PRIORIDADE = { alta: "Prioridade alta", normal: "Prioridade normal", baixa: "Prioridade baixa" } as const;
 const ROTULO_SITUACAO_ITEM: Record<SituacaoTrabalho, string> = {
-  atrasada: "Atrasada", hoje: "Hoje", aguardando_paciente: "Aguardando paciente", aguardando_gestao: "Aguardando gestão", proxima: "Próxima", concluida: "Concluída",
+  atrasada: "Atrasada", hoje: "Hoje", aguardando_paciente: "Aguardando paciente", aguardando_gestao: "Aguardando gestão", proxima: "Próxima ação", marco_futuro: "Marco futuro", concluida: "Concluída",
 };
 const TOM_SITUACAO: Record<SituacaoTrabalho, string> = {
   atrasada: "border-critical bg-critical-bg text-critical",
@@ -50,10 +54,12 @@ const TOM_SITUACAO: Record<SituacaoTrabalho, string> = {
   aguardando_gestao: "border-important bg-important-bg text-important",
   aguardando_paciente: "border-border-strong bg-surface text-text-secondary",
   proxima: "border-border bg-surface-raised text-text-secondary",
+  marco_futuro: "border-informative bg-informative-bg text-informative",
   concluida: "border-opportunity bg-opportunity-bg text-opportunity",
 };
 const PRIMARIOS: SituacaoTrabalho[] = ["atrasada", "hoje", "aguardando_gestao"];
-const SECUNDARIOS: SituacaoTrabalho[] = ["aguardando_paciente", "proxima", "concluida"];
+const SECUNDARIOS: SituacaoTrabalho[] = ["aguardando_paciente", "proxima", "marco_futuro", "concluida"];
+const ABERTAS: SituacaoTrabalho[] = SITUACOES_TRABALHO.filter((s) => s !== "concluida");
 
 function diasDesde(iso: string | undefined, hoje: string): number | null {
   if (!iso) return null;
@@ -100,12 +106,16 @@ export function TrabalhoView(p: PropsTrabalho) {
   const base = useMemo(() => filtrarBase(p.itens, f, pessoas), [p.itens, f, pessoas.eu, pessoas.conciergeId, pessoas.gestorId]); // eslint-disable-line react-hooks/exhaustive-deps
   const contagem = useMemo(() => contarPorSituacao(base, p.hoje), [base, p.hoje]);
   const lista = useMemo(() => filtrarTrabalho(p.itens, f, pessoas, p.hoje), [p.itens, f, p.hoje]); // eslint-disable-line react-hooks/exhaustive-deps
-  const executaveis = lista.filter((i) => !marcoForaDaJanela(i, p.hoje));
-  const marcosFuturos = lista.filter((i) => marcoForaDaJanela(i, p.hoje));
+  // Marcos futuros só dominam a lista quando escolhidos sozinhos; em seleções mistas ficam recolhidos.
+  const soMarcos = f.situacoes.length === 1 && f.situacoes[0] === "marco_futuro";
+  const executaveis = soMarcos ? lista : lista.filter((i) => situacaoTrabalho(i, p.hoje) !== "marco_futuro");
+  const marcosFuturos = soMarcos ? [] : lista.filter((i) => situacaoTrabalho(i, p.hoje) === "marco_futuro");
   // Atualização nova (orientação, resposta, devolução) aparece mesmo fora da seleção atual.
   const novidades = base.filter((i) => i.naoLido && i.status !== "concluida" && !lista.includes(i));
   const dependeDeMim = filtrarBase(p.itens, { ...f, dependeDeMim: true, responsavel: "todos" }, pessoas).filter((i) => situacaoTrabalho(i, p.hoje) !== "concluida");
-  const semResponsavel = p.itens.filter((i) => i.status !== "concluida" && !responsavelEfetivo(i, pessoas));
+  // Mesmo universo e filtros da lista que o indicador abre (responsável "sem", situações abertas).
+  const semResponsavel = filtrarBase(p.itens, { ...f, responsavel: "sem", dependeDeMim: false }, pessoas).filter((i) => situacaoTrabalho(i, p.hoje) !== "concluida");
+  const filtrandoSem = f.responsavel === "sem" && !f.dependeDeMim && f.situacoes.length === ABERTAS.length;
   const origens = [...new Set(p.itens.map((i) => i.origem).filter((x): x is string => !!x))].sort();
   const tipos = [...new Set(p.itens.map((i) => (i.subtipo === "comparecimento" ? "comparecimento" : i.tipo)))].sort();
   const selecionado = p.itens.find((i) => i.id === aberto) ?? null;
@@ -166,6 +176,15 @@ export function TrabalhoView(p: PropsTrabalho) {
         )}
       </header>
 
+      {p.antes}
+
+      {p.gestao && p.expedienteConfigurado === false && (
+        <p role="status" className="mb-6 rounded-card border border-important bg-important-bg p-3 text-sm text-important">
+          Expediente da concierge não configurado: o feedback não é cobrado nem dado como atrasado até haver dias e horário de fechamento.{" "}
+          <a href="/feedbacks#expediente" className="font-medium underline underline-offset-4">Configurar expediente</a>
+        </p>
+      )}
+
       {p.gestao && !p.config.conciergeId && (
         <p role="status" className="mb-6 rounded-card border border-important bg-important-bg p-3 text-sm text-important">
           Configuração pendente: a conta da concierge não está identificada de forma inequívoca. Tarefas importadas ficam sem responsável até a configuração.
@@ -175,20 +194,29 @@ export function TrabalhoView(p: PropsTrabalho) {
       {/* Indicadores: cada um abre exatamente a lista que contou (mesmos filtros). */}
       <section aria-label="Indicadores" className="mb-6">
         <div className="grid grid-cols-3 gap-2.5">{PRIMARIOS.map((s) => indicador(s, true))}</div>
-        <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-2.5 grid grid-cols-2 gap-2 lg:grid-cols-4">
           {SECUNDARIOS.map((s) => indicador(s, false))}
-          {p.gestao && (
+        </div>
+        {p.gestao && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <button type="button" aria-pressed={f.dependeDeMim}
               onClick={() => setF({ ...f, dependeDeMim: !f.dependeDeMim, situacoes: f.dependeDeMim ? p.filtrosPadrao.situacoes : [], responsavel: "todos" })}
-              className={clsx("relative col-span-2 flex items-baseline justify-between gap-3 rounded-card border px-3.5 py-2.5 text-left transition-colors sm:col-span-3 lg:col-span-1",
+              className={clsx("relative flex items-baseline justify-between gap-3 rounded-card border px-3.5 py-2.5 text-left transition-colors",
                 f.dependeDeMim ? "border-accent bg-accent text-white" : "border-transparent bg-accent-soft text-accent hover:bg-[#efdfe1]")}>
               <span className="text-[13px] font-medium">Depende de mim</span>
               <span className="text-[18px] font-medium tabular-nums">{dependeDeMim.length}</span>
             </button>
-          )}
-        </div>
+            <button type="button" aria-pressed={filtrandoSem}
+              onClick={() => setF(filtrandoSem ? p.filtrosPadrao : { ...f, responsavel: "sem", dependeDeMim: false, situacoes: [...ABERTAS] })}
+              className={clsx("relative flex items-baseline justify-between gap-3 rounded-card border px-3.5 py-2.5 text-left transition-colors",
+                filtrandoSem ? "border-important bg-important text-white" : semResponsavel.length ? "border-important bg-important-bg text-important" : "border-border bg-surface text-text-secondary")}>
+              <span className="text-[13px] font-medium">Sem responsável</span>
+              <span className="text-[18px] font-medium tabular-nums">{semResponsavel.length}</span>
+            </button>
+          </div>
+        )}
         <p className="mt-2.5 text-[12.5px] text-text-muted">
-          Cada item conta em uma situação só{p.gestao && semResponsavel.length ? ` · ${semResponsavel.length} sem responsável (em “Depende de mim”)` : ""} · “sem atualização” = nada registrado há {p.config.diasSemAtualizacao}+ dias.
+          Cada item conta em uma situação só · “Marcos futuros” são acompanhamentos previstos para depois de {JANELA_MARCOS_DIAS} dias, não tarefas do dia · “sem atualização” = nada registrado há {p.config.diasSemAtualizacao}+ dias.
         </p>
       </section>
 

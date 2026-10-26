@@ -20,7 +20,14 @@ function exigirConcierge(ator: Ator) {
 
 async function montar(store: FilaStore, responsavel: string, dia: string) {
   const { fechamento, texto, eventos } = await carregarFechamento(store, dia, responsavel);
-  return { texto, contadores: fechamento.contadores as unknown as Record<string, unknown>, eventos: eventos.map((e) => e.id).sort() };
+  // A assinatura da rotina vai junto: mudar o checklist depois de gerar exige gerar de novo.
+  const contadores = { ...(fechamento.contadores as unknown as Record<string, unknown>), rotina_assinatura: fechamento.rotina?.assinatura ?? "" };
+  return { texto, contadores, eventos: eventos.map((e) => e.id).sort() };
+}
+
+/** A versão gerada ainda corresponde aos registros e à rotina atuais? */
+function mesmaBase(f: FeedbackRow, m: { eventos: string[]; contadores: Record<string, unknown> }): boolean {
+  return m.eventos.join(",") === [...f.eventos].sort().join(",") && String(f.contadores.rotina_assinatura ?? "") === String(m.contadores.rotina_assinatura ?? "");
 }
 
 export interface EstadoDoFeedback {
@@ -68,8 +75,8 @@ export async function entregarFeedback(store: FilaStore, ator: Ator, id: string)
   if (f.responsavel !== ator.id) throw new ErroRegra("Só quem gerou pode entregar este feedback.", 403);
   if (f.status === "entregue") return f; // reenvio do mesmo clique
   const m = await montar(store, ator.id, f.dia);
-  if (m.eventos.join(",") !== [...f.eventos].sort().join(",")) {
-    throw new ErroRegra("Há registros novos desde que o feedback foi gerado. Gere de novo para entregar a versão atual.", 409);
+  if (!mesmaBase(f, m)) {
+    throw new ErroRegra("Há registros ou itens da rotina alterados desde que o feedback foi gerado. Gere de novo para entregar a versão atual.", 409);
   }
   await store.atualizarFeedback(id, { status: "entregue", entregueEm: new Date().toISOString() });
   await store.auditar({ actor: ator.email, action: "fila_feedback_entregue", target: `daily_feedbacks/${id}`, after: { dia: f.dia, versao: f.versao } });

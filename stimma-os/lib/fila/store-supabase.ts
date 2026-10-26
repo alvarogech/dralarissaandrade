@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemEntrada } from "./contrato";
 import { hashConteudo, type RegistroExistente } from "./previa";
-import { CONFIG_VAZIA, type AtendimentoRow, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type MarcoRow, type TarefaRow } from "./store";
+import { CONFIG_VAZIA, type AtendimentoRow, type CompromissoAgenda, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type MarcoRow, type RotinaItemRow, type TarefaRow } from "./store";
 
 /**
  * Store real. Recebe o cliente service role (só em Route Handlers / Server Components) e a
@@ -42,6 +42,16 @@ function tarefaRow(t: Rec): TarefaRow {
   };
 }
 
+function rotinaRow(r: Rec): RotinaItemRow {
+  return {
+    userId: r.user_id, dia: r.day, itemKey: r.item_key, estado: r.estado, motivo: r.motivo ?? null, proximaAcao: r.proxima_acao ?? null,
+    prazo: r.prazo ?? null, responsavel: r.responsavel ?? null, tarefaId: r.task_id ?? null, updatedBy: r.updated_by, updatedAt: r.updated_at,
+  };
+}
+
+/** Origem dos compromissos sincronizados da agenda (lib/sync/resolve-patient.ts). */
+const ORIGEM_AGENDA = "simples_dental_browser";
+
 function feedbackRow(f: Rec): FeedbackRow {
   return {
     id: f.id, dia: f.day, responsavel: f.responsavel, versao: f.versao, status: f.status, texto: f.texto, contadores: f.contadores ?? {}, eventos: f.eventos ?? [],
@@ -79,6 +89,18 @@ function faixaUuid(prefixo: string): [string, string] | null {
 }
 
 export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
+  // Configuração lida uma vez por requisição (perfis, fila e feedback consultam a mesma linha).
+  let configCache: Promise<FilaConfig> | null = null;
+  async function lerConfig(): Promise<FilaConfig> {
+    const { data, error } = await db.from("fila_config").select("*").eq("organization_id", org).maybeSingle();
+    falhou(error, "config");
+    if (!data) return { ...CONFIG_VAZIA };
+    return {
+      conciergeId: data.concierge_id ?? null, conciergeNome: data.concierge_nome ?? null, gestorId: data.gestor_id ?? null,
+      diasExpediente: data.dias_expediente ?? null, horarioFechamento: data.horario_fechamento ? String(data.horario_fechamento).slice(0, 5) : null,
+      excecoes: data.excecoes ?? [], diasSemAtualizacao: data.dias_sem_atualizacao ?? 3,
+    };
+  }
   const store: FilaStore = {
     async pacientes() {
       const { data, error } = await db.from("patients").select("id, full_name, phone, patient_external_ids(source, external_id)").eq("organization_id", org);
@@ -207,15 +229,41 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       const c = await store.config();
       return (data ?? []).map((p: Rec) => ({ id: p.id, nome: p.id === c.conciergeId && c.conciergeNome ? c.conciergeNome : p.full_name }));
     },
-    async config() {
-      const { data, error } = await db.from("fila_config").select("*").eq("organization_id", org).maybeSingle();
-      falhou(error, "config");
-      if (!data) return { ...CONFIG_VAZIA };
+    config() {
+      configCache ??= lerConfig().catch((e) => {
+        configCache = null;
+        throw e;
+      });
+      return configCache;
+    },
+    async rotina(userId, dia) {
+      const { data, error } = await db.from("daily_routine_items").select("*").eq("organization_id", org).eq("user_id", userId).eq("day", dia);
+      falhou(error, "rotina");
+      return (data ?? []).map(rotinaRow);
+    },
+    async rotinaAnterior(userId, dia) {
+      const { data: ult, error } = await db.from("daily_routine_items").select("day").eq("organization_id", org).eq("user_id", userId).lt("day", dia).order("day", { ascending: false }).limit(1).maybeSingle();
+      falhou(error, "rotinaAnterior");
+      if (!ult) return null;
+      return { dia: ult.day as string, linhas: await store.rotina(userId, ult.day as string) };
+    },
+    async agenda(de, ate) {
+      // Janela em horário de Brasília: de 00:00 do primeiro dia até 00:00 do dia seguinte ao último.
+      const fimExclusivo = new Date(new Date(`${ate}T00:00:00-03:00`).getTime() + 86_400_000).toISOString();
+      const [compromissos, sync] = await Promise.all([
+        db.from("appointments").select("id, starts_at, ends_at, status, reason, requires_review, last_synced_at, patients(full_name), professionals(full_name)")
+          .eq("organization_id", org).eq("source", ORIGEM_AGENDA).gte("starts_at", `${de}T00:00:00-03:00`).lt("starts_at", fimExclusivo).order("starts_at"),
+        db.from("automation_runs").select("finished_at").eq("organization_id", org).eq("routine", "agenda_sync").eq("status", "completed").order("finished_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      falhou(compromissos.error, "agenda");
+      const um = (v: unknown) => (Array.isArray(v) ? v[0] : v) as Rec | undefined;
       return {
-        conciergeId: data.concierge_id ?? null, conciergeNome: data.concierge_nome ?? null, gestorId: data.gestor_id ?? null,
-        diasExpediente: data.dias_expediente ?? null, horarioFechamento: data.horario_fechamento ? String(data.horario_fechamento).slice(0, 5) : null,
-        excecoes: data.excecoes ?? [], diasSemAtualizacao: data.dias_sem_atualizacao ?? 3,
-      } satisfies FilaConfig;
+        itens: ((compromissos.data ?? []) as Rec[]).map((a): CompromissoAgenda => ({
+          id: a.id, inicio: a.starts_at, fim: a.ends_at ?? null, status: a.status, paciente: um(a.patients)?.full_name ?? "Paciente",
+          profissional: um(a.professionals)?.full_name ?? null, motivo: a.reason ?? null, revisar: !!a.requires_review, sincronizadoEm: a.last_synced_at ?? null,
+        })),
+        ultimaSync: (sync.data?.finished_at as string | undefined) ?? null,
+      };
     },
     async leituras(userId, ids) {
       if (!ids.length) return {};
@@ -395,7 +443,14 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       if (e.secoes !== undefined) linha.secoes = e.secoes;
       falhou((await db.from("daily_manual_figures").upsert(linha, { onConflict: "organization_id,day" })).error, "salvarEstadoDoDia");
     },
+    async salvarItemRotina(r) {
+      falhou((await db.from("daily_routine_items").upsert({
+        organization_id: org, user_id: r.userId, day: r.dia, item_key: r.itemKey, estado: r.estado, motivo: r.motivo, proxima_acao: r.proximaAcao,
+        prazo: r.prazo, responsavel: r.responsavel, task_id: r.tarefaId, updated_by: r.updatedBy, updated_at: r.updatedAt,
+      }, { onConflict: "organization_id,user_id,day,item_key" })).error, "salvarItemRotina");
+    },
     async salvarConfig(c, ator) {
+      configCache = null;
       const linha: Rec = { organization_id: org, updated_by: ator, updated_at: new Date().toISOString() };
       if (c.diasExpediente !== undefined) linha.dias_expediente = c.diasExpediente;
       if (c.horarioFechamento !== undefined) linha.horario_fechamento = c.horarioFechamento;

@@ -1,6 +1,7 @@
 import { somarDias } from "./datas";
 import type { Fila, ItemFila } from "./agrupamento";
 import type { Categoria, EstadoDoDia, EventoRow, NumerosDoDia } from "./store";
+import type { ResumoRotina } from "./rotina-itens";
 
 /**
  * Feedback do dia, montado SÓ dos eventos persistidos daquela data (ações em tarefas e registros
@@ -73,6 +74,8 @@ export interface Fechamento {
   /** Compat.: usados pelo resumo lateral da tela. */
   atrasados: number;
   aConferir: number;
+  /** Rotina do dia da responsável (só no feedback de uma pessoa). */
+  rotina: ResumoRotina | null;
 }
 
 export function nomeCurto(nome: string): string {
@@ -151,9 +154,10 @@ export interface EntradaFechamento {
   nomes: Record<string, string>;
   numeros: NumerosDoDia | null;
   estado: EstadoDoDia;
+  rotina?: ResumoRotina | null;
 }
 
-export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numeros, estado }: EntradaFechamento): Fechamento {
+export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numeros, estado, rotina = null }: EntradaFechamento): Fechamento {
   const historico = dia < hoje;
   const porAlvo = new Map(itens.filter((i) => i.alvo).map((i) => [i.alvo!.id, i]));
   const daConcierge = eventos.filter((e) => e.kind !== "correcao" && e.kind !== "nota");
@@ -221,6 +225,7 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
     prioridadesEscolhidas, sugestoes, proximoDia, numeros,
     atrasados: fila.atrasadas.flatMap((c) => c.itens).filter((i) => i.tipo !== "conferir_atendimento").length,
     aConferir: itensHoje.filter((i) => i.tipo === "conferir_atendimento").length,
+    rotina,
   };
 }
 
@@ -244,6 +249,20 @@ export function textoWhatsapp(f: Fechamento): string {
     const ref = (x: LinhaFeedback) => (x.ref ? ` [${x.ref}]` : "");
     for (const x of resultados) l.push(`• ${x.atencao ? "⚠️ " : ""}Resultado — ${x.paciente} · ${x.item}: ${x.texto}${ref(x)}`);
     for (const x of acoes) l.push(`• ${x.atencao ? "⚠️ " : ""}${x.paciente} · ${x.item}: ${x.texto}${ref(x)}`);
+    l.push("");
+  }
+
+  // Rotina do dia: estados do checklist, sem valores nem dados de paciente.
+  if (f.rotina) {
+    const r = f.rotina;
+    l.push("*Rotina do dia*");
+    if (!r.registrada) l.push("• Rotina não registrada.");
+    else {
+      if (r.feitos.length) l.push(`• Concluídos (${r.feitos.length}): ${r.feitos.join("; ")}`);
+      if (r.naoSeAplica.length) l.push(`• Não se aplica (${r.naoSeAplica.length}): ${r.naoSeAplica.join("; ")}`);
+      for (const i of r.impedimentos) l.push(`• ⚠️ Impedimento — ${i.item}: ${i.motivo}; próxima ação: ${i.proxima}${i.responsavel ? ` (${i.responsavel})` : ""}${i.prazo ? ` até ${dataBr(i.prazo)}` : ""}`);
+      if (r.pendentes.length) l.push(`• Ainda a fazer (${r.pendentes.length}): ${r.pendentes.join("; ")}`);
+    }
     l.push("");
   }
 
