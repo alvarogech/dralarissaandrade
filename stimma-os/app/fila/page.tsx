@@ -15,7 +15,7 @@ export default async function FilaPage() {
   if (s.tipo === "sem_sessao") redirect("/login");
   if (s.tipo === "indisponivel") {
     return (
-      <FilaShell atual="Feedback diário" demo={false} gestao={false}>
+      <FilaShell atual="Registros e histórico" demo={false} gestao={false}>
         <Indisponivel titulo="Feedback diário" motivo={s.motivo} />
       </FilaShell>
     );
@@ -30,7 +30,7 @@ export default async function FilaPage() {
     ]);
     const usuario = perfis.find((p) => p.id === ctx.ator.id)?.nome ?? dados.config.conciergeNome ?? "Concierge";
     return (
-      <FilaShell atual="Feedback diário" demo={ctx.demo} gestao={false} largo>
+      <FilaShell atual="Registros e histórico" demo={ctx.demo} gestao={false} largo>
         <FeedbackDiarioView
           dados={dados} fechamento={fechamento} estado={estado} usuario={usuario} usuarioId={ctx.ator.id} perfis={perfis}
           pacientes={pacientes.map((p) => ({ id: p.id, nome: p.nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))}
@@ -41,7 +41,7 @@ export default async function FilaPage() {
   } catch (e) {
     console.error("[fila] /fila: falha ao carregar", e);
     return (
-      <FilaShell atual="Feedback diário" demo={ctx.demo} gestao={false}>
+      <FilaShell atual="Registros e histórico" demo={ctx.demo} gestao={false}>
         <Indisponivel titulo="Feedback diário" motivo={motivoIndisponivel(e)} />
       </FilaShell>
     );

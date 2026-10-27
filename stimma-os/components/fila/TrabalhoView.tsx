@@ -42,6 +42,11 @@ export interface PropsTrabalho {
   expedienteConfigurado?: boolean;
   /** Rotina do dia e agenda (montadas na página), exibidas logo abaixo do cabeçalho. */
   antes?: React.ReactNode;
+  /**
+   * Percurso guiado da concierge (etapa "Pendências"): sem cabeçalho, indicadores nem filtros
+   * avançados — a lista vem agrupada pelo que fazer primeiro, e a URL da etapa é preservada.
+   */
+  guiado?: boolean;
 }
 
 const ROTULO_PRIORIDADE = { alta: "Prioridade alta", normal: "Prioridade normal", baixa: "Prioridade baixa" } as const;
@@ -98,10 +103,11 @@ export function TrabalhoView(p: PropsTrabalho) {
   // Filtros na URL, sem recarregar a página. Reaplica depois de cada atualização dos dados
   // (router.refresh volta a URL ao estado interno do Next).
   useEffect(() => {
+    if (p.guiado) return; // no percurso guiado a URL guarda a etapa, não filtros
     const q = filtrosParaQuery(f);
     const alvo = q ? `${pathname}?${q}` : pathname;
     if (`${window.location.pathname}${window.location.search}` !== alvo) window.history.replaceState(window.history.state, "", alvo);
-  }, [f, pathname, p.itens]);
+  }, [f, pathname, p.itens, p.guiado]);
 
   const base = useMemo(() => filtrarBase(p.itens, f, pessoas), [p.itens, f, pessoas.eu, pessoas.conciergeId, pessoas.gestorId]); // eslint-disable-line react-hooks/exhaustive-deps
   const contagem = useMemo(() => contarPorSituacao(base, p.hoje), [base, p.hoje]);
@@ -158,8 +164,40 @@ export function TrabalhoView(p: PropsTrabalho) {
     );
   };
 
+  const valorFila = { hoje: p.hoje, proximoDiaUtil: p.proximoDiaUtil, usuarioId: p.eu, perfis: p.perfis, pacientes: p.pacientes, itens: p.itens, gestao: p.gestao, conciergeId: p.config.conciergeId, gestorId: p.config.gestorId };
+  const painelLateral = largo && selecionado && (
+    <aside className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-auto rounded-card border border-border bg-surface shadow-raised" aria-label="Detalhe da tarefa">
+      <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface px-5 py-4">
+        <div className="min-w-0">
+          <p className="fb-eyebrow">{ROTULO_SITUACAO_ITEM[situacaoTrabalho(selecionado, p.hoje)]} · {selecionado.subtipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[selecionado.tipo] ?? selecionado.tipo}</p>
+          <h2 className="mt-1 font-serif text-[24px] font-medium leading-tight text-text-primary">{selecionado.pacienteNome}</h2>
+        </div>
+        <button type="button" onClick={() => setAberto(null)} className="rounded-control px-2 py-1 text-text-muted hover:bg-surface-hover hover:text-text-primary" aria-label="Fechar detalhe">✕</button>
+      </div>
+      <div className="px-5 pb-5">
+        <DetalheItem key={selecionado.id} item={selecionado} {...p} pessoas={pessoas} nomeResp={nomeDoResponsavel(selecionado, pessoas, p.perfis)} />
+      </div>
+    </aside>
+  );
+
+  if (p.guiado) {
+    const abertas = filtrarTrabalho(p.itens, { ...f, situacoes: [], responsavel: "eu", dependeDeMim: false, tipo: "", origem: "", prioridade: "", ate: "" }, pessoas, p.hoje)
+      .filter((i) => situacaoTrabalho(i, p.hoje) !== "concluida");
+    const por = (s: SituacaoTrabalho) => abertas.filter((i) => situacaoTrabalho(i, p.hoje) === s);
+    return (
+      <ProvedorFila valor={valorFila}>
+        <div className={clsx("grid items-start gap-5", largo && selecionado && "xl:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]")}>
+          <div className="min-w-0">
+            <PendenciasGuiadas por={por} busca={f.busca} onBusca={(b) => setF({ ...f, busca: b })} cartao={cartao} vazio={p.itens.length === 0} />
+          </div>
+          {painelLateral}
+        </div>
+      </ProvedorFila>
+    );
+  }
+
   return (
-    <ProvedorFila valor={{ hoje: p.hoje, proximoDiaUtil: p.proximoDiaUtil, usuarioId: p.eu, perfis: p.perfis, pacientes: p.pacientes, itens: p.itens, gestao: p.gestao, conciergeId: p.config.conciergeId, gestorId: p.config.gestorId }}>
+    <ProvedorFila valor={valorFila}>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="fb-eyebrow">{dataPorExtenso(p.hoje)}</p>
@@ -180,7 +218,7 @@ export function TrabalhoView(p: PropsTrabalho) {
 
       {p.gestao && p.expedienteConfigurado === false && (
         <p role="status" className="mb-6 rounded-card border border-important bg-important-bg p-3 text-sm text-important">
-          Expediente da concierge não configurado: o feedback não é cobrado nem dado como atrasado até haver dias e horário de fechamento.{" "}
+          Expediente da concierge não configurado: ela registra e envia o feedback normalmente, mas o sistema não sabe a partir de que horário cobrar nem marcar atraso.{" "}
           <a href="/feedbacks#expediente" className="font-medium underline underline-offset-4">Configurar expediente</a>
         </p>
       )}
@@ -315,22 +353,79 @@ export function TrabalhoView(p: PropsTrabalho) {
             </details>
           )}
         </div>
-        {largo && selecionado && (
-          <aside className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-auto rounded-card border border-border bg-surface shadow-raised" aria-label="Detalhe da tarefa">
-            <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface px-5 py-4">
-              <div className="min-w-0">
-                <p className="fb-eyebrow">{ROTULO_SITUACAO_ITEM[situacaoTrabalho(selecionado, p.hoje)]} · {selecionado.subtipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[selecionado.tipo] ?? selecionado.tipo}</p>
-                <h2 className="mt-1 font-serif text-[24px] font-medium leading-tight text-text-primary">{selecionado.pacienteNome}</h2>
-              </div>
-              <button type="button" onClick={() => setAberto(null)} className="rounded-control px-2 py-1 text-text-muted hover:bg-surface-hover hover:text-text-primary" aria-label="Fechar detalhe">✕</button>
-            </div>
-            <div className="px-5 pb-5">
-              <DetalheItem key={selecionado.id} item={selecionado} {...p} pessoas={pessoas} nomeResp={nomeDoResponsavel(selecionado, pessoas, p.perfis)} />
-            </div>
-          </aside>
-        )}
+        {painelLateral}
       </div>
     </ProvedorFila>
+  );
+}
+
+const SECOES_GUIADAS: { s: SituacaoTrabalho; titulo: string; ajuda: string; recolhida?: boolean }[] = [
+  { s: "atrasada", titulo: "Atrasadas", ajuda: "Passaram do prazo: comece por aqui." },
+  { s: "hoje", titulo: "Para hoje", ajuda: "Vencem hoje." },
+  { s: "aguardando_gestao", titulo: "Aguardando a gestão", ajuda: "Você pediu orientação; a resposta aparece aqui." },
+  { s: "aguardando_paciente", titulo: "Aguardando a paciente", ajuda: "Verifique na data indicada em cada uma." },
+  { s: "proxima", titulo: "Próximas ações", ajuda: "Ainda não venceram.", recolhida: true },
+  { s: "marco_futuro", titulo: "Marcos de acompanhamento futuros", ajuda: `Previstos para depois de ${JANELA_MARCOS_DIAS} dias — não são tarefas de hoje.`, recolhida: true },
+];
+
+/** Etapa 2 do percurso guiado: o que fazer primeiro, em grupos; nada de filtros técnicos à vista. */
+function PendenciasGuiadas({ por, busca, onBusca, cartao, vazio }: { por: (s: SituacaoTrabalho) => ItemFila[]; busca: string; onBusca: (b: string) => void; cartao: (i: ItemFila) => React.ReactNode; vazio: boolean }) {
+  const [registroLivre, setRegistroLivre] = useState(false);
+  const total = SECOES_GUIADAS.reduce((n, x) => n + por(x.s).length, 0);
+  return (
+    <div className="flex flex-col gap-5">
+      <p className="text-[14px] text-text-secondary">Abra uma pendência e toque em <strong className="text-text-primary">Registrar andamento</strong> para dizer o que aconteceu. O que continuar pendente volta sozinho na data escolhida.</p>
+      <nav aria-label="Resumo das pendências" className="flex flex-wrap gap-2">
+        {SECOES_GUIADAS.filter((x) => !x.recolhida).map((x) => (
+          <a key={x.s} href={`#sec-${x.s}`} className={clsx("inline-flex min-h-10 items-center gap-2 rounded-control border px-3 text-[13.5px]",
+            x.s === "atrasada" && por(x.s).length ? "border-critical bg-critical-bg text-critical" : "border-border-strong bg-surface text-text-secondary hover:bg-surface-hover")}>
+            {x.titulo} <strong className="tabular-nums">{por(x.s).length}</strong>
+          </a>
+        ))}
+      </nav>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative min-w-[220px] flex-1">
+          <span className="sr-only">Buscar paciente ou assunto</span>
+          <input value={busca} onChange={(e) => onBusca(e.target.value)} className={classeInput} placeholder="Buscar paciente ou assunto" />
+        </label>
+        <Button type="button" variante={registroLivre ? "primario" : "secundario"} aria-expanded={registroLivre} onClick={() => setRegistroLivre(!registroLivre)}>
+          + Registrar algo que não está na lista
+        </Button>
+      </div>
+      {registroLivre && (
+        <section className="rounded-card border border-border bg-surface p-4" aria-label="Registro sem pendência prévia">
+          <p className="mb-3 font-serif text-[22px] font-medium text-text-primary">Registrar algo do dia</p>
+          <FormRegistro alvos={[]} onSalvo={() => setRegistroLivre(false)} onCancelar={() => setRegistroLivre(false)} />
+        </section>
+      )}
+      {total === 0 && (
+        <div className="rounded-card border border-dashed border-border-strong px-5 py-6 text-sm text-text-secondary">
+          <p className="font-medium text-text-primary">{busca ? "Nada encontrado nessa busca." : vazio ? "Nenhuma pendência cadastrada ainda." : "Nenhuma pendência aberta para você agora."}</p>
+          <p className="mt-1">Quando terminar, siga para <strong>Revisar meu feedback</strong>.</p>
+        </div>
+      )}
+      {SECOES_GUIADAS.map((x) => {
+        const itens = por(x.s);
+        if (!itens.length) return null;
+        const cabecalho = (
+          <span className="flex flex-wrap items-baseline gap-x-2">
+            <span className={clsx("text-[16px] font-semibold", x.s === "atrasada" ? "text-critical" : "text-text-primary")}>{x.titulo} ({itens.length})</span>
+            <span className="text-[13px] text-text-muted">{x.ajuda}</span>
+          </span>
+        );
+        return x.recolhida ? (
+          <details key={x.s} id={`sec-${x.s}`} className="rounded-card border border-border bg-surface">
+            <summary className="cursor-pointer px-4 py-3">{cabecalho}</summary>
+            <ul className="flex flex-col gap-2 border-t border-border p-3">{itens.map(cartao)}</ul>
+          </details>
+        ) : (
+          <section key={x.s} id={`sec-${x.s}`} aria-label={x.titulo} className="scroll-mt-24">
+            <h2 className="mb-2">{cabecalho}</h2>
+            <ul className="flex flex-col gap-2">{itens.map(cartao)}</ul>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 

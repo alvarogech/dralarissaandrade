@@ -2,6 +2,7 @@ import type { PacienteRef } from "./contrato";
 import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
 import { JANELA_MARCOS_DIAS } from "./trabalho";
 import { ErroRegra, type Ator } from "./servico";
+import { assuntoDoEvento } from "./assunto";
 import { CATEGORIAS, type Categoria, type FilaStore, type MarcoRow, type SimNao, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 
 /**
@@ -180,7 +181,7 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     const chaves = new Set([...marcos.map((m) => m.patientId), ...tarefas.map((t) => t.patientId ?? `assunto:${t.id}`)]);
     if (chaves.size !== 1) throw new ErroRegra("Um registro só vale para itens da mesma paciente.");
     patientId = marcos[0]?.patientId ?? tarefas[0]?.patientId ?? null;
-    assunto = patientId ? null : tarefas[0]?.assunto ?? null;
+    assunto = patientId ? null : assuntoDoEvento(tarefas[0]);
   } else if (e.pacienteId) {
     const nomes = await store.nomesPacientes([e.pacienteId]);
     if (!nomes[e.pacienteId]) throw new ErroRegra("Paciente não encontrada.", 404);

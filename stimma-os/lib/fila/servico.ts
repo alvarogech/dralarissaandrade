@@ -7,6 +7,8 @@ import { montarFechamento, refDoItem, textoWhatsapp, nomeCurto, type Fechamento 
 import { lerFeedback, linhaSemConteudo } from "./feedback";
 import { CATEGORIAS, type EstadoDoDia, type EventoRow, type FilaConfig, type FilaStore, type MarcoRow, type NumerosDoDia, type Prioridade, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 import { categoriaDaTarefa, rotuloResponsavel, type EtapaClinica } from "./registro";
+import { assuntoDoEvento } from "./assunto";
+export { assuntoDoEvento };
 import { responsavelEfetivo } from "./trabalho";
 import { CHAVES_LINK_ROTINA, linkSeguro, resumirRotina } from "./rotina-itens";
 import { cobrancaRotineira, type CobrancaLegada } from "./cobrancas";
@@ -423,12 +425,13 @@ export async function editarTarefa(store: FilaStore, ator: Ator, id: string, e: 
     patch.adiamentos = (t.adiamentos ?? 0) + 1;
   }
   if (!mudancas.length) throw new ErroRegra("Nada mudou.");
-  await store.atualizarTarefa(id, patch);
+  // Histórico antes da mudança: se o registro falhar, a tarefa não muda sem rastro.
   await store.registrarEvento({
-    id: novoId(), patientId: t.patientId, kind: e.cancelar ? "encerramento" : "correcao", occurredOn: hojeSaoPaulo(), channel: null,
+    id: novoId(), patientId: t.patientId, assunto: assuntoDoEvento(t), kind: e.cancelar ? "encerramento" : "correcao", occurredOn: hojeSaoPaulo(), channel: null,
     notes: `${mudancas.join("; ")}${e.motivo?.trim() ? ` — motivo: ${e.motivo.trim()}` : ""}`, amount: null, amountOrigin: null,
     scheduledFor: null, createdBy: ator.id, alvos: [{ tarefaId: id }],
   });
+  await store.atualizarTarefa(id, patch);
   await store.auditar({ actor: ator.email, action: e.cancelar ? "fila_tarefa_cancelada" : "fila_tarefa_editada", target: `tasks/${id}`, before: { title: t.title, due: t.due, assignedTo: t.assignedTo }, after: patch, reason: e.motivo ?? null });
 }
 
@@ -561,7 +564,7 @@ export async function registrarAcao(store: FilaStore, ator: Ator, e: EntradaAcao
 
   const kind: TipoEvento = e.acao === "comparecimento" && !e.compareceu ? "cancelamento" : EVENTO_DA_ACAO[e.acao];
   await store.registrarEvento({
-    id: e.eventoId, patientId, kind, occurredOn: data, channel: e.canal ?? null,
+    id: e.eventoId, patientId, assunto: patientId ? null : assuntoDoEvento(tarefas[0]), kind, occurredOn: data, channel: e.canal ?? null,
     notes: [e.notas?.trim(), e.motivo?.trim(), proxima ? `próxima ação: ${proxima}` : null].filter(Boolean).join(" — ") || null,
     amount: e.acao === "recebimento" ? e.valor! : null, amountOrigin: e.acao === "recebimento" ? e.origemValor! : null,
     scheduledFor: e.acao === "agendamento" ? e.agendadoPara! : null, createdBy: ator.id,
@@ -849,7 +852,7 @@ export async function aplicarContinuidade(store: FilaStore, ator: Ator, p: { tar
     const motivo = `${p.motivo.trim()} (${origem}, aprovado pela gestão)`;
     await store.atualizarTarefa(p.tarefaId, { status: "completed", closedReason: motivo });
     await store.registrarEvento({
-      id: novoId(), patientId: t.patientId, kind: "encerramento", occurredOn: hojeSaoPaulo(), channel: null, notes: motivo,
+      id: novoId(), patientId: t.patientId, assunto: assuntoDoEvento(t), kind: "encerramento", occurredOn: hojeSaoPaulo(), channel: null, notes: motivo,
       amount: null, amountOrigin: null, scheduledFor: null, createdBy: ator.id, alvos: [{ tarefaId: p.tarefaId }],
     });
     await store.auditar({ actor: ator.email, action: "fila_continuidade_encerrar", target: `tasks/${p.tarefaId}`, reason: motivo });

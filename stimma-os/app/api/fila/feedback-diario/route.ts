@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { rotaFila } from "@/lib/fila/acesso";
-import { comentarFeedback, confirmarWhatsapp, entregarFeedback, estadoFeedback, gerarFeedback, listarFeedbacks, marcarCopiado } from "@/lib/fila/entrega";
+import { comentarFeedback, confirmarWhatsapp, entregarFeedback, estadoFeedback, finalizarFeedback, gerarFeedback, listarFeedbacks, marcarCopiado } from "@/lib/fila/entrega";
 import { ErroRegra } from "@/lib/fila/servico";
 
 // Sempre por requisição: depende da sessão (cookies) e nunca pode ser servida de cache.
@@ -15,12 +15,13 @@ export async function GET(request: NextRequest) {
   });
 }
 
-/** gerar · entregar · copiado · whatsapp (concierge) · comentar (gestão). Nada é enviado ao WhatsApp. */
+/** finalizar (gerar + entregar numa ação) · gerar · entregar · copiado · whatsapp (concierge) · comentar (gestão). Nada é enviado ao WhatsApp. */
 export async function POST(request: NextRequest) {
   return rotaFila(async ({ ator, store }) => {
-    const b = (await request.json()) as { operacao?: string; id?: string; dia?: string; observacao?: string; solicitarAjuste?: boolean };
+    const b = (await request.json()) as { operacao?: string; id?: string; dia?: string; observacao?: string; solicitarAjuste?: boolean; corrigir?: boolean };
     if (!b.id) throw new ErroRegra("Feedback não informado.");
     switch (b.operacao) {
+      case "finalizar": return finalizarFeedback(store, ator, { id: b.id, dia: b.dia, observacao: b.observacao, corrigir: b.corrigir });
       case "gerar": return { feedback: await gerarFeedback(store, ator, { id: b.id, dia: b.dia }) };
       case "entregar": return { feedback: await entregarFeedback(store, ator, b.id) };
       case "copiado": await marcarCopiado(store, ator, b.id); return { ok: true };

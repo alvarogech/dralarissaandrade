@@ -547,3 +547,41 @@ Migration 0014 (aditiva) precisa ser aplicada **antes** do deploy: o código sel
 - **Desempenho**: configuração lida uma vez por requisição (cache no store), consultas independentes da fila e
   da página de trabalho em paralelo; rotina e agenda falham isoladas, com "tentar novamente".
 - Migration 0015 precisa ser aplicada **antes** do deploy (o feedback da concierge lê a rotina).
+
+## 2026-10-27 — "Meu trabalho" da concierge como percurso guiado e envio do feedback em um passo
+
+Relato da Gabi (27/10): "ontem não preenchi porque fiquei confusa" / "não estava dando certo ir para o próximo
+passo". Diagnóstico pelos logs do Netlify de 26/10 (horário de Brasília):
+- 18:12 — o feedback foi **gerado** (único POST em `/api/fila/feedback-diario`) e **nunca entregue**: o fluxo
+  pedia dois botões em sequência ("Gerar para revisão" → "Entregar à gestão"), e o segundo passo não ficou claro.
+- 18:10–18:14 — POSTs em `/api/fila/registro` e `/api/fila/atendimento` recusados (400) por validações do
+  formulário de registro (próxima ação/prazo/motivo de adiamento etc.), com a mensagem só no rodapé de um
+  formulário longo.
+- 18:13 — PATCH de tarefa pela gestão com **500**: `interaction_events_alvo_check` — evento de tarefa **sem
+  paciente** gravado sem `assunto`. A tarefa era atualizada antes do evento, então podia mudar sem histórico.
+- 09:31 — rotina com 401 (sessão expirada); a mensagem existia, mas sem caminho para entrar de novo.
+- "Expediente não configurado" **não bloqueava** nada: era só o texto da situação da entrega (configuração da
+  gestão para saber quando cobrar). Para a concierge, deixa de aparecer; para a gestão, o aviso diz isso.
+
+Decisões:
+- **Percurso guiado** (`components/fila/MeuDiaView.tsx`, `lib/fila/meu-dia.ts`): tela inicial com saudação,
+  estado do dia (Não iniciado · Em andamento · Feedback enviado · Ajuste pedido), "O que fazer agora" calculado do
+  que está gravado e três etapas (Minha rotina → Pendências e acompanhamentos → Finalizar meu dia) com "Etapa N de
+  3", "Voltar" e "Continuar". Navegar nunca bloqueia; a etapa fica em `?etapa=` e é lembrada no dia.
+- **Envio em um passo** (`finalizarFeedback` em `lib/fila/entrega.ts`, operação `finalizar`): monta do que está
+  gravado + observação opcional e entrega numa ação. Idempotente: mesmo id ou novo clique sem novidade devolvem o
+  envio existente; registro depois do envio ou ajuste pedido só geram versão nova com `corrigir` (a anterior fica).
+  Versão "gerada" antiga e nunca entregue é entregue sem criar outra. Não mexe em tarefas nem envia mensagens.
+  As operações `gerar`/`entregar` continuam na API (compatibilidade), mas a interface não as usa mais; a página
+  `/fila` vira "Registros e histórico" e aponta para "Finalizar meu dia".
+- **Rotina**: grupos recolhíveis com "N de M registradas · feitas · não se aplica · com impedimento"; seletor
+  compacto; "Salvo" só após confirmação do servidor; falha mantém a escolha com "Tentar novamente"; quantidades
+  salvam ao sair do campo (sem "Salvar quantidades") e só aparecem quando a atividade está feita.
+- **Registro de andamento**: pergunta "O que aconteceu com esta paciente?" com atalhos que só preenchem os estados
+  existentes (contato, resposta, situação) — nenhuma enumeração nova. Validação espelhada no cliente, com a
+  explicação junto do campo e foco nele; o servidor continua sendo a palavra final.
+- **Correção do 500**: `assuntoDoEvento` (`lib/fila/assunto.ts`) em todo evento de tarefa sem paciente
+  (edição/cancelamento, ação, encerramento, registro); em `editarTarefa` o histórico é gravado antes da mudança.
+  O store em memória passou a espelhar a restrição do banco, para os testes pegarem o caso.
+- Sem migration, sem mudança de permissão: tudo continua conferido no servidor (testado: concierge recebe 403 ao
+  criar, editar/cancelar tarefa ou comentar feedback).

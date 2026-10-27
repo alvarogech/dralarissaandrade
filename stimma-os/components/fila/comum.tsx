@@ -29,6 +29,23 @@ export async function chamarApi<T>(url: string, method: "GET" | "POST" | "PATCH"
   }
 }
 
+/**
+ * Mensagem de falha para a concierge: texto simples, sem termos técnicos. Sessão expirada abre o
+ * login em outra aba (o que foi digitado aqui continua na tela); falhas incertas oferecem repetir.
+ */
+export function ErroAcao({ erro, status, onTentar, className }: { erro: string; status?: number; onTentar?: () => void; className?: string }) {
+  const sessao = status === 401;
+  return (
+    <div role="alert" className={clsx("rounded-control border border-critical bg-critical-bg px-3 py-2 text-[13.5px] text-critical", className)}>
+      <p>{sessao ? "Sua sessão expirou e esta informação ainda não foi salva." : erro}</p>
+      <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+        {sessao && <a href="/login" target="_blank" rel="noopener" className="font-medium underline underline-offset-4">Entrar de novo (abre em outra aba)</a>}
+        {onTentar && <button type="button" onClick={onTentar} className="font-medium underline underline-offset-4">Tentar novamente</button>}
+      </p>
+    </div>
+  );
+}
+
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const dataBr = (iso: string) => (iso ? iso.split("-").reverse().join("/") : "");
 export const numeroBr = (v: string): number | null => {
@@ -77,6 +94,9 @@ export interface EventoHist {
 
 export const horaBr = (iso?: string) =>
   iso ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : "";
+
+/** Só a hora ("14:05"), para o que aconteceu hoje. */
+export const soHora = (iso?: string) => (iso ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : "");
 
 export function rotuloEvento(e: EventoHist): string {
   if (e.kind === "nota") return ROTULO_NOTA[String(e.payload?.tipo ?? "")] ?? "Mensagem";

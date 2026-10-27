@@ -126,8 +126,8 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
     <ProvedorFila valor={{ hoje, proximoDiaUtil: f.proximoDia, usuarioId, perfis, pacientes, itens }}>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="fb-eyebrow">Fechamento do dia</p>
-          <h1 className="fb-titulo mt-2">Feedback diário <span className="px-1 text-accent">|</span> {usuario}</h1>
+          <p className="fb-eyebrow">Feedback diário · registros por área</p>
+          <h1 className="fb-titulo mt-2">Registros do dia <span className="px-1 text-accent">|</span> {usuario}</h1>
         </div>
         <div className="flex flex-wrap items-end gap-3 text-sm">
           <div>
@@ -272,7 +272,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
   );
 }
 
-const ROTULO_ESTADO = { rascunho: "Rascunho", gerado: "Gerado — pronto para revisão", entregue: "Entregue à gestão" } as const;
+const ROTULO_ESTADO = { rascunho: "Ainda não enviado", gerado: "Ainda não enviado (versão preparada)", entregue: "Enviado à gestão" } as const;
 
 function Entrega({ entrega, textoAoVivo, eventosAoVivo, rotinaAoVivo, hoje }: { entrega: EstadoDoFeedback; textoAoVivo: string; eventosAoVivo: string[]; rotinaAoVivo: string; hoje: string }) {
   const router = useRouter();
@@ -281,10 +281,9 @@ function Entrega({ entrega, textoAoVivo, eventosAoVivo, rotinaAoVivo, hoje }: { 
   // Registros novos ou rotina alterada depois de gerar: a versão gerada não vale mais.
   const desatualizado = ultima?.status === "gerado" && ([...ultima.eventos].sort().join(",") !== [...eventosAoVivo].sort().join(",") || String(ultima.contadores.rotina_assinatura ?? "") !== rotinaAoVivo);
   const estado = !ultima ? "rascunho" : ultima.status;
-  const [idGerar, setIdGerar] = useState(() => crypto.randomUUID());
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
-  const textoMostrado = estado === "rascunho" || desatualizado ? textoAoVivo : ultima!.texto;
+  const textoMostrado = estado === "entregue" && !desatualizado ? ultima!.texto : textoAoVivo;
 
   async function operar(operacao: string, id: string, rotulo: string) {
     setMsg(null);
@@ -292,7 +291,6 @@ function Entrega({ entrega, textoAoVivo, eventosAoVivo, rotinaAoVivo, hoje }: { 
     const r = await chamarApi("/api/fila/feedback-diario", "POST", { operacao, id, dia: hoje });
     setOcupado(null);
     if (!r.ok) return setMsg({ ok: false, t: r.incerto ? `${r.erro} Repetir é seguro: a mesma ação não é duplicada.` : r.erro });
-    if (operacao === "gerar") setIdGerar(crypto.randomUUID());
     setMsg({ ok: true, t: rotulo });
     router.refresh();
   }
@@ -321,22 +319,17 @@ function Entrega({ entrega, textoAoVivo, eventosAoVivo, rotinaAoVivo, hoje }: { 
       </p>
       {entregue?.ajusteSolicitadoEm && !entrega.versoes.some((v) => v.versao > entregue.versao) && (
         <div className="mt-2 rounded-[8px] border border-important bg-important-bg p-2 text-sm text-important">
-          A gestão pediu ajuste: “{entregue.observacaoGestao}”. Corrija os registros, gere e entregue uma nova versão (a anterior fica preservada).
+          A gestão pediu ajuste: “{entregue.observacaoGestao}”. Corrija os registros e envie a versão corrigida em “Finalizar meu dia” (a anterior fica preservada).
         </div>
       )}
       {entregue?.observacaoGestao && !entregue.ajusteSolicitadoEm && <p className="mt-2 text-sm text-text-secondary">Observação da gestão: “{entregue.observacaoGestao}”</p>}
-      {desatualizado && <p className="mt-2 text-xs text-important">Há registros ou itens da rotina alterados desde que a versão foi gerada: gere de novo antes de entregar.</p>}
-      <p className="mt-2 text-xs text-text-muted">{estado === "rascunho" || desatualizado ? "Prévia ao vivo, montada dos registros salvos hoje." : "Versão congelada para revisão e entrega."}</p>
+      <p className="mt-2 text-xs text-text-muted">{estado === "rascunho" || desatualizado ? "Prévia ao vivo, montada dos registros salvos hoje." : "Texto da versão enviada."}</p>
       <pre className="mt-2 max-h-[50vh] overflow-auto whitespace-pre-wrap rounded-[10px] border border-border bg-surface-raised p-3 font-sans text-[13px] leading-relaxed text-text-primary">{textoMostrado}</pre>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {(estado !== "gerado" || desatualizado) && (
-          <Button type="button" loading={ocupado === "gerar"} loadingText="Gerando…" onClick={() => operar("gerar", idGerar, "Versão gerada para revisão. Confira e entregue.")}>
-            {estado === "entregue" ? "Gerar versão corrigida" : "Gerar para revisão"}
-          </Button>
-        )}
-        {estado === "gerado" && !desatualizado && (
-          <Button type="button" loading={ocupado === "entregar"} loadingText="Entregando…" onClick={() => operar("entregar", ultima!.id, "Entregue à gestão.")}>Entregar à gestão</Button>
-        )}
+        {/* Envio num lugar só: a etapa "Finalizar meu dia" (antes eram dois botões aqui, "Gerar" e "Entregar"). */}
+        <a href="/trabalho?etapa=finalizar" className="inline-flex min-h-10 items-center justify-center rounded-control bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent-hover">
+          {estado === "entregue" ? "Ver o envio em Finalizar meu dia" : "Finalizar e enviar feedback"}
+        </a>
         <button type="button" className="fb-chip" onClick={copiar}>Copiar para o WhatsApp</button>
         {entregue && !entregue.whatsappConfirmadoEm && (
           <button type="button" className="fb-chip" disabled={ocupado === "whatsapp"} onClick={() => operar("whatsapp", entregue.id, "Envio pelo WhatsApp confirmado por você.")}>Confirmo que enviei no WhatsApp</button>

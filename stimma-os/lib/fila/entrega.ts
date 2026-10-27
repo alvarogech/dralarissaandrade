@@ -18,17 +18,23 @@ function exigirConcierge(ator: Ator) {
   if (ator.gestao) throw new ErroRegra("O feedback diário é entregue pela concierge; a gestão acompanha em “Feedbacks da Gabi”.", 403);
 }
 
-async function montar(store: FilaStore, responsavel: string, dia: string) {
+async function montar(store: FilaStore, responsavel: string, dia: string, observacao: string | null = null) {
   const { fechamento, texto, eventos } = await carregarFechamento(store, dia, responsavel);
   // A assinatura da rotina vai junto: mudar o checklist depois de gerar exige gerar de novo.
-  const contadores = { ...(fechamento.contadores as unknown as Record<string, unknown>), rotina_assinatura: fechamento.rotina?.assinatura ?? "" };
-  return { texto, contadores, eventos: eventos.map((e) => e.id).sort() };
+  const contadores: Record<string, unknown> = { ...(fechamento.contadores as unknown as Record<string, unknown>), rotina_assinatura: fechamento.rotina?.assinatura ?? "" };
+  if (observacao) contadores.observacao_concierge = observacao;
+  return { texto: observacao ? `${texto}
+
+*Observações do dia*
+${observacao}` : texto, contadores, eventos: eventos.map((e) => e.id).sort() };
 }
 
 /** A versão gerada ainda corresponde aos registros e à rotina atuais? */
 function mesmaBase(f: FeedbackRow, m: { eventos: string[]; contadores: Record<string, unknown> }): boolean {
   return m.eventos.join(",") === [...f.eventos].sort().join(",") && String(f.contadores.rotina_assinatura ?? "") === String(m.contadores.rotina_assinatura ?? "");
 }
+
+const observacaoDe = (f: FeedbackRow) => String(f.contadores.observacao_concierge ?? "");
 
 export interface EstadoDoFeedback {
   dia: string;
@@ -81,6 +87,61 @@ export async function entregarFeedback(store: FilaStore, ator: Ator, id: string)
   await store.atualizarFeedback(id, { status: "entregue", entregueEm: new Date().toISOString() });
   await store.auditar({ actor: ator.email, action: "fila_feedback_entregue", target: `daily_feedbacks/${id}`, after: { dia: f.dia, versao: f.versao } });
   return (await store.feedback(id))!;
+}
+
+/**
+ * "Finalizar e enviar feedback": monta a versão a partir do que está gravado (registros e rotina),
+ * soma a observação opcional e entrega à gestão numa ação só — antes eram dois botões ("Gerar" e
+ * "Entregar") e, em 26/10, o feedback ficou gerado sem nunca ser entregue.
+ *
+ * Idempotente: repetir o clique (mesmo id, rede instável) ou clicar de novo sem nada novo devolve
+ * o feedback já enviado, sem criar versão. Se houve registros depois do envio, uma nova versão só
+ * nasce com `corrigir` (a anterior continua no histórico). Não mexe em tarefas nem envia mensagens.
+ */
+export async function finalizarFeedback(store: FilaStore, ator: Ator, p: { id: string; dia?: string; observacao?: string | null; corrigir?: boolean }): Promise<{ feedback: FeedbackRow; jaEnviado: boolean }> {
+  exigirConcierge(ator);
+  if (!UUID.test(p.id)) throw new ErroRegra("Identificador inválido.");
+  const dia = p.dia ?? hojeSaoPaulo();
+  if (!isDiaIso(dia) || dia > hojeSaoPaulo()) throw new ErroRegra("Dia inválido.");
+  const observacao = typeof p.observacao === "string" && p.observacao.trim() ? p.observacao.trim().slice(0, 2000) : null;
+
+  const mesmo = await store.feedback(p.id);
+  if (mesmo && mesmo.responsavel !== ator.id) throw new ErroRegra("Feedback de outra pessoa.", 403);
+  if (mesmo?.status === "entregue") return { feedback: mesmo, jaEnviado: true };
+
+  const versoes = (await store.feedbacks({ dia, responsavel: ator.id })).sort((a, b) => b.versao - a.versao);
+  const ultima = versoes[0];
+  const entregue = versoes.find((v) => v.status === "entregue");
+  const m = await montar(store, ator.id, dia, observacao);
+  const agora = new Date().toISOString();
+
+  if (entregue && ultima?.id === entregue.id) {
+    const igual = mesmaBase(entregue, m) && observacaoDe(entregue) === (observacao ?? "");
+    const ajustePendente = !!entregue.ajusteSolicitadoEm;
+    if (igual && !ajustePendente) return { feedback: entregue, jaEnviado: true };
+    if (!p.corrigir) {
+      throw new ErroRegra(ajustePendente
+        ? "A gestão pediu um ajuste neste feedback. Confira e use “Enviar versão corrigida”."
+        : "Seu feedback de hoje já foi enviado. Há registros novos depois do envio: use “Enviar versão atualizada” para mandar a nova versão.", 409);
+    }
+  }
+
+  let id: string;
+  if (ultima?.status === "gerado") {
+    // Versão gerada pela tela antiga e nunca entregue: atualiza e entrega essa mesma versão.
+    await store.atualizarFeedback(ultima.id, { texto: m.texto, contadores: m.contadores, eventos: m.eventos, geradoEm: agora, status: "entregue", entregueEm: agora });
+    id = ultima.id;
+  } else {
+    const nova: FeedbackRow = {
+      id: p.id, dia, responsavel: ator.id, versao: (ultima?.versao ?? 0) + 1, status: "entregue", texto: m.texto, contadores: m.contadores, eventos: m.eventos,
+      substitui: ultima?.id ?? null, geradoEm: agora, entregueEm: agora, copiadoEm: null, whatsappConfirmadoEm: null, observacaoGestao: null, ajusteSolicitadoEm: null, ajusteSolicitadoPor: null,
+    };
+    await store.inserirFeedback(nova);
+    id = nova.id;
+  }
+  const feito = (await store.feedback(id))!;
+  await store.auditar({ actor: ator.email, action: "fila_feedback_entregue", target: `daily_feedbacks/${id}`, after: { dia, versao: feito.versao, via: "finalizar", observacao: !!observacao } });
+  return { feedback: feito, jaEnviado: false };
 }
 
 /** Marca que o texto foi copiado (não comprova envio nem entrega). */

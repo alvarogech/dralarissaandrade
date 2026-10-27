@@ -246,6 +246,8 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
       if (x) Object.assign(x, t, { updatedAt: agora() });
     },
     async registrarEvento(e) {
+      // Espelha a restrição interaction_events_alvo_check do banco (paciente ou assunto).
+      if (!e.patientId && !e.assunto?.trim()) throw new Error('registrarEvento: new row for relation "interaction_events" violates check constraint "interaction_events_alvo_check"');
       if (!eventos.some((x) => x.id === e.id)) eventos.push({ ...e, registradoEm: e.registradoEm ?? agora() });
     },
     async atualizarMarco(id, m) {

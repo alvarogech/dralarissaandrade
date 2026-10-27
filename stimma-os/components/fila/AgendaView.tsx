@@ -47,7 +47,7 @@ export function AgendaView({ agenda }: { agenda: AgendaCarregada }) {
   return (
     <section className="mb-6 rounded-card border border-border bg-surface" aria-label="Agenda de hoje e amanhã">
       <div className="flex flex-wrap items-center gap-2 pr-4">
-      <button type="button" onClick={() => setAberta(!aberta)} aria-expanded={aberta} className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3 px-4 py-3.5 text-left">
+      <button type="button" onClick={() => setAberta(!aberta)} aria-expanded={aberta} className="flex min-w-0 flex-1 basis-[260px] flex-wrap items-center justify-between gap-3 px-4 py-3.5 text-left">
         <span>
           <span className="block font-serif text-[22px] font-medium leading-tight text-text-primary">Agenda de hoje e amanhã</span>
           <span role={confiavel ? undefined : "status"} className={clsx("mt-0.5 block text-[13px]", confiavel ? "text-text-secondary" : "font-medium text-important")}>
@@ -60,7 +60,7 @@ export function AgendaView({ agenda }: { agenda: AgendaCarregada }) {
         </span>
         <span aria-hidden className="text-[13px] text-text-muted">{aberta ? "▴" : "▾"}</span>
       </button>
-      <Button type="button" variante={sincronizando ? "primario" : "secundario"} aria-expanded={sincronizando} onClick={() => setSincronizando(!sincronizando)}>Sincronizar agenda</Button>
+      <Button type="button" className="mb-3 ml-4 sm:mb-0 sm:ml-0" variante={sincronizando ? "primario" : "secundario"} aria-expanded={sincronizando} onClick={() => setSincronizando(!sincronizando)}>Sincronizar agenda</Button>
       </div>
       {sincronizando && <PainelSincronizar onConcluir={() => { setSincronizando(false); setAberta(true); }} />}
       {aberta && (

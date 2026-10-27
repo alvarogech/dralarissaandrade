@@ -16,7 +16,7 @@ export const NAV_GESTAO = [
 
 export const NAV_CONCIERGE = [
   { label: "Meu trabalho", curto: "Meu trabalho", href: "/trabalho" },
-  { label: "Feedback diário", curto: "Feedback", href: "/fila" },
+  { label: "Registros e histórico", curto: "Histórico", href: "/fila" },
 ] as const;
 
 export function navDoPerfil(gestao: boolean) {
