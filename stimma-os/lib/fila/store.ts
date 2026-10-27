@@ -192,12 +192,47 @@ export interface PrioridadeDoDia {
   /** Referência curta do item ([T-…]/[M-…]) ou null para prioridade manual. */
   ref: string | null;
   texto: string;
+  /** Campos da prioridade para o próximo dia útil (todos opcionais além do texto). */
+  paciente?: string | null;
+  data?: string | null;
+  prioridade?: "alta" | "normal" | null;
+  /** De onde veio: tarefa, contato, solicitação, impedimento, manual. */
+  origem?: string | null;
+  proxima?: string | null;
+  /** Prioridade manual resolvida no dia seguinte (as ligadas a tarefa seguem o estado da tarefa). */
+  resolvidaEm?: string | null;
+  resolvidaPor?: string | null;
+}
+
+/** Rascunho do fechamento, salvo no servidor (não depende do navegador). */
+export interface RascunhoFechamento {
+  observacao?: string;
+  /** Situações que exigem decisão da gestão. */
+  decisoes?: string;
+  /** A concierge revisou as prioridades do próximo dia útil (seção obrigatória do fechamento). */
+  prioridadesConfirmadas?: boolean;
+  salvoEm?: string;
 }
 
 export interface EstadoDoDia {
   prioridades: PrioridadeDoDia[];
   /** Seções revisadas e marcadas "sem ocorrências" (ausente = não revisada). */
   secoes: Partial<Record<Categoria, "sem_ocorrencias">>;
+  rascunho?: RascunhoFechamento;
+}
+
+/**
+ * Conferência de recebimentos do dia (totais conferidos no Simples Dental, fonte oficial). Sem
+ * linha = conferência ainda não feita; "sem_recebimentos" = conferido e não houve recebimento.
+ */
+export interface ConferenciaCaixa {
+  dia: string;
+  situacao: "conferido" | "sem_recebimentos";
+  previsto: number | null;
+  recebido: number | null;
+  justificativa: string | null;
+  conferidoPor: string;
+  conferidoEm: string;
 }
 
 export interface FilaStore {
@@ -223,6 +258,9 @@ export interface FilaStore {
   resolverRef(tipo: "tarefa" | "marco", prefixo: string): Promise<string[]>;
   perfis(): Promise<{ id: string; nome: string }[]>;
   eventosDoDia(dia: string): Promise<EventoRow[]>;
+  /** Registros de uma paciente a partir de uma data (contatos recentes, marco repetido). */
+  eventosRecentesDoPaciente(patientId: string, desde: string): Promise<EventoRow[]>;
+  conferenciaCaixa(dia: string): Promise<ConferenciaCaixa | null>;
   numerosDoDia(dia: string): Promise<NumerosDoDia | null>;
   estadoDoDia(dia: string): Promise<EstadoDoDia>;
   config(): Promise<FilaConfig>;
@@ -261,6 +299,7 @@ export interface FilaStore {
   salvarEstadoDoDia(dia: string, e: Partial<EstadoDoDia>, ator: string): Promise<void>;
   salvarConfig(c: Partial<FilaConfig>, ator: string): Promise<void>;
   salvarItemRotina(r: RotinaItemRow): Promise<void>;
+  salvarConferenciaCaixa(c: ConferenciaCaixa): Promise<void>;
   /** Grava compromissos lidos do Simples Dental (motor idempotente de lib/sync), com a autoria de quem disparou. */
   sincronizarAgenda(itens: NormalizedAppointment[], ator: string): Promise<{ total: number; created: number; updated: number; unchanged: number; requiresReview: number }>;
   marcarLido(tarefaId: string, userId: string): Promise<void>;

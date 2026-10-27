@@ -47,6 +47,10 @@ export interface ItemFila {
   /** Orientação da gestão e resultado esperado (o que fazer). */
   orientacao?: string;
   resultadoEsperado?: string;
+  /** Solicitação extraordinária da gestão e quem pediu. */
+  extraordinaria?: boolean;
+  solicitadoPor?: string;
+  criadaEm?: string;
   /** Falta/cancelamento: ocorrência conhecida (ausente = não informada; nunca presumida). */
   ocorrencia?: "falta" | "cancelamento";
   dataOcorrencia?: string;

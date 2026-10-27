@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { hashConteudo } from "./previa";
 import { planejarAnulacao, planejarMarcos } from "./marcos";
 import type { ItemEntrada } from "./contrato";
-import { CONFIG_VAZIA, type AtendimentoRow, type CompromissoAgenda, type EstadoDoDia, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type LoteEstado, type MarcoRow, type NumerosDoDia, type RotinaItemRow, type TarefaRow } from "./store";
+import { CONFIG_VAZIA, type AtendimentoRow, type CompromissoAgenda, type ConferenciaCaixa, type EstadoDoDia, type EventoRow, type FeedbackRow, type FilaConfig, type FilaStore, type LoteEstado, type MarcoRow, type NumerosDoDia, type RotinaItemRow, type TarefaRow } from "./store";
 
 /**
  * Store em memória: testes e modo demonstração (sem Supabase configurado). Espelha as regras
@@ -29,6 +29,7 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
   const agendaDemo: { itens: CompromissoAgenda[]; ultimaSync: string | null } = { itens: [], ultimaSync: null };
   const numeros = new Map<string, NumerosDoDia>();
   const estados = new Map<string, EstadoDoDia>();
+  const caixas = new Map<string, ConferenciaCaixa>();
   const auditoria: { action: string; target: string }[] = [];
   // Relógio monotônico: dois registros no mesmo milissegundo continuam ordenados (testes).
   let ultimo = 0;
@@ -114,6 +115,12 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
     },
     async eventosDoDia(d) {
       return eventos.filter((e) => e.occurredOn === d);
+    },
+    async eventosRecentesDoPaciente(patientId, desde) {
+      return eventos.filter((e) => e.patientId === patientId && e.occurredOn >= desde).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
+    },
+    async conferenciaCaixa(d) {
+      return caixas.get(d) ?? null;
     },
     async numerosDoDia(d) {
       return numeros.get(d) ?? null;
@@ -281,6 +288,9 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
       agendaDemo.ultimaSync = agora();
       return { total: itens.length, created, updated, unchanged: 0, requiresReview: 0 };
     },
+    async salvarConferenciaCaixa(c) {
+      caixas.set(c.dia, { ...c });
+    },
     async salvarItemRotina(r) {
       const i = rotinas.findIndex((x) => x.userId === r.userId && x.dia === r.dia && x.itemKey === r.itemKey);
       if (i >= 0) rotinas[i] = { ...r };
@@ -303,7 +313,7 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
     },
   };
 
-  return { store, _dados: { pacientes, atendimentos, marcos, tarefas, eventos, lotes, auditoria, feedbacks, rotinas, agendaDemo }, falhaSimulada };
+  return { store, _dados: { pacientes, atendimentos, marcos, tarefas, eventos, lotes, auditoria, feedbacks, rotinas, agendaDemo, caixas, estados }, falhaSimulada };
 }
 
 // Modo demonstração: uma instância por processo do servidor de desenvolvimento.

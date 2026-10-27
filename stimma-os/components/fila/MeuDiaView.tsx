@@ -7,8 +7,9 @@ import { ETAPAS_MEU_DIA, textoEstadoExpediente, type EstadoExpediente, type Etap
 
 /**
  * "Meu trabalho" da concierge como percurso guiado: tela inicial que responde "o que faço agora?",
- * três etapas (Minha rotina → Pendências → Finalizar meu dia) com indicação de onde ela está e
- * botões explícitos de avançar/voltar. Navegar nunca é bloqueado nem apaga nada: os registros já
+ * duas etapas (Minha rotina → Fechamento do dia) com indicação de onde ela está e botões
+ * explícitos de avançar/voltar. As pendências ficam dentro da rotina (prioridades de hoje,
+ * solicitações da gestão, acompanhamentos em aberto). Navegar nunca é bloqueado nem apaga nada: os registros já
  * estão no servidor; a etapa fica na URL (?etapa=) e é lembrada no dia, para retomar de onde parou.
  */
 interface Props {
@@ -29,26 +30,21 @@ interface Props {
 const AJUDA: Record<EtapaMeuDia | "inicio", string[]> = {
   inicio: [
     "O botão principal leva você para o próximo passo do dia.",
-    "Você pode abrir qualquer etapa a qualquer momento pelos números 1, 2 e 3.",
+    "Você pode abrir qualquer etapa a qualquer momento pelos números 1 e 2.",
     "Tudo o que você marca é salvo na hora. Se sair e voltar, continua de onde parou.",
   ],
   rotina: [
-    "Abra um grupo (Início do dia, Durante o dia, Fechamento) e marque o que aconteceu em cada atividade.",
-    "“Não se aplica” conta como respondida, mas não como feita.",
+    "Comece por “Prioridades de hoje”: o que ficou do dia anterior e o que vence hoje.",
+    "Abra cada grupo e marque o que aconteceu em cada atividade. “Não se aplica” conta como respondida, mas não como feita.",
+    "Nas atividades com pacientes (aniversário, pós-procedimento, 30/60/90 dias, cobranças), registre quem foi contatada e o resultado. Pode registrar várias.",
+    "Contato sem resposta continua registrado: o próximo passo volta na data que você escolher.",
     "Se algo impediu uma atividade, escolha “Com impedimento” e explique em poucas palavras.",
-    "Você não precisa terminar a rotina para seguir: pode ir às pendências e voltar depois.",
   ],
-  pendencias: [
-    "Comece pelas atrasadas e pelas de hoje.",
-    "Toque na pendência e depois em “Registrar andamento”. Escolha o que aconteceu e o próximo passo.",
-    "Mensagem sem resposta não resolve o caso: a pendência volta na data que você escolher.",
-    "Ficou com dúvida em um caso? Use “Pedir orientação” dentro da pendência.",
-  ],
-  finalizar: [
-    "O resumo foi preparado com base no que você registrou ao longo do dia.",
-    "Se quiser, escreva uma observação para a gestão.",
-    "Toque em “Finalizar e enviar feedback”. Só aparece “Feedback enviado” depois que o sistema confirmar.",
-    "Enviar o feedback não conclui pendências nem manda mensagem para pacientes.",
+  fechamento: [
+    "O resumo foi preparado com base no que você registrou ao longo do dia: não precisa digitar de novo.",
+    "Complete só o que falta: decisões para a gestão, observações e as prioridades do próximo dia útil.",
+    "Toque em “Finalizar e enviar prestação de contas”. Só aparece “Feedback enviado” depois que o sistema confirmar.",
+    "Enviar não conclui pendências nem manda mensagem para pacientes.",
   ],
 };
 
@@ -105,9 +101,11 @@ export function MeuDiaView({ nome, hoje, estado, proxima, etapaInicial, resumo, 
   const enviado = estado.tipo === "enviado";
   const tomEstado = estado.tipo === "enviado" ? "border-opportunity bg-opportunity-bg text-opportunity" : estado.tipo === "ajuste_solicitado" ? "border-important bg-important-bg text-important" : estado.tipo === "em_andamento" ? "border-accent bg-accent-soft text-accent" : "border-border-strong bg-surface text-text-secondary";
   const feitoNaEtapa: Record<EtapaMeuDia, string> = {
-    rotina: resumo.rotina ? `${resumo.rotina.respondidos} de ${resumo.rotina.total} registradas${resumo.rotina.impedimentos ? ` · ${resumo.rotina.impedimentos} com impedimento` : ""}` : "Rotina indisponível agora",
-    pendencias: resumo.atrasadas || resumo.paraHoje ? `${resumo.atrasadas} atrasada${resumo.atrasadas === 1 ? "" : "s"} · ${resumo.paraHoje} para hoje` : "Nada atrasado nem vencendo hoje",
-    finalizar: enviado ? textoEstadoExpediente(estado) : estado.tipo === "ajuste_solicitado" ? "Ajuste pedido pela gestão" : "Ainda não enviado",
+    rotina: [
+      resumo.rotina ? `${resumo.rotina.respondidos} de ${resumo.rotina.total} registradas` : "Rotina indisponível agora",
+      resumo.atrasadas ? `${resumo.atrasadas} atrasada${resumo.atrasadas === 1 ? "" : "s"}` : "",
+    ].filter(Boolean).join(" · "),
+    fechamento: enviado ? textoEstadoExpediente(estado) : estado.tipo === "ajuste_solicitado" ? "Ajuste pedido pela gestão" : "Ainda não enviado",
   };
 
   return (
@@ -138,10 +136,10 @@ export function MeuDiaView({ nome, hoje, estado, proxima, etapaInicial, resumo, 
 
       {/* Progresso: onde estou e o que vem depois. Cada etapa pode ser aberta a qualquer momento. */}
       <nav aria-label="Etapas do dia">
-        <ol className="grid grid-cols-3 gap-2">
+        <ol className="grid grid-cols-2 gap-2">
           {ETAPAS_MEU_DIA.map((e, k) => {
             const atual = etapa === e.id;
-            const concluida = (e.id === "rotina" && resumo.rotina && resumo.rotina.total > 0 && resumo.rotina.respondidos === resumo.rotina.total) || (e.id === "finalizar" && enviado);
+            const concluida = (e.id === "rotina" && resumo.rotina && resumo.rotina.total > 0 && resumo.rotina.respondidos === resumo.rotina.total) || (e.id === "fechamento" && enviado);
             return (
               <li key={e.id}>
                 <button type="button" onClick={() => ir(e.id)} aria-current={atual ? "step" : undefined}
@@ -181,7 +179,7 @@ export function MeuDiaView({ nome, hoje, estado, proxima, etapaInicial, resumo, 
             <Button type="button" className="min-h-12 px-6 text-[15px]" onClick={() => ir(proxima.etapa)}>{proxima.botao} →</Button>
             <span className="text-[13px] text-text-muted">Leva para: {ETAPAS_MEU_DIA.find((e) => e.id === proxima.etapa)!.titulo}</span>
           </div>
-          <dl className="mt-5 grid gap-3 border-t border-border pt-4 sm:grid-cols-3">
+          <dl className="mt-5 grid gap-3 border-t border-border pt-4 grid-cols-3">
             <div><dt className="text-[12.5px] text-text-muted">Atrasadas</dt><dd className={clsx("font-serif text-[30px] font-medium leading-none tabular-nums", resumo.atrasadas ? "text-critical" : "text-text-primary")}>{resumo.atrasadas}</dd></div>
             <div><dt className="text-[12.5px] text-text-muted">Para hoje</dt><dd className="font-serif text-[30px] font-medium leading-none tabular-nums text-text-primary">{resumo.paraHoje}</dd></div>
             <div><dt className="text-[12.5px] text-text-muted">Rotina registrada</dt><dd className="font-serif text-[30px] font-medium leading-none tabular-nums text-text-primary">{resumo.rotina ? `${resumo.rotina.respondidos}/${resumo.rotina.total}` : "—"}</dd></div>
@@ -189,9 +187,9 @@ export function MeuDiaView({ nome, hoje, estado, proxima, etapaInicial, resumo, 
         </section>
       ) : (
         <section aria-labelledby="titulo-etapa">
-          <p className="text-[13px] font-medium text-text-muted">Etapa {indice + 1} de 3</p>
+          <p className="text-[13px] font-medium text-text-muted">Etapa {indice + 1} de 2</p>
           <h2 id="titulo-etapa" ref={titulo} tabIndex={-1} className="mt-0.5 font-serif text-[30px] font-medium leading-tight text-text-primary outline-none">{ETAPAS_MEU_DIA[indice]!.titulo}</h2>
-          {etapa === "finalizar" && <p className="mt-1 text-[15px] text-text-secondary">{nome}, confira as informações antes de enviar seu feedback para a gestão.</p>}
+          {etapa === "fechamento" && <p className="mt-1 text-[15px] text-text-secondary">{nome}, confira as informações antes de enviar sua prestação de contas para a gestão.</p>}
           <div className="mt-4">{conteudo[etapa]}</div>
 
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
@@ -200,8 +198,7 @@ export function MeuDiaView({ nome, hoje, estado, proxima, etapaInicial, resumo, 
             ) : (
               <Button type="button" variante="secundario" onClick={() => ir(null)}>← Início</Button>
             )}
-            {etapa === "rotina" && <Button type="button" className="min-h-11 px-5" onClick={() => ir("pendencias")}>Continuar para pendências →</Button>}
-            {etapa === "pendencias" && <Button type="button" className="min-h-11 px-5" onClick={() => ir("finalizar")}>Revisar meu feedback →</Button>}
+            {etapa === "rotina" && <Button type="button" className="min-h-11 px-5" onClick={() => ir("fechamento")}>Ir para o fechamento do dia →</Button>}
           </div>
         </section>
       )}

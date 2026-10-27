@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
 /** finalizar (gerar + entregar numa ação) · gerar · entregar · copiado · whatsapp (concierge) · comentar (gestão). Nada é enviado ao WhatsApp. */
 export async function POST(request: NextRequest) {
   return rotaFila(async ({ ator, store }) => {
-    const b = (await request.json()) as { operacao?: string; id?: string; dia?: string; observacao?: string; solicitarAjuste?: boolean; corrigir?: boolean };
+    const b = (await request.json()) as { operacao?: string; id?: string; dia?: string; observacao?: string; decisoes?: string; solicitarAjuste?: boolean; corrigir?: boolean };
     if (!b.id) throw new ErroRegra("Feedback não informado.");
     switch (b.operacao) {
-      case "finalizar": return finalizarFeedback(store, ator, { id: b.id, dia: b.dia, observacao: b.observacao, corrigir: b.corrigir });
+      case "finalizar": return finalizarFeedback(store, ator, { id: b.id, dia: b.dia, observacao: b.observacao, decisoes: b.decisoes, corrigir: b.corrigir });
       case "gerar": return { feedback: await gerarFeedback(store, ator, { id: b.id, dia: b.dia }) };
       case "entregar": return { feedback: await entregarFeedback(store, ator, b.id) };
       case "copiado": await marcarCopiado(store, ator, b.id); return { ok: true };

@@ -1,6 +1,6 @@
 import { somarDias } from "./datas";
 import type { Fila, ItemFila } from "./agrupamento";
-import type { Categoria, EstadoDoDia, EventoRow, NumerosDoDia } from "./store";
+import type { Categoria, EstadoDoDia, EventoRow, NumerosDoDia, PrioridadeDoDia } from "./store";
 import type { ResumoRotina } from "./rotina-itens";
 
 /**
@@ -66,7 +66,7 @@ export interface Fechamento {
   contadores: Contadores;
   agenda: { prevista: number | null; realizada: number | null };
   pendentesAbertas: { ref: string; paciente: string; item: string; quando: string; aguardando: boolean }[];
-  prioridades: { ref: string | null; texto: string }[];
+  prioridades: PrioridadeDoDia[];
   prioridadesEscolhidas: boolean;
   sugestoes: { ref: string; texto: string; motivo: string }[];
   proximoDia: string;
@@ -173,7 +173,9 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
     bloco.linhas.push({
       ref: alvos.map((a) => refDoItem(a.alvo!)).join(" "),
       paciente: nomeDe(e),
-      item: alvos.map((a) => a.titulo).join(" + ") || (typeof p.contexto === "string" ? p.contexto : ROTULO_CATEGORIA[cat] ?? "registro"),
+      // Contato feito numa atividade da rotina: o rótulo é a atividade (não a tarefa de retorno que ele criou).
+      item: ((p.detalhes as Record<string, unknown> | undefined)?.rotina_item && typeof p.contexto === "string" ? p.contexto : null)
+        ?? (alvos.map((a) => a.titulo).join(" + ") || (typeof p.contexto === "string" ? p.contexto : ROTULO_CATEGORIA[cat] ?? "registro")),
       texto, resultado, atencao: p.atencao === true,
     });
   }
@@ -278,6 +280,9 @@ export function textoWhatsapp(f: Fechamento): string {
 
   l.push(`*Prioridades para o próximo dia útil (${diaSemana(f.proximoDia)}, ${dataBr(f.proximoDia)})*${f.prioridadesEscolhidas ? "" : f.prioridades.length ? " — sugeridas" : ""}`);
   if (!f.prioridades.length) l.push("• Nenhuma definida.");
-  for (const p of f.prioridades) l.push(`• ${p.texto}${p.ref ? ` [${p.ref}]` : ""}`);
+  for (const p of f.prioridades) {
+    const extra = [p.prioridade === "alta" ? "prioridade alta" : "", p.paciente ? `paciente: ${p.paciente}` : "", p.data ? `até ${dataBr(p.data)}` : "", p.proxima ? `próxima ação: ${p.proxima}` : "", p.origem ? `origem: ${p.origem}` : ""].filter(Boolean);
+    l.push(`• ${p.texto}${extra.length ? ` (${extra.join("; ")})` : ""}${p.ref ? ` [${p.ref}]` : ""}`);
+  }
   return l.join("\n").replace(/\n{3,}/g, "\n\n");
 }

@@ -9,6 +9,12 @@ import type { NormalizedAppointment, SyncItemResult, SyncRunSummary } from "./ty
  * compromisso. So a extracao (ler a tela) e agentica — tudo aqui e
  * deterministico e roda sobre o resultado ja normalizado.
  *
+ * Compromisso ja gravado (mesmo sd_appointment_id) mantem o vinculo que tem —
+ * nao depende de casar a paciente de novo. Compromisso novo cuja paciente nao
+ * pode ser vinculada com seguranca (so o nome bate) e gravado SEM paciente, com
+ * o nome lido do SD e requires_review: aparece na agenda, nunca e vinculado por
+ * nome sozinho (migration 0017). Falha ao gravar vira "revisar", nunca "criado".
+ *
  * Usa o cliente service_role (bypassa RLS de proposito — e uma automacao de
  * sistema, nao uma acao de um usuario logado, actor_type='claude' no audit
  * log). Ver docs/SECURITY.md.
@@ -23,25 +29,27 @@ export async function runAgendaSync(
   const results: SyncItemResult[] = [];
 
   for (const item of items) {
-    const patientResult = await resolvePatient(supabase, organizationId, item.patient);
+    const existente = item.sdAppointmentId ? await buscarCompromisso(supabase, item.sdAppointmentId) : null;
 
-    if (patientResult.action === "requires_review") {
-      results.push({
-        input: item,
-        patientAction: "requires_review",
-        appointmentAction: "requires_review",
-      });
+    // Já gravado e já vinculado: só atualiza o compromisso.
+    if (existente?.patient_id) {
+      const acao = await atualizarCompromisso(supabase, existente, existente.patient_id, item);
+      results.push({ input: item, patientAction: "use_existing", appointmentAction: acao, patientId: existente.patient_id });
       continue;
     }
 
-    const patientId = patientResult.patientId;
-    const appointmentResult = await upsertAppointment(supabase, organizationId, patientId, item);
-
+    const patientResult = await resolvePatient(supabase, organizationId, item.patient);
+    const patientId = patientResult.action === "requires_review" ? null : patientResult.patientId;
+    const acao = existente
+      ? await atualizarCompromisso(supabase, existente, patientId, item)
+      : await inserirCompromisso(supabase, organizationId, patientId, item);
     results.push({
       input: item,
       patientAction: patientResult.action,
-      appointmentAction: appointmentResult,
-      patientId,
+      // Sem vínculo seguro: o compromisso é gravado (aparece na agenda), mas conta como "revisar".
+      appointmentAction: patientId ? acao : "requires_review",
+      ...(patientId ? { patientId } : {}),
+      ...(!patientId ? { gravadoSemVinculo: acao !== "requires_review" } : {}),
     });
   }
 
@@ -77,50 +85,61 @@ export async function runAgendaSync(
   return summary;
 }
 
-async function upsertAppointment(
+type Existente = { id: string; patient_id: string | null; source_fingerprint: string | null };
+
+async function buscarCompromisso(supabase: SupabaseClient, sdAppointmentId: string): Promise<Existente | null> {
+  const { data } = await supabase
+    .from("appointments")
+    .select("id, patient_id, source_fingerprint")
+    .eq("source", SOURCE)
+    .eq("sd_appointment_id", sdAppointmentId)
+    .maybeSingle();
+  return (data as Existente | null) ?? null;
+}
+
+async function atualizarCompromisso(
   supabase: SupabaseClient,
-  organizationId: string,
-  patientId: string,
+  existing: Existente,
+  patientId: string | null,
   item: NormalizedAppointment
-): Promise<"created" | "updated" | "unchanged"> {
+): Promise<"updated" | "unchanged" | "requires_review"> {
   const fingerprint = computeAppointmentFingerprint(item);
   const now = new Date().toISOString();
-
-  if (item.sdAppointmentId) {
-    const { data: existing } = await supabase
-      .from("appointments")
-      .select("id, source_fingerprint")
-      .eq("source", SOURCE)
-      .eq("sd_appointment_id", item.sdAppointmentId)
-      .maybeSingle();
-
-    if (existing) {
-      if (existing.source_fingerprint === fingerprint) {
-        await supabase.from("appointments").update({ last_seen_at: now }).eq("id", existing.id);
-        return "unchanged";
-      }
-
-      await supabase
-        .from("appointments")
-        .update({
-          patient_id: patientId,
-          starts_at: item.startsAt,
-          ends_at: item.endsAt,
-          status: item.status,
-          reason: item.reason,
-          requires_payment: item.requiresPayment,
-          source_fingerprint: fingerprint,
-          last_seen_at: now,
-          last_synced_at: now,
-        })
-        .eq("id", existing.id);
-      return "updated";
-    }
+  const vinculou = !existing.patient_id && !!patientId;
+  if (existing.source_fingerprint === fingerprint && !vinculou) {
+    await supabase.from("appointments").update({ last_seen_at: now }).eq("id", existing.id);
+    return "unchanged";
   }
+  const { error } = await supabase
+    .from("appointments")
+    .update({
+      // Nunca troca um vínculo existente por nada; só preenche quando passa a ser seguro.
+      ...(patientId ? { patient_id: patientId, requires_review: false } : {}),
+      ...(!existing.patient_id ? { sd_patient_name: item.patient.fullName } : {}),
+      starts_at: item.startsAt,
+      ends_at: item.endsAt,
+      status: item.status,
+      reason: item.reason,
+      requires_payment: item.requiresPayment,
+      source_fingerprint: fingerprint,
+      last_seen_at: now,
+      last_synced_at: now,
+    })
+    .eq("id", existing.id);
+  return error ? "requires_review" : "updated";
+}
 
-  await supabase.from("appointments").insert({
+async function inserirCompromisso(
+  supabase: SupabaseClient,
+  organizationId: string,
+  patientId: string | null,
+  item: NormalizedAppointment
+): Promise<"created" | "requires_review"> {
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("appointments").insert({
     organization_id: organizationId,
     patient_id: patientId,
+    sd_patient_name: patientId ? null : item.patient.fullName,
     starts_at: item.startsAt,
     ends_at: item.endsAt,
     status: item.status,
@@ -128,13 +147,13 @@ async function upsertAppointment(
     requires_payment: item.requiresPayment,
     sd_appointment_id: item.sdAppointmentId ?? null,
     source: SOURCE,
-    source_fingerprint: fingerprint,
+    source_fingerprint: computeAppointmentFingerprint(item),
     last_seen_at: now,
     last_synced_at: now,
-    // Sem sd_appointment_id nao ha como deduplicar num proximo pull —
-    // marca para revisao humana em vez de fingir idempotencia que nao existe.
-    requires_review: !item.sdAppointmentId,
+    // Sem sd_appointment_id nao ha como deduplicar num proximo pull; sem paciente
+    // vinculada, alguem precisa conferir — os dois casos ficam marcados para revisao.
+    requires_review: !item.sdAppointmentId || !patientId,
   });
-
-  return "created";
+  // Ex.: banco ainda sem a 0017 recusa compromisso sem paciente — não finge que gravou.
+  return error ? "requires_review" : "created";
 }

@@ -17,6 +17,8 @@ export interface NormalizedAppointment {
     sdPatientId?: string;
     fullName: string;
     phone?: string;
+    /** AAAA-MM-DD, quando a fonte mostra (agenda do SD): segundo identificador para casar pelo nome. */
+    birthDate?: string;
   };
   startsAt: string;
   endsAt: string;
@@ -29,6 +31,7 @@ export interface PatientCandidate {
   id: string;
   fullName: string;
   phone: string | null;
+  birthDate?: string | null;
 }
 
 export type PatientMatchDecision =
@@ -42,6 +45,8 @@ export interface SyncItemResult {
   appointmentAction: "created" | "updated" | "unchanged" | "requires_review";
   patientId?: string;
   appointmentId?: string;
+  /** Paciente sem vínculo seguro: o compromisso foi gravado sem paciente (true) ou nem isso (false). */
+  gravadoSemVinculo?: boolean;
 }
 
 export interface SyncRunSummary {

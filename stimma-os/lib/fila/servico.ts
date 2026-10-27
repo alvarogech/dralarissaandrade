@@ -8,6 +8,7 @@ import { lerFeedback, linhaSemConteudo } from "./feedback";
 import { CATEGORIAS, type EstadoDoDia, type EventoRow, type FilaConfig, type FilaStore, type MarcoRow, type NumerosDoDia, type Prioridade, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 import { categoriaDaTarefa, rotuloResponsavel, type EtapaClinica } from "./registro";
 import { assuntoDoEvento } from "./assunto";
+import { limparPrioridades } from "./prioridades";
 export { assuntoDoEvento };
 import { responsavelEfetivo } from "./trabalho";
 import { CHAVES_LINK_ROTINA, linkSeguro, resumirRotina } from "./rotina-itens";
@@ -291,7 +292,14 @@ export interface NovaTarefa {
   /** Falta/cancelamento: só o que se sabe (nunca presumido). */
   ocorrencia?: "falta" | "cancelamento" | null;
   dataOcorrencia?: string | null;
+  /** Solicitação extraordinária da gestão (aparece em "Solicitações da gestão" na rotina). */
+  extraordinaria?: boolean;
+  /** Quem pediu: gestão (Álvaro) ou Dra. Larissa. */
+  solicitadoPor?: string | null;
 }
+
+/** Quem pode pedir uma solicitação extraordinária (texto fixo; a gestão registra em nome da Dra.). */
+export const SOLICITANTES = ["Álvaro", "Dra. Larissa"] as const;
 
 export const KINDS_MANUAIS: TipoTarefa[] = ["pendencia", "outro", "recuperacao_falta", "continuidade", "relacionamento", "oportunidade", "pos_atendimento", "encaminhamento", "cobranca"];
 const PRIORIDADES: Prioridade[] = ["alta", "normal", "baixa"];
@@ -308,6 +316,7 @@ export async function criarTarefaManual(store: FilaStore, ator: Ator, t: NovaTar
   if (t.dataOcorrencia && !isDiaIso(t.dataOcorrencia)) throw new ErroRegra("Data da ocorrência inválida.");
   if (t.valor !== undefined && t.valor !== null && !(typeof t.valor === "number" && t.valor >= 0)) throw new ErroRegra("Valor inválido.");
   if (t.vencimento && !isDiaIso(t.vencimento)) throw new ErroRegra("Vencimento inválido.");
+  if (t.extraordinaria && !(SOLICITANTES as readonly string[]).includes(t.solicitadoPor ?? "")) throw new ErroRegra("Informe quem solicitou (Álvaro ou Dra. Larissa).");
   let pacienteId = t.pacienteId ?? null;
   const assunto = !pacienteId && !t.novoPaciente?.nome?.trim() ? t.assunto?.trim() || null : null;
   if (pacienteId) {
@@ -333,6 +342,7 @@ export async function criarTarefaManual(store: FilaStore, ator: Ator, t: NovaTar
       ...(t.kind === "cobranca" ? { excecao: true } : {}),
       ...(t.kind === "recuperacao_falta" && t.ocorrencia ? { ocorrencia: t.ocorrencia } : {}),
       ...(t.kind === "recuperacao_falta" && t.dataOcorrencia ? { data_ocorrencia: t.dataOcorrencia } : {}),
+      ...(t.extraordinaria ? { extraordinaria: true, solicitado_por: t.solicitadoPor } : {}),
     },
     financialImpact: t.valor ?? null, origem: t.origem || "manual", origemData: hojeSaoPaulo(), assignedTo: t.responsavel, prioridade: t.prioridade ?? null,
   });
@@ -687,6 +697,9 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?:
         responsavelId: t.assignedTo, origem: t.origem ?? undefined, origemData: t.origemData ?? undefined, prioridade: t.prioridade ?? undefined,
         orientacao: typeof t.payload.orientacao === "string" ? t.payload.orientacao : undefined,
         resultadoEsperado: typeof t.payload.resultado_esperado === "string" ? t.payload.resultado_esperado : undefined,
+        extraordinaria: t.payload.extraordinaria === true || undefined,
+        solicitadoPor: typeof t.payload.solicitado_por === "string" ? t.payload.solicitado_por : undefined,
+        criadaEm: t.criadoEm ?? undefined,
         ocorrencia, dataOcorrencia: typeof t.payload.data_ocorrencia === "string" ? t.payload.data_ocorrencia : undefined,
         prazoOriginal: t.prazoOriginal ?? undefined, adiamentos: t.adiamentos ?? 0,
         atualizadoEm: ult?.em ?? t.criadoEm ?? t.updatedAt,
@@ -744,10 +757,7 @@ export async function salvarEstadoDoDia(store: FilaStore, ator: Ator, dia: strin
   if (!isDiaIso(dia) || dia > hojeSaoPaulo()) throw new ErroRegra("Dia inválido.");
   const limpo: Partial<EstadoDoDia> = {};
   if (e.prioridades !== undefined) {
-    if (!Array.isArray(e.prioridades) || e.prioridades.length > 5) throw new ErroRegra("Escolha até cinco prioridades.");
-    limpo.prioridades = e.prioridades
-      .map((p) => ({ ref: typeof p.ref === "string" && p.ref ? p.ref : null, texto: String(p.texto ?? "").trim().slice(0, 200) }))
-      .filter((p) => p.texto);
+    limpo.prioridades = limparPrioridades(e.prioridades);
   }
   if (e.secoes !== undefined) {
     const ok = e.secoes && typeof e.secoes === "object" && Object.entries(e.secoes).every(([k, v]) => (CATEGORIAS as readonly string[]).includes(k) && v === "sem_ocorrencias");

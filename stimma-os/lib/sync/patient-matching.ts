@@ -13,7 +13,7 @@ import type { PatientCandidate, PatientMatchDecision } from "./types";
  * cria duplicata silenciosamente, mas tambem nunca vincula sem confirmacao.
  */
 export function decidePatientMatch(
-  input: { phone?: string; fullName: string },
+  input: { phone?: string; fullName: string; birthDate?: string },
   candidates: PatientCandidate[]
 ): PatientMatchDecision {
   const normalizedPhone = input.phone ? normalizePhone(input.phone) : null;
@@ -37,6 +37,13 @@ export function decidePatientMatch(
 
   if (byName.length === 0) {
     return { action: "create" };
+  }
+
+  // Nome igual + mesma data de nascimento = dois identificadores independentes: vincula.
+  // Nome sozinho continua indo para revisão (homônimos existem).
+  if (input.birthDate) {
+    const confirmados = byName.filter((c) => c.birthDate && c.birthDate.slice(0, 10) === input.birthDate);
+    if (confirmados.length === 1) return { action: "use_existing", patientId: confirmados[0]!.id };
   }
 
   return {

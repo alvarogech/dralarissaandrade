@@ -585,3 +585,91 @@ Decisões:
   O store em memória passou a espelhar a restrição do banco, para os testes pegarem o caso.
 - Sem migration, sem mudança de permissão: tudo continua conferido no servidor (testado: concierge recebe 403 ao
   criar, editar/cancelar tarefa ou comentar feedback).
+
+## 2026-10-27 — Agenda: consulta do Simples Dental aparece mesmo sem vínculo confirmado com a paciente
+
+Sintoma: a agenda mostrava uma consulta por dia. A sincronização de 27/10 leu as 5 consultas de hoje e amanhã,
+mas gravou só 1: as outras caíram em `requires_review` porque o nome batia com uma paciente já cadastrada e a
+tela da agenda não expõe código nem telefone (só nome e data de nascimento, em `fcSeg.eventRange.def.extendedProps`;
+a chamada `/consultas?minimal` não traz o id da paciente). Como `appointments.patient_id` era obrigatório, a
+consulta simplesmente não era gravada. Segundo defeito: uma consulta já gravada (mesmo `sd_appointment_id`)
+passava de novo pelo casamento de paciente e, ao bater o nome com a paciente criada na leitura anterior, sumia.
+
+Decisões:
+- Migration 0017 (aditiva): `patient_id` passa a aceitar nulo **só** para origem `simples_dental_browser`, com
+  `sd_patient_name` e `requires_review` (constraint). Nenhuma linha existente muda; reversível.
+- Sync: consulta já gravada mantém o vínculo que tem; consulta nova sem vínculo seguro é gravada sem paciente,
+  com o nome do SD, e aparece na agenda como "Conferir cadastro". Nunca se vincula por nome sozinho
+  (CRM_RULES §9). Nome **e** data de nascimento iguais a um único cadastro = vínculo (dois identificadores);
+  uma consulta sem vínculo passa a ser vinculada quando isso se confirma numa leitura seguinte.
+- Erro ao gravar vira "revisar", nunca "criado" (antes o erro do insert era ignorado).
+- O favorito passa a ler nome, data de nascimento e status dos dados do evento (fallback no texto da tela). A
+  data de nascimento só é usada para vincular (e gravada ao criar paciente nova); não é exibida.
+- O pipeline (`clinic-snapshot`) ignora compromissos ainda sem paciente.
+- A 0017 precisa ser aplicada **antes** do deploy: a agenda passa a ler `sd_patient_name`.
+
+## 2026-10-27 — Agenda: consulta do Simples Dental aparece mesmo sem vínculo confirmado com a paciente
+
+Sintoma: a agenda mostrava uma consulta por dia. A sincronização de 27/10 leu as 5 consultas de hoje e amanhã,
+mas gravou só 1: as outras caíram em `requires_review` porque o nome batia com uma paciente já cadastrada e a
+tela da agenda não expõe código nem telefone (só nome e data de nascimento, em `fcSeg.eventRange.def.extendedProps`;
+a chamada `/consultas?minimal` não traz o id da paciente). Como `appointments.patient_id` era obrigatório, a
+consulta simplesmente não era gravada. Segundo defeito: uma consulta já gravada (mesmo `sd_appointment_id`)
+passava de novo pelo casamento de paciente e, ao bater o nome com a paciente criada na leitura anterior, sumia.
+
+Decisões:
+- Migration 0017 (aditiva): `patient_id` passa a aceitar nulo **só** para origem `simples_dental_browser`, com
+  `sd_patient_name` e `requires_review` (constraint). Nenhuma linha existente muda; reversível.
+- Sync: consulta já gravada mantém o vínculo que tem; consulta nova sem vínculo seguro é gravada sem paciente,
+  com o nome do SD, e aparece na agenda como "Conferir cadastro". Nunca se vincula por nome sozinho
+  (CRM_RULES §9). Nome **e** data de nascimento iguais a um único cadastro = vínculo (dois identificadores);
+  uma consulta sem vínculo passa a ser vinculada quando isso se confirma numa leitura seguinte.
+- Erro ao gravar vira "revisar", nunca "criado" (antes o erro do insert era ignorado).
+- O favorito passa a ler nome, data de nascimento e status dos dados do evento (fallback no texto da tela). A
+  data de nascimento só é usada para vincular (e gravada ao criar paciente nova); não é exibida.
+- O pipeline (`clinic-snapshot`) ignora compromissos ainda sem paciente.
+- A 0017 precisa ser aplicada **antes** do deploy: a agenda passa a ler `sd_patient_name`.
+
+## 2026-10-27 — Rotina da Gabi em duas etapas e prestação de contas consolidada
+
+- **Duas etapas** (`MeuDiaView`, `lib/fila/meu-dia.ts`): Minha rotina → Fechamento do dia. "Pendências e
+  acompanhamentos" deixou de ser etapa: as tarefas continuam no banco e no histórico e entram na rotina —
+  atrasadas e de hoje em "Prioridades de hoje", solicitações em "Solicitações da gestão", o resto recolhido em
+  "Acompanhamentos em aberto" (cada pendência aparece uma vez; mesmo cartão com Registrar andamento, Pedir
+  orientação e histórico). Links antigos `?etapa=pendencias|finalizar` levam a rotina|fechamento.
+- **Grupos da rotina**: Prioridades de hoje · Início do dia · Relacionamento com pacientes · Financeiro ·
+  Solicitações da gestão · Conferências finais. Saíram do checklist os itens que duplicavam outro lugar
+  (follow-ups do dia, informar a gestão, retornos agendados, encaminhamentos feitos, três conferências de
+  pagamento → uma). As chaves que ficaram são as mesmas; registros antigos não mudam de sentido.
+- **Atividades com pacientes (tipo B)** (`PacientesDoItem` no catálogo, `lib/fila/contato-rotina.ts`): cada
+  paciente vira um **registro do dia** (o mesmo de sempre: histórico, próxima ação, tarefa de retorno quando o
+  caso continua, feedback). Resultados rápidos por atividade, mapeados para contato/resposta/situação existentes —
+  nenhuma enumeração nova no banco; vínculo com a atividade em `payload.detalhes.rotina_item`. "Feito" numa
+  atividade tipo B exige ao menos uma paciente registrada nela no dia (servidor); clicar "Feito" antes abre o
+  formulário e conclui depois da primeira paciente. Paciente do cadastro ou nome digitado (cadastro novo
+  explícito, sem inventar código do SD). Contatos recentes da paciente aparecem antes de registrar.
+- **Marcos 15/30/60/90 dias**: mesmo marco para a mesma paciente em 25 dias só se repete com motivo (409 +
+  campo de justificativa). Contagem a partir do retorno/atendimento de referência, como já era. Distribuição
+  semanal preservada (15 seg, 30 ter, 90 qua); **60 dias entrou na quinta-feira** (não havia configuração) —
+  ajustar no catálogo se a Dra. preferir outro dia.
+- **Pós-procedimento de ontem**: item diário + lembrete com as consultas sincronizadas do último dia útil até
+  ontem (na segunda inclui sexta e fim de semana), sempre mandando conferir no SD; nunca afirma procedimento.
+- **Cobranças de inadimplentes** (seg/sex): por paciente, sem valores; "promessa de pagamento" fica aguardando
+  com data e não é recebimento; "pagamento confirmado" só com confirmação no SD.
+- **Recebimentos do dia** (`lib/fila/caixa.ts`, migration 0018 `daily_cash_reviews`): totais previsto ×
+  recebido, diferença = previsto − recebido, justificativa, "sem recebimentos" e "não conferido" distintos.
+  Tabela sem leitura pelo navegador; API confere que é a concierge configurada (grava) ou a gestão (consulta).
+  Auditoria sem os valores. Diferença nunca é chamada de inadimplência.
+- **Solicitações da gestão**: tarefas existentes com `payload.extraordinaria` + `solicitado_por` (Álvaro ou
+  Dra. Larissa, registrado pela gestão). Gestão vê abertas/atrasadas/aguardando decisão/entregues no
+  "Trabalho da Gabi".
+- **Prioridades do próximo dia útil** (`lib/fila/prioridades.ts`): até 8, com paciente, data, prioridade,
+  origem e próxima ação; sugestões de pendências, solicitações e impedimentos (sem repetir a mesma origem);
+  revisão **obrigatória** para enviar (pode ser "não há"). No dia seguinte aparecem no topo; a ligada a tarefa
+  segue a tarefa, a manual é marcada resolvida no dia de origem.
+- **Fechamento** (`lib/fila/prestacao.ts`): um único montador para prévia, envio e gestão. Acrescenta contatos
+  da rotina por atividade e resultado, recebimentos, solicitações, decisões necessárias e observação ao
+  fechamento por áreas. Rascunho (observação, decisões, prioridades revisadas) no servidor
+  (`daily_manual_figures.rascunho`, 0018). Mudança na conferência de recebimentos depois do envio também
+  pede versão atualizada.
+- 0018 precisa ser aplicada **antes** do deploy (a rotina lê `daily_cash_reviews` e `rascunho`).

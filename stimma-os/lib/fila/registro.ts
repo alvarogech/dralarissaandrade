@@ -66,6 +66,9 @@ export interface EntradaRegistro {
   justificativaFuturos?: string;
 }
 
+/** Janela em que o mesmo marco para a mesma paciente conta como repetição (dias). */
+export const JANELA_MARCO_REPETIDO = 25;
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const dataBr = (iso: string) => iso.split("-").reverse().join("/");
 const limpo = (v?: string | null) => (typeof v === "string" && v.trim() ? v.trim() : null);
@@ -197,6 +200,15 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   }
   if (!marcos.length && !tarefas.length && e.situacao === "informativo" && !limpo(e.feito) && !limpo(e.resultado) && !limpo(e.contexto)) {
     throw new ErroRegra("Descreva o que foi registrado.");
+  }
+
+  // Marco de acompanhamento (15/30/60/90 dias) já registrado para a mesma paciente há pouco:
+  // só repete com motivo — evita cobrar ou contatar duas vezes pelo mesmo marco.
+  const marco = limpo(e.detalhes?.marco);
+  if (marco && patientId && !limpo(e.detalhes?.justificativa_repeticao)) {
+    const anterior = (await store.eventosRecentesDoPaciente(patientId, somarDias(hoje, -JANELA_MARCO_REPETIDO)))
+      .find((x) => (x.payload?.detalhes as Record<string, unknown> | undefined)?.marco === marco);
+    if (anterior) throw new ErroRegra(`Esta paciente já teve o acompanhamento de ${marco} registrado em ${dataBr(anterior.occurredOn)}. Se precisar repetir, informe o motivo.`, 409);
   }
 
   const respRotulo = rotuloResponsavel(e.responsavel, perfis);

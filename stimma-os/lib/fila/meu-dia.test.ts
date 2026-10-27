@@ -6,6 +6,7 @@ import { carregarFechamento, carregarFila, criarTarefaManual, editarTarefa, type
 import { comentarFeedback, estadoFeedback, finalizarFeedback, gerarFeedback, listarFeedbacks } from "./entrega";
 import { carregarRotina, salvarItemRotina } from "./rotina";
 import { estadoExpediente, etapaDaQuery, proximaAcao, textoEstadoExpediente, type EntradaMeuDia } from "./meu-dia";
+import { salvarRascunho } from "./prioridades";
 import type { FeedbackRow } from "./store";
 
 // Percurso guiado da concierge (reestruturação de 27/10). Dados fictícios, store em memória.
@@ -18,6 +19,9 @@ beforeEach(() => {
   vi.setSystemTime(new Date("2026-10-27T15:00:00Z")); // 12:00 em São Paulo
 });
 afterEach(() => vi.useRealTimers());
+
+// Prioridades do próximo dia útil: seção obrigatória do fechamento.
+const revisarPrioridades = (store: Parameters<typeof salvarRascunho>[0]) => salvarRascunho(store, GABI, { prioridadesConfirmadas: true });
 
 const reg = (extra: Partial<EntradaRegistro>): EntradaRegistro => ({ eventoId: randomUUID(), alvos: [], categoria: "pendencia", contato: null, resposta: null, situacao: "informativo", ...extra });
 
@@ -45,11 +49,11 @@ describe("estado do expediente e próxima ação (tela inicial)", () => {
   it("com rotina começada e atrasadas: em andamento, vai para pendências", () => {
     const e = entrada({ rotinaRespondidos: 5, atrasadas: 2 });
     expect(estadoExpediente(e).tipo).toBe("em_andamento");
-    expect(proximaAcao(e)).toMatchObject({ etapa: "pendencias", botao: "Continuar meu trabalho", titulo: "Você tem 2 pendências atrasadas" });
+    expect(proximaAcao(e)).toMatchObject({ etapa: "rotina", botao: "Continuar meu trabalho", titulo: "Você tem 2 pendências atrasadas" });
   });
 
   it("tudo respondido e nada vencendo: sugere finalizar", () => {
-    expect(proximaAcao(entrada({ rotinaRespondidos: 24 }))).toMatchObject({ etapa: "finalizar", titulo: "Tudo registrado por hoje" });
+    expect(proximaAcao(entrada({ rotinaRespondidos: 24 }))).toMatchObject({ etapa: "fechamento", titulo: "Tudo registrado por hoje" });
   });
 
   it("feedback entregue: enviado; registro novo depois do envio é sinalizado; ajuste da gestão tem prioridade", () => {
@@ -57,14 +61,16 @@ describe("estado do expediente e próxima ação (tela inicial)", () => {
     const enviado = estadoExpediente(entrada({ versoes: [v], eventosHoje: ["a"], rotinaRespondidos: 3 }));
     expect(enviado).toMatchObject({ tipo: "enviado", mudouDepois: false });
     expect(textoEstadoExpediente(enviado)).toBe("Feedback enviado às 17:00");
-    expect(proximaAcao(entrada({ versoes: [v], eventosHoje: ["a"] }))).toMatchObject({ etapa: "finalizar", botao: "Ver feedback enviado" });
+    expect(proximaAcao(entrada({ versoes: [v], eventosHoje: ["a"] }))).toMatchObject({ etapa: "fechamento", botao: "Ver feedback enviado" });
     expect(estadoExpediente(entrada({ versoes: [v], eventosHoje: ["a", "b"] }))).toMatchObject({ tipo: "enviado", mudouDepois: true });
     const ajuste = versao({ ajusteSolicitadoEm: "2026-10-27T21:00:00Z", observacaoGestao: "faltou a Paula" });
-    expect(proximaAcao(entrada({ versoes: [ajuste] }))).toMatchObject({ etapa: "finalizar", titulo: "A gestão pediu um ajuste no seu feedback", texto: "“faltou a Paula”" });
+    expect(proximaAcao(entrada({ versoes: [ajuste] }))).toMatchObject({ etapa: "fechamento", titulo: "A gestão pediu um ajuste no seu feedback", texto: "“faltou a Paula”" });
   });
 
-  it("etapa na URL: só aceita as três etapas", () => {
-    expect(etapaDaQuery("pendencias")).toBe("pendencias");
+  it("etapa na URL: duas etapas; links antigos (pendencias/finalizar) continuam levando ao lugar certo", () => {
+    expect(etapaDaQuery("pendencias")).toBe("rotina");
+    expect(etapaDaQuery("finalizar")).toBe("fechamento");
+    expect(etapaDaQuery("fechamento")).toBe("fechamento");
     expect(etapaDaQuery("qualquer")).toBeNull();
     expect(etapaDaQuery(undefined)).toBeNull();
   });
@@ -74,6 +80,8 @@ describe("Finalizar e enviar feedback", () => {
   it("cenário A/F: envia numa ação só, sem expediente configurado; repetir não duplica; recarregar mantém enviado", async () => {
     const { store } = criarStoreMemoria(); // config de demonstração sem expediente: não bloqueia
     await registrarAtividade(store, GABI, reg({ assunto: "Impressora da recepção", situacao: "informativo", feito: "chamado aberto" }));
+    await expect(finalizarFeedback(store, GABI, { id: randomUUID() })).rejects.toThrow(/prioridades para o próximo dia útil/);
+    await revisarPrioridades(store);
     const id = randomUUID();
     const r1 = await finalizarFeedback(store, GABI, { id, observacao: "Dia tranquilo." });
     expect(r1).toMatchObject({ jaEnviado: false, feedback: { status: "entregue", versao: 1 } });
@@ -96,6 +104,7 @@ describe("Finalizar e enviar feedback", () => {
 
   it("registro depois do envio: pede versão atualizada; com corrigir cria a versão 2 e preserva a 1", async () => {
     const { store } = criarStoreMemoria();
+    await revisarPrioridades(store);
     const v1 = (await finalizarFeedback(store, GABI, { id: randomUUID() })).feedback;
     await registrarAtividade(store, GABI, reg({ assunto: "Fornecedor de luvas", situacao: "informativo", feito: "pedido confirmado" }));
     await expect(finalizarFeedback(store, GABI, { id: randomUUID() })).rejects.toThrow(/versão atualizada/);
@@ -106,6 +115,7 @@ describe("Finalizar e enviar feedback", () => {
 
   it("ajuste pedido pela gestão: exige versão corrigida e a nova versão encerra o pedido", async () => {
     const { store } = criarStoreMemoria();
+    await revisarPrioridades(store);
     const v1 = (await finalizarFeedback(store, GABI, { id: randomUUID() })).feedback;
     await comentarFeedback(store, GESTAO, { id: v1.id, observacao: "Faltou o retorno da Paula", solicitarAjuste: true });
     await expect(finalizarFeedback(store, GABI, { id: randomUUID() })).rejects.toThrow(/ajuste/);
@@ -118,6 +128,7 @@ describe("Finalizar e enviar feedback", () => {
   it("versão gerada pela tela antiga e nunca entregue (caso de 26/10) é entregue sem criar outra", async () => {
     const { store } = criarStoreMemoria();
     const gerada = await gerarFeedback(store, GABI, { id: randomUUID() });
+    await revisarPrioridades(store);
     const r = await finalizarFeedback(store, GABI, { id: randomUUID() });
     expect(r.feedback).toMatchObject({ id: gerada.id, versao: 1, status: "entregue" });
     expect((await estadoFeedback(store, GABI.id, HOJE)).versoes).toHaveLength(1);
@@ -130,6 +141,7 @@ describe("Finalizar e enviar feedback", () => {
       alvos: [{ tipo: "tarefa", id: m.id }], categoria: "continuidade", contato: "sim", canal: "whatsapp", resposta: "nao", situacao: "aguardando",
       proximaAcao: "Verificar se respondeu", responsavel: `perfil:${GABI.id}`, prazo: "2026-10-29",
     }));
+    await revisarPrioridades(m.store);
     await finalizarFeedback(m.store, GABI, { id: randomUUID() });
     const depois = (await carregarFila(m.store, HOJE, GABI.id)).itens.find((i) => i.id === item.id)!;
     expect(depois.status).not.toBe("concluida");
@@ -144,6 +156,7 @@ describe("Finalizar e enviar feedback", () => {
     await salvarItemRotina(store, GABI, { itemKey: "novos_atendimentos", estado: "feito" });
     const { fechamento } = await carregarFechamento(store, HOJE, GABI.id);
     expect(fechamento.rotina?.impedimentos[0]).toMatchObject({ motivo: "Simples Dental fora do ar" });
+    await revisarPrioridades(store);
     const r = await finalizarFeedback(store, GABI, { id: randomUUID() });
     expect(r.feedback.texto).toMatch(/Impedimento — Conferir a agenda de hoje e de amanhã: Simples Dental fora do ar; próxima ação: Conferir às 14h/);
   });
@@ -151,9 +164,9 @@ describe("Finalizar e enviar feedback", () => {
   it("cenário B: rotina salva no servidor continua lá ao voltar (nada depende do navegador)", async () => {
     const { store } = criarStoreMemoria();
     await salvarItemRotina(store, GABI, { itemKey: "novos_atendimentos", estado: "feito" });
-    await salvarItemRotina(store, GABI, { itemKey: "contatos_30_dias", estado: "feito", metricas: { contatos_realizados: 4, precisa_conferir: 1 } });
+    await salvarItemRotina(store, GABI, { itemKey: "contatos_30_dias", estado: "nao_se_aplica", metricas: { precisa_conferir: 1 } });
     const de_novo = await carregarRotina(store, GABI);
-    expect(de_novo.linhas.find((l) => l.itemKey === "contatos_30_dias")).toMatchObject({ estado: "feito", metricas: { contatos_realizados: 4, precisa_conferir: 1 } });
+    expect(de_novo.linhas.find((l) => l.itemKey === "contatos_30_dias")).toMatchObject({ estado: "nao_se_aplica", metricas: { precisa_conferir: 1 } });
     expect(de_novo.editavel).toBe(true);
   });
 });

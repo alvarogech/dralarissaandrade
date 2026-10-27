@@ -5,7 +5,9 @@
  * área de transferência; nada é clicado nem alterado no Simples Dental.
  *
  * Depende da estrutura atual da tela (eventos com data-consulta-id/data-start/data-end e títulos
- * de status e procedimento). Se a tela mudar, o favorito encontra 0 consultas e o STIMMA OS avisa —
+ * de status e procedimento). Quando a tela expõe os dados do evento (nome e data de nascimento da
+ * paciente, status), usa esses; a data de nascimento só serve para vincular com segurança e não é
+ * exibida. Se a tela mudar, o favorito encontra 0 consultas e o STIMMA OS avisa —
  * nunca adivinha.
  */
 const CODIGO = `(()=>{
@@ -18,7 +20,8 @@ const id=e.getAttribute('data-consulta-id');if(!id||vistos.has(id))return;vistos
 const ini=e.getAttribute('data-start'),fim=e.getAttribute('data-end');const dia=fmt(ini);if(dia!==hoje&&dia!==amanha)return;
 const linha=(e.innerText.split('\\n')[1]||'').trim();const k=linha.lastIndexOf(' - Dr(a). ');
 const t=[...e.querySelectorAll('[title]')].map(x=>x.getAttribute('title'));
-itens.push({id,inicio:new Date(+ini).toISOString(),fim:new Date(+fim).toISOString(),paciente:k>0?linha.slice(0,k):linha,profissional:k>0?linha.slice(k+10):'',status:t[0]||'',motivo:t[1]||''});
+const p=(e.fcSeg&&e.fcSeg.eventRange&&e.fcSeg.eventRange.def&&e.fcSeg.eventRange.def.extendedProps)||{};const pac=p.paciente||{};
+itens.push({id,inicio:new Date(+ini).toISOString(),fim:new Date(+fim).toISOString(),paciente:pac.nome||(k>0?linha.slice(0,k):linha),nascimento:(pac.dtNascimento||'').slice(0,10),profissional:k>0?linha.slice(k+10):'',status:p.status||t[0]||'',motivo:t[1]||''});
 });
 const txt=JSON.stringify({formato:'stimma-agenda-v1',lido_em:new Date().toISOString(),itens});
 const ok=()=>alert(itens.length+' consulta(s) de hoje e amanhã copiadas. Volte ao STIMMA OS e cole em Sincronizar agenda.');

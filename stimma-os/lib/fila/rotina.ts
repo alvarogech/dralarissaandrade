@@ -1,6 +1,7 @@
 import { hojeSaoPaulo, isDiaIso } from "./datas";
 import { ErroRegra, type Ator } from "./servico";
 import type { FilaStore, RotinaItemRow } from "./store";
+import { itemDoEvento, resultadoDoEvento, ROTULO_RESULTADO } from "./contato-rotina";
 
 /**
  * Rotina diária da concierge — checklist geral do expediente (início, durante, fechamento).
@@ -74,6 +75,11 @@ export async function salvarItemRotina(store: FilaStore, ator: Ator, e: EntradaR
   if (!itemValeNoDia(item, hoje)) throw new ErroRegra("Este item não faz parte da rotina de hoje.");
   const m = normalizarMetricas(item, e.metricas);
   if (!m.ok) throw new ErroRegra(m.erro);
+  // Atividade com pacientes: "Feito" só depois de ao menos uma paciente registrada nela hoje.
+  if (item.pacientes && e.estado === "feito") {
+    const n = (await store.eventosDoDia(hoje)).filter((x) => x.createdBy === ator.id && itemDoEvento(x.payload) === item.key).length;
+    if (!n) throw new ErroRegra("Registre ao menos uma paciente desta atividade antes de marcar como feita.", 409);
+  }
   const impedimento = e.estado === "impedimento";
   const motivo = impedimento ? limpo(e.motivo) : null;
   const proxima = impedimento ? limpo(e.proximaAcao) : null;
@@ -107,4 +113,28 @@ export async function salvarItemRotina(store: FilaStore, ator: Ator, e: EntradaR
   // Auditoria só com estado e quantidades (nunca dados de paciente).
   await store.auditar({ actor: ator.email, action: "fila_rotina_item", target: `daily_routine_items/${hoje}/${e.itemKey}`, after: { estado: e.estado, tarefaId, temImpedimento: impedimento, metricas: m.metricas } });
   return linha;
+}
+
+/** Paciente registrada numa atividade da rotina (para a lista da atividade e o fechamento). */
+export interface ContatoDaRotina {
+  eventoId: string;
+  paciente: string;
+  resultado: string;
+  situacao: string | null;
+  hora: string | null;
+}
+
+/** Contatos do dia por atividade (só os da própria pessoa), com o nome da paciente. */
+export async function contatosDaRotina(store: FilaStore, userId: string, dia: string): Promise<Record<string, ContatoDaRotina[]>> {
+  const eventos = (await store.eventosDoDia(dia)).filter((e) => e.createdBy === userId && itemDoEvento(e.payload));
+  const nomes = await store.nomesPacientes([...new Set(eventos.map((e) => e.patientId).filter((x): x is string => !!x))]);
+  const por: Record<string, ContatoDaRotina[]> = {};
+  for (const e of eventos) {
+    const r = resultadoDoEvento(e.payload);
+    (por[itemDoEvento(e.payload)!] ??= []).push({
+      eventoId: e.id, paciente: (e.patientId && nomes[e.patientId]) || e.assunto || "Paciente", resultado: r ? ROTULO_RESULTADO[r] : e.situacao ?? "registrado",
+      situacao: e.situacao ?? null, hora: e.registradoEm ?? null,
+    });
+  }
+  return por;
 }
