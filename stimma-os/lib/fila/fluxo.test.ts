@@ -126,10 +126,11 @@ describe("auditoria do fluxo completo", () => {
         { tipo: "atendimento_realizado", chave_origem: "sd-a1", paciente: { nome: "Nina Demo", sd_codigo: "879" }, data_atendimento: "2026-10-15", status_no_sd: "Finalizado" },
       ],
     });
-    const r = await confirmarEntrada(store, GESTAO, lote);
+    // a cobrança é publicada como exceção — rotineira não vira item da fila (cobrancas.ts)
+    const r = await confirmarEntrada(store, GESTAO, lote, {}, undefined, [0]);
     expect(r).toMatchObject({ tarefas: 2, atendimentosConfirmados: 1 });
     // 10. marcos exatos, mesmo reenviando o lançamento (com outra hora de consulta)
-    await confirmarEntrada(store, GESTAO, lote.replace("09:00:00", "11:00:00"));
+    await confirmarEntrada(store, GESTAO, lote.replace("09:00:00", "11:00:00"), {}, undefined, [0]);
     expect(_dados.marcos).toHaveLength(3);
     expect(_dados.tarefas).toHaveLength(2);
 
