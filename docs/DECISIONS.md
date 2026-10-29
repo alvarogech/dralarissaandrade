@@ -673,3 +673,43 @@ Decisões:
   (`daily_manual_figures.rascunho`, 0018). Mudança na conferência de recebimentos depois do envio também
   pede versão atualizada.
 - 0018 precisa ser aplicada **antes** do deploy (a rotina lê `daily_cash_reviews` e `rascunho`).
+
+## 2026-10-29 — Agenda com roteiro, pós-procedimento com relato, retorno obrigatório e régua 30 · 90 · 180
+
+- **Conferência da agenda**: "agenda de hoje e amanhã", "novos atendimentos" e "preparação da recepção"
+  viraram uma atividade só — "Conferir agenda, confirmações e alinhamento com os profissionais" (mesma chave
+  `agenda_hoje_amanha`) — com um roteiro de 10 pontos expansível (não são campos). Sem ocorrência, basta
+  "Feito". Ocorrência (`FormOcorrenciaAgenda`): tipo, paciente opcional (nome digitado só vira cadastro se a
+  concierge escolher "não está no cadastro"), profissional comunicado, providência obrigatória e pendência
+  opcional — inclusive "depende do profissional" — que vira acompanhamento com data. Nenhum disparo de
+  WhatsApp.
+- **Registro de contato em duas camadas** (`contato-rotina.ts`): (A) situação — paciente respondeu ·
+  realizado, aguardando resposta · realizado, sem resposta · não realizado; (B) desfecho só quando respondeu —
+  orientação, agendamento, comercial, profissional, resolvido, nova ação (e os de cobrança). Valores antigos
+  (`contato_realizado`, `mensagem_enviada`…) continuam com rótulo. Aniversário fica sem camada de tentativa
+  (mensagem que não pede resposta não gera retorno).
+- **Pós-procedimento**: quando a paciente responde, "Como a paciente se encontra?" é obrigatório (tela e
+  servidor; só espaços não vale). "Necessita atenção do profissional?" registra profissional, motivo, data/hora
+  e estado; com "aguardando retorno do profissional" o caso fica em acompanhamento (situação `encaminhado`).
+  Aviso fixo para acionar o protocolo de urgência da clínica; a concierge registra o relato, não avalia.
+- **Regra global de retorno** (`lib/fila/followup.ts`, aplicada em `registrarAtividade`, servidor):
+  contato sem resposta (contato = não, ou contato = sim e resposta = não) só é aceito com próxima tentativa
+  (aguardando/pendente) ou encerramento com motivo. Sem data, o servidor usa o prazo padrão; sem próxima ação,
+  a tentativa óbvia. Prazos (parâmetros, num só lugar): pós-procedimento 1 dia útil, continuidade 2,
+  recorrência 3, reativação 3, cobrança no próximo ciclo (seg/sex, sem passar do prazo da pendência),
+  confirmação nunca depois da consulta. Nenhum prazo anterior configurado no sistema conflitava.
+- **Sem duplicar**: registro espontâneo com pendência procura retorno aberto da mesma paciente e do mesmo
+  assunto (`payload.followup`, por atividade da rotina ou área) e o reprograma — a tentativa entra no histórico
+  da mesma tarefa. Reenvio do mesmo registro já era idempotente (id do evento). Responder não encerra sozinho:
+  só "resolvido" (ou agendamento/compareceu) fecha. Nova tentativa depois de uma sem resposta não conta como
+  "marco repetido".
+- **Régua 30 · 90 · 180 dias corridos**: o terceiro marco (código interno `m6`, mantido) passa a 180 dias em
+  vez de 6 meses de calendário — função do banco (migration 0019), espelho em TS, nome "Acompanhamento de 180
+  dias" em toda a tela. A 0019 recalcula só marcos m6 futuros, intocados, nunca adiados e com data da regra
+  antiga; o gatilho de histórico guarda a data original. O 60 dias (só existia na rotina) saiu; "Acompanhamentos
+  de 180 dias" ficou na quinta. Os contatos de 15 dias (segunda), que não fazem parte da régua, continuam.
+- **Fechamento**: "Indicadores do dia" no texto e na tela — tentativas × pacientes, com/sem resposta, não
+  realizados, retornos programados/concluídos/vencidos, pós-procedimento acompanhado/sem resposta, encaminhadas
+  ao profissional, pendências da gestão — tudo derivado dos registros.
+- A 0019 precisa ser aplicada **antes** do deploy para que novos atendimentos já gerem 180 dias no banco (sem
+  ela, nada quebra: o banco continua gerando 6 meses até ser aplicada).

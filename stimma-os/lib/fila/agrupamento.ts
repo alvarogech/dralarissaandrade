@@ -49,6 +49,8 @@ export interface ItemFila {
   resultadoEsperado?: string;
   /** Solicitação extraordinária da gestão e quem pediu. */
   extraordinaria?: boolean;
+  /** Retorno de contato sem resposta (regra global de follow-up) e o tipo dele. */
+  followup?: string;
   solicitadoPor?: string;
   criadaEm?: string;
   /** Falta/cancelamento: ocorrência conhecida (ausente = não informada; nunca presumida). */

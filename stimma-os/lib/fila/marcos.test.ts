@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { datasDosMarcos, planejarAnulacao, planejarMarcos, type MarcoExistente } from "./marcos";
-import { somarMeses } from "./datas";
+import { somarDias, somarMeses } from "./datas";
 
 describe("datasDosMarcos", () => {
-  it("30 e 90 dias corridos, 6 meses de calendário", () => {
-    expect(datasDosMarcos("2026-10-15")).toEqual({ d30: "2026-11-14", d90: "2027-01-13", m6: "2027-04-15" });
+  it("régua 30 · 90 · 180 dias corridos (decisão de 29/10; o código interno do terceiro continua m6)", () => {
+    expect(datasDosMarcos("2026-10-15")).toEqual({ d30: "2026-11-14", d90: "2027-01-13", m6: "2027-04-13" });
+    expect(datasDosMarcos("2026-10-15").m6).toBe(somarDias("2026-10-15", 180));
   });
 
-  it("6 meses ajusta para o último dia válido do mês", () => {
-    expect(datasDosMarcos("2026-08-31").m6).toBe("2027-02-28");
+  it("180 dias corridos, não 6 meses de calendário; somarMeses continua disponível para outros usos", () => {
+    expect(datasDosMarcos("2026-08-31").m6).toBe("2027-02-27");
     expect(somarMeses("2027-08-31", 6)).toBe("2028-02-29");
     expect(somarMeses("2026-03-31", 6)).toBe("2026-09-30");
   });
@@ -25,7 +26,7 @@ describe("planejarMarcos", () => {
     const existentes: MarcoExistente[] = [
       { kind: "d30", status: "previsto", dueOriginal: "2026-11-14", temEventoVinculado: false },
       { kind: "d90", status: "previsto", dueOriginal: "2027-01-13", temEventoVinculado: false },
-      { kind: "m6", status: "previsto", dueOriginal: "2027-04-15", temEventoVinculado: false },
+      { kind: "m6", status: "previsto", dueOriginal: "2027-04-13", temEventoVinculado: false },
     ];
     expect(planejarMarcos("2026-10-15", existentes).every((a) => a.acao === "manter")).toBe(true);
   });
@@ -34,7 +35,7 @@ describe("planejarMarcos", () => {
     const existentes: MarcoExistente[] = [
       { kind: "d30", status: "contatado", dueOriginal: "2026-11-14", temEventoVinculado: true },
       { kind: "d90", status: "previsto", dueOriginal: "2027-01-13", temEventoVinculado: false },
-      { kind: "m6", status: "previsto", dueOriginal: "2027-04-15", temEventoVinculado: true },
+      { kind: "m6", status: "previsto", dueOriginal: "2027-04-13", temEventoVinculado: true },
     ];
     const acoes = planejarMarcos("2026-10-14", existentes);
     expect(acoes[0]).toMatchObject({ kind: "d30", acao: "manter", due: "2026-11-14" });
@@ -46,7 +47,7 @@ describe("planejarMarcos", () => {
     const existentes: MarcoExistente[] = [
       { kind: "d30", status: "contatado", dueOriginal: "2026-11-14", temEventoVinculado: true },
       { kind: "d90", status: "previsto", dueOriginal: "2027-01-13", temEventoVinculado: false },
-      { kind: "m6", status: "previsto", dueOriginal: "2027-04-15", temEventoVinculado: false },
+      { kind: "m6", status: "previsto", dueOriginal: "2027-04-13", temEventoVinculado: false },
     ];
     expect(planejarAnulacao(existentes).map((a) => a.acao)).toEqual(["manter", "invalidar", "invalidar"]);
   });

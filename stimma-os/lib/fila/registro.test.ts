@@ -26,9 +26,12 @@ async function comPaciente() {
 describe("registro do dia", () => {
   it("registro espontâneo com a fila vazia, sem pendência, não cria tarefa artificial", async () => {
     const { store, _dados, pid } = await comPaciente();
-    await registrarAtividade(store, GABI, reg({ categoria: "relacionamento", pacienteId: pid, contato: "sim", canal: "whatsapp", resposta: "nao", feito: "parabéns pelo aniversário", situacao: "informativo" }));
+    // Mensagem que não pede resposta (aniversário): resposta "não se aplica", sem retorno a fazer.
+    await registrarAtividade(store, GABI, reg({ categoria: "relacionamento", pacienteId: pid, contato: "sim", canal: "whatsapp", resposta: "na", feito: "parabéns pelo aniversário", situacao: "informativo" }));
     expect(_dados.tarefas).toHaveLength(0);
-    expect(_dados.eventos[0]).toMatchObject({ kind: "contato", contato: "sim", resposta: "nao", categoria: "relacionamento" });
+    expect(_dados.eventos[0]).toMatchObject({ kind: "contato", contato: "sim", resposta: "na", categoria: "relacionamento" });
+    // Contato sem resposta, porém, nunca fica só registrado: exige a próxima tentativa (regra global de 29/10).
+    await expect(registrarAtividade(store, GABI, reg({ categoria: "relacionamento", pacienteId: pid, contato: "sim", resposta: "nao", feito: "x", situacao: "informativo" }))).rejects.toThrow(/próxima tentativa/);
   });
 
   it("pendência exige próxima ação, responsável e prazo; não-preenchido ≠ não", async () => {

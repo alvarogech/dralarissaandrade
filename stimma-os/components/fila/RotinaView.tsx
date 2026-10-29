@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { ESTADOS_ROTINA, GRUPOS_ROTINA, MAX_QUANTIDADE, ROTULO_ESTADO_ROTINA, itensDoDia, textoDoItem, textoMetricas, type EstadoRotina, type GrupoRotina, type ItemRotina, type MetricasRotina } from "@/lib/fila/rotina-itens";
 import type { ContatoDaRotina, RotinaCarregada } from "@/lib/fila/rotina";
 import { FormContatoRotina } from "./FormContatoRotina";
+import { FormOcorrenciaAgenda } from "./FormOcorrenciaAgenda";
+import { prazoFollowup, tipoFollowup } from "@/lib/fila/followup";
 import type { RotinaItemRow } from "@/lib/fila/store";
 import { Campo, ErroAcao, chamarApi, classeInput, dataBr, soHora } from "./comum";
 
@@ -250,6 +252,7 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
 }) {
   // Atividade com pacientes: "Feito" só depois de ao menos uma paciente registrada.
   const [formPaciente, setFormPaciente] = useState<null | "livre" | "concluir">(null);
+  const [formOcorrencia, setFormOcorrencia] = useState(false);
   const [registradasAgora, setRegistradasAgora] = useState(0);
   const salvo: EstadoRotina = linha?.estado ?? "a_fazer";
   const [pendente, setPendente] = useState<Envio | null>(null);
@@ -369,6 +372,27 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
         )}
       </div>
 
+      {item.roteiro && (
+        <details className="mt-1.5 rounded-control border border-border bg-surface-raised">
+          <summary className="cursor-pointer px-2.5 py-1.5 text-[13px] text-text-secondary">O que conferir ({item.roteiro.length} pontos)</summary>
+          <ol className="list-decimal space-y-0.5 border-t border-border px-2.5 py-2 pl-7 text-[13px] text-text-secondary">{item.roteiro.map((r) => <li key={r}>{r}</li>)}</ol>
+        </details>
+      )}
+      {item.ocorrencias && (contatos.length > 0 || editavel) && (
+        <div className="mt-2">
+          {contatos.length > 0 && (
+            <ul className="flex flex-col gap-0.5 text-[13px] text-text-secondary" aria-label="Ocorrências registradas">
+              {contatos.map((x) => <li key={x.eventoId}>{x.resultado} · <span className="text-text-primary">{x.paciente}</span></li>)}
+            </ul>
+          )}
+          {editavel && !formOcorrencia && (
+            <button type="button" className="mt-1 text-[13px] font-medium text-accent underline-offset-4 hover:underline" onClick={() => setFormOcorrencia(true)}>+ Registrar ocorrência</button>
+          )}
+          {editavel && formOcorrencia && (
+            <FormOcorrenciaAgenda pacientes={pacientes} usuarioId={usuarioId} hoje={hoje} proximoDiaUtil={proximoDiaUtil} onSalvo={aoRegistrar} onFechar={() => setFormOcorrencia(false)} />
+          )}
+        </div>
+      )}
       {item.pacientes && (contatos.length > 0 || editavel) && (
         <div className="mt-2">
           {contatos.length > 0 && (
@@ -384,6 +408,7 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
           )}
           {editavel && formPaciente && (
             <FormContatoRotina item={item} pacientes={pacientes} usuarioId={usuarioId} hoje={hoje} proximoDiaUtil={proximoDiaUtil}
+              prazoSugerido={prazoFollowup(tipoFollowup(item.pacientes.categoria, item.key), hoje)}
               aviso={formPaciente === "concluir" && contatos.length + registradasAgora === 0 ? "Para marcar como feito, registre quem foi contatada (uma ou mais pacientes)." : undefined}
               onSalvo={() => {
                 setRegistradasAgora((n) => n + 1);

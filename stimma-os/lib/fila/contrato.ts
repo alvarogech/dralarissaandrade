@@ -121,7 +121,7 @@ export function validarItem(bruto: unknown, index: number, cab: CabecalhoLote): 
       const st = texto(o.status_no_sd).toLowerCase();
       if (!st) erros.push("status_no_sd é obrigatório (o atendimento precisa constar como realizado)");
       else if (!STATUS_REALIZADO.includes(st)) erros.push(`status_no_sd "${texto(o.status_no_sd)}" não indica atendimento realizado — agendado/confirmado não gera marcos`);
-      if (o.marcos !== undefined) avisos.push("marcos ignorado: todo atendimento realizado gera os três marcos (30 dias, 90 dias e 6 meses)");
+      if (o.marcos !== undefined) avisos.push("marcos ignorado: todo atendimento realizado gera os três marcos (30, 90 e 180 dias)");
       if (aConferir.includes("data_atendimento") || aConferir.includes("status_no_sd")) {
         avisos.push("data ou status a conferir: o atendimento fica pendente de validação e não gera marcos até ser confirmado");
       }

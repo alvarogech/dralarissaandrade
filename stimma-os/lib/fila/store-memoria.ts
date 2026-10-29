@@ -83,6 +83,9 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
       const t = tarefas.find((x) => x.chaveOrigem === chave);
       return t ? comVinculoT(t) : null;
     },
+    async tarefasAbertasDoPaciente(patientId) {
+      return tarefas.filter((x) => x.patientId === patientId && (x.status === "open" || x.status === "waiting")).map(comVinculoT);
+    },
     async marcosAtivos(desde) {
       return marcos.filter((m) => ["previsto", "contatado"].includes(m.status) || (m.status !== "invalidado" && dia(m.updatedAt) >= desde)).map(comVinculoM);
     },

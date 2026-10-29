@@ -3,6 +3,7 @@ import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
 import { JANELA_MARCOS_DIAS } from "./trabalho";
 import { ErroRegra, type Ator } from "./servico";
 import { assuntoDoEvento } from "./assunto";
+import { chaveFollowup, followupAberto, prazoFollowup, semResposta, tipoFollowup } from "./followup";
 import { CATEGORIAS, type Categoria, type FilaStore, type MarcoRow, type SimNao, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 
 /**
@@ -133,6 +134,31 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     if (e.situacao === "aguardando_gestao" && !limpo(e.pergunta)) throw new ErroRegra("Aguardando gestão: escreva a dúvida ou o impedimento.");
     e = { ...e, responsavel: `perfil:${config.gestorId}`, proximaAcao: limpo(e.proximaAcao) ?? (limpo(e.pergunta) ? `Responder: ${limpo(e.pergunta)}` : limpo(e.detalhes?.motivo_encaminhamento) ? `Avaliar encaminhamento: ${limpo(e.detalhes?.motivo_encaminhamento)}` : undefined) };
   }
+  // ---- regra global (followup.ts): contato sem resposta sempre tem uma próxima tentativa rastreável.
+  // Sem data informada, usa o prazo padrão do tipo; sem próxima ação, a tentativa óbvia.
+  const rotinaItem = limpo(e.detalhes?.rotina_item);
+  const tipoRetorno = tipoFollowup(e.categoria, rotinaItem, e.detalhes);
+  if (semResposta(e.contato, e.resposta)) {
+    if (!["aguardando", "pendente", "aguardando_gestao", "encaminhado", "dispensado"].includes(e.situacao)) {
+      throw new ErroRegra("Contato sem resposta precisa de uma próxima tentativa: use “Aguardando paciente” ou “Próxima ação programada” (ou encerre com motivo).");
+    }
+    if (e.situacao === "aguardando" || e.situacao === "pendente") {
+      e = {
+        ...e,
+        proximaAcao: limpo(e.proximaAcao) ?? (e.situacao === "aguardando" ? "Verificar se respondeu" : "Tentar contato de novo"),
+        responsavel: e.responsavel || `perfil:${ator.id}`,
+        prazo: e.prazo && isDiaIso(e.prazo) ? e.prazo : prazoFollowup(tipoRetorno, hoje, { dataConsulta: e.detalhes?.data_consulta }),
+      };
+    }
+  }
+  // Pós-procedimento com resposta: o relato da paciente é obrigatório (registrar, não avaliar).
+  if (rotinaItem === "pos_procedimento_ontem" && e.resposta === "sim" && e.detalhes?.relato_paciente !== "sim") {
+    throw new ErroRegra("Pós-procedimento: descreva como a paciente se encontra (o que ela relatou).");
+  }
+  const dataConsulta = e.detalhes?.data_consulta;
+  if (tipoRetorno === "confirmacao" && e.prazo && dataConsulta && isDiaIso(dataConsulta) && e.prazo > dataConsulta) {
+    throw new ErroRegra("A nova tentativa de confirmação precisa ser até a data da consulta.");
+  }
   const pendente = SITUACOES_COM_PENDENCIA.includes(e.situacao);
   const proxima = limpo(e.proximaAcao);
   if (pendente) {
@@ -202,12 +228,13 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     throw new ErroRegra("Descreva o que foi registrado.");
   }
 
-  // Marco de acompanhamento (15/30/60/90 dias) já registrado para a mesma paciente há pouco:
-  // só repete com motivo — evita cobrar ou contatar duas vezes pelo mesmo marco.
+  // Marco de acompanhamento (15/30/90/180 dias) já registrado para a mesma paciente há pouco:
+  // só repete com motivo — evita contatar duas vezes pelo mesmo marco. Nova tentativa depois de
+  // uma sem resposta não é repetição: é o retorno que a regra global manda fazer.
   const marco = limpo(e.detalhes?.marco);
   if (marco && patientId && !limpo(e.detalhes?.justificativa_repeticao)) {
     const anterior = (await store.eventosRecentesDoPaciente(patientId, somarDias(hoje, -JANELA_MARCO_REPETIDO)))
-      .find((x) => (x.payload?.detalhes as Record<string, unknown> | undefined)?.marco === marco);
+      .find((x) => (x.payload?.detalhes as Record<string, unknown> | undefined)?.marco === marco && !semResposta(x.contato ?? null, x.resposta ?? null));
     if (anterior) throw new ErroRegra(`Esta paciente já teve o acompanhamento de ${marco} registrado em ${dataBr(anterior.occurredOn)}. Se precisar repetir, informe o motivo.`, 409);
   }
 
@@ -223,15 +250,25 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   };
   const aguardando: "paciente" | "gestao" | null = paraGestao ? "gestao" : e.situacao === "aguardando" ? "paciente" : null;
 
-  // ---- registro espontâneo com pendência vira um caso (tarefa) — sem pendência, só o evento
+  // ---- registro espontâneo com pendência vira um caso (tarefa) — sem pendência, só o evento.
+  // Já existe retorno aberto da mesma paciente e do mesmo assunto? Reprograma esse (a tentativa
+  // entra no histórico dele) em vez de criar outro: nada de tarefas repetidas para o mesmo caso.
   let tarefaCriada: string | null = null;
+  let reprogramada: string | null = null;
   if (!marcos.length && !tarefas.length && pendente) {
-    const chave = `registro:${e.eventoId}`;
-    tarefaCriada = (await store.tarefaPorChave(chave))?.id ?? (await store.criarTarefa({
-      patientId, assunto, kind: e.categoria === "agenda" && /falta|cancel/i.test(e.detalhes?.ocorrencia ?? "") ? "recuperacao_falta" : KIND_DA_CATEGORIA[e.categoria], title: proxima!, chaveOrigem: chave, due: e.prazo!, aConferir: [],
-      payload: payloadExtra, financialImpact: null, origem: "registro do dia", origemData: data, assignedTo, nextAction: proxima,
-    }));
-    if (e.situacao !== "pendente") await store.atualizarTarefa(tarefaCriada, { status: "waiting", waiting: true, aguardando });
+    const chaveRetorno = chaveFollowup(e.categoria, rotinaItem);
+    const existente = patientId ? followupAberto(await store.tarefasAbertasDoPaciente(patientId), chaveRetorno) : null;
+    if (existente) {
+      tarefas.push(existente);
+      reprogramada = existente.id;
+    } else {
+      const chave = `registro:${e.eventoId}`;
+      tarefaCriada = (await store.tarefaPorChave(chave))?.id ?? (await store.criarTarefa({
+        patientId, assunto, kind: e.categoria === "agenda" && /falta|cancel/i.test(e.detalhes?.ocorrencia ?? "") ? "recuperacao_falta" : KIND_DA_CATEGORIA[e.categoria], title: proxima!, chaveOrigem: chave, due: e.prazo!, aConferir: [],
+        payload: { ...payloadExtra, followup: chaveRetorno, tipo_followup: tipoRetorno }, financialImpact: null, origem: "registro do dia", origemData: data, assignedTo, nextAction: proxima,
+      }));
+      if (e.situacao !== "pendente") await store.atualizarTarefa(tarefaCriada, { status: "waiting", waiting: true, aguardando });
+    }
   }
 
   // ---- evento (fonte única para histórico, contadores e feedback)
@@ -303,5 +340,5 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   }
 
   await store.auditar({ actor: ator.email, action: `fila_registro_${e.situacao}`, target: patientId ? `patients/${patientId}` : `assunto/${assunto}`, after: { evento: e.eventoId, alvos: e.alvos, categoria: e.categoria } });
-  return { duplicado: false, tarefaCriada };
+  return { duplicado: false, tarefaCriada: tarefaCriada ?? reprogramada };
 }

@@ -25,10 +25,10 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-async function contato(store: FilaStore, itemKey: string, resultado: ResultadoContato, nome: string, extra: Record<string, string> = {}) {
+async function contato(store: FilaStore, itemKey: string, resultado: ResultadoContato, nome: string, extra: Record<string, string> = {}, desfecho?: ResultadoContato) {
   const item = itemDaRotina(itemKey)!;
-  const entrada = { resultado, nomeNovo: nome, responsavel: `perfil:${GABI.id}`, proximaAcao: "Verificar se respondeu", prazo: "2026-10-29", ...extra };
-  expect(validarContato(entrada, TER)).toEqual([]);
+  const entrada = { resultado, desfecho, nomeNovo: nome, responsavel: `perfil:${GABI.id}`, proximaAcao: "Verificar se respondeu", prazo: "2026-10-29", ...extra };
+  expect(validarContato({ ...entrada, item }, TER)).toEqual([]);
   return registrarAtividade(store, GABI, registroDoContato({ ...entrada, eventoId: randomUUID(), item }));
 }
 
@@ -42,30 +42,30 @@ describe("rotina: atividades simples × atividades com pacientes", () => {
     const { store } = criarStoreMemoria();
     await expect(salvarItemRotina(store, GABI, { itemKey: "contatos_30_dias", estado: "feito" })).rejects.toThrow(/Registre ao menos uma paciente/);
     expect(validarContato({ resultado: "contato_realizado", responsavel: `perfil:${GABI.id}` }, TER)).toEqual([["paciente", expect.stringMatching(/Informe a paciente/)]]);
-    await contato(store, "contatos_30_dias", "contato_realizado", "TESTE Ana Exemplo");
+    await contato(store, "contatos_30_dias", "respondeu", "TESTE Ana Exemplo", { observacao: "orientei sobre a escovação" }, "orientacao");
     await expect(salvarItemRotina(store, GABI, { itemKey: "contatos_30_dias", estado: "feito" })).resolves.toMatchObject({ estado: "feito" });
   });
 
   it("cenário 3 e 12: três pacientes com resultados diferentes aparecem no fechamento, sem redigitar", async () => {
     const { store } = criarStoreMemoria();
-    await contato(store, "contatos_30_dias", "agendou", "TESTE Ana Exemplo", { agendadoPara: "2026-11-03" });
+    await contato(store, "contatos_30_dias", "respondeu", "TESTE Ana Exemplo", { agendadoPara: "2026-11-03" }, "agendou");
     await contato(store, "contatos_30_dias", "aguardando_resposta", "TESTE Bia Exemplo");
     await contato(store, "contatos_30_dias", "nao_respondeu", "TESTE Carla Exemplo", { proximaAcao: "Tentar contato de novo" });
     await salvarItemRotina(store, GABI, { itemKey: "contatos_30_dias", estado: "feito" });
-    await salvarItemRotina(store, GABI, { itemKey: "preparacao_equipe", estado: "nao_se_aplica" });
+    await salvarItemRotina(store, GABI, { itemKey: "cadastro_documentos", estado: "nao_se_aplica" });
 
     const lista = (await contatosDaRotina(store, GABI.id, TER)).contatos_30_dias!;
     expect(lista.map((c) => c.paciente).sort()).toEqual(["TESTE Ana Exemplo", "TESTE Bia Exemplo", "TESTE Carla Exemplo"]);
     const p = await montarPrestacao(store, GABI.id, TER);
     expect(p.contatos).toEqual([expect.objectContaining({ item: "contatos_30_dias", total: 3 })]);
-    expect(p.contatos[0]!.porResultado.map((x) => x.resultado).sort()).toEqual(["Agendamento realizado", "Aguardando resposta", "Não consegui falar / não respondeu"]);
+    expect(p.contatos[0]!.porResultado.map((x) => x.resultado).sort()).toEqual(["Agendamento realizado", "Realizado, aguardando resposta", "Realizado, sem resposta"]);
     expect(p.fechamento.rotina?.feitos).toContain("Acompanhamentos de 30 dias");
-    expect(p.fechamento.rotina?.naoSeAplica).toContain("Confirmar a preparação da recepção, da equipe e dos ambientes");
+    expect(p.fechamento.rotina?.naoSeAplica).toContain("Verificar pendências de cadastro e documentos");
     expect(p.texto).toMatch(/\*Contatos da rotina\*\n• Acompanhamento de 30 dias: 3 pacientes/);
     // Cada paciente entra no fechamento com o resultado (nome abreviado no texto), sem redigitar.
-    const linhas = p.fechamento.blocos.flatMap((b) => b.linhas).filter((l) => l.item === "Contatos de 30 dias");
+    const linhas = p.fechamento.blocos.flatMap((b) => b.linhas).filter((l) => l.item === "Acompanhamento de 30 dias");
     expect(linhas).toHaveLength(3);
-    expect(p.texto.match(/TESTE E\. · Contatos de 30 dias/g)).toHaveLength(3);
+    expect(p.texto.match(/TESTE E\. · Acompanhamento de 30 dias/g)).toHaveLength(3);
   });
 
   it("cenário 4: contato sem resposta fica registrado como realizado e a próxima ação continua aberta", async () => {

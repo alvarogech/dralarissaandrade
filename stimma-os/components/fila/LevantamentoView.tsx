@@ -335,7 +335,7 @@ export function LevantamentoView({ linhas, setLinhas }: { linhas: LinhaEditor[];
                     <>
                       <Campo label="Data exata do atendimento"><input type="date" value={l.data_atendimento} onChange={(e) => editar(l.uid, "data_atendimento", e.target.value)} className={classeInput} /></Campo>
                       <Campo label="Status no Simples Dental"><input value={l.status_no_sd} onChange={(e) => editar(l.uid, "status_no_sd", e.target.value)} className={classeInput} placeholder="Finalizado" /></Campo>
-                      <p className="text-xs text-text-muted sm:col-span-3">Confirmado como realizado, gera automaticamente os marcos de 30 dias, 90 dias e 6 meses.</p>
+                      <p className="text-xs text-text-muted sm:col-span-3">Confirmado como realizado, gera automaticamente os acompanhamentos de 30, 90 e 180 dias.</p>
                     </>
                   )}
                   {l.tipo === "recuperacao_falta" && (

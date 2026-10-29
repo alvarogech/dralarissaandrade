@@ -176,6 +176,11 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       const { data } = await db.from("tasks").select(COLS_TAREFA).eq("organization_id", org).eq("chave_origem", chave).maybeSingle();
       return data ? tarefaRow(data) : null;
     },
+    async tarefasAbertasDoPaciente(patientId) {
+      const { data, error } = await db.from("tasks").select(COLS_TAREFA).eq("organization_id", org).eq("patient_id", patientId).in("status", ["open", "waiting"]);
+      falhou(error, "tarefasAbertasDoPaciente");
+      return (data ?? []).map(tarefaRow);
+    },
     async marcosAtivos(desde) {
       const { data, error } = await db.from("follow_up_milestones").select(COLS_MARCO).eq("organization_id", org)
         .or(`status.in.(previsto,contatado),and(status.in.(contemplado,dispensado),updated_at.gte.${desde})`);
@@ -390,7 +395,7 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       falhou((await db.from("appointments").update({ data_realizada: data }).eq("organization_id", org).eq("id", id)).error, "atualizarDataAtendimento");
     },
     async confirmarAtendimento(id, data, ator) {
-      // Sempre os três marcos (30 dias, 90 dias, 6 meses): regra atômica do banco (0012/0014).
+      // Sempre os três marcos (30, 90 e 180 dias): regra atômica do banco (0012/0014).
       falhou((await db.rpc("confirmar_atendimento_realizado", { p_appointment_id: id, p_data: data, p_actor: ator })).error, "confirmarAtendimento");
     },
     async anularAtendimento(id, motivo, ator) {

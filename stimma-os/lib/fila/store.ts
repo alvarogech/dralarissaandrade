@@ -245,6 +245,8 @@ export interface FilaStore {
   atendimento(id: string): Promise<AtendimentoRow | null>;
   atendimentosPendentes(): Promise<AtendimentoRow[]>;
   tarefaPorChave(chave: string): Promise<TarefaRow | null>;
+  /** Tarefas abertas (a fazer ou aguardando) de uma paciente — para reprogramar o retorno em vez de duplicar. */
+  tarefasAbertasDoPaciente(patientId: string): Promise<TarefaRow[]>;
   /** Abertos (previsto/contatado) + encerrados atualizados a partir de `desde` (AAAA-MM-DD). */
   marcosAtivos(desde: string): Promise<MarcoRow[]>;
   marco(id: string): Promise<MarcoRow | null>;

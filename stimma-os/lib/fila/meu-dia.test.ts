@@ -153,17 +153,17 @@ describe("Finalizar e enviar feedback", () => {
     const { store } = criarStoreMemoria();
     await expect(salvarItemRotina(store, GABI, { itemKey: "agenda_hoje_amanha", estado: "impedimento" })).rejects.toThrow(/motivo/);
     await salvarItemRotina(store, GABI, { itemKey: "agenda_hoje_amanha", estado: "impedimento", motivo: "Simples Dental fora do ar", proximaAcao: "Conferir às 14h" });
-    await salvarItemRotina(store, GABI, { itemKey: "novos_atendimentos", estado: "feito" });
+    await salvarItemRotina(store, GABI, { itemKey: "cadastro_documentos", estado: "feito" });
     const { fechamento } = await carregarFechamento(store, HOJE, GABI.id);
     expect(fechamento.rotina?.impedimentos[0]).toMatchObject({ motivo: "Simples Dental fora do ar" });
     await revisarPrioridades(store);
     const r = await finalizarFeedback(store, GABI, { id: randomUUID() });
-    expect(r.feedback.texto).toMatch(/Impedimento — Conferir a agenda de hoje e de amanhã: Simples Dental fora do ar; próxima ação: Conferir às 14h/);
+    expect(r.feedback.texto).toMatch(/Impedimento — Conferir agenda, confirmações e alinhamento com os profissionais: Simples Dental fora do ar; próxima ação: Conferir às 14h/);
   });
 
   it("cenário B: rotina salva no servidor continua lá ao voltar (nada depende do navegador)", async () => {
     const { store } = criarStoreMemoria();
-    await salvarItemRotina(store, GABI, { itemKey: "novos_atendimentos", estado: "feito" });
+    await salvarItemRotina(store, GABI, { itemKey: "cadastro_documentos", estado: "feito" });
     await salvarItemRotina(store, GABI, { itemKey: "contatos_30_dias", estado: "nao_se_aplica", metricas: { precisa_conferir: 1 } });
     const de_novo = await carregarRotina(store, GABI);
     expect(de_novo.linhas.find((l) => l.itemKey === "contatos_30_dias")).toMatchObject({ estado: "nao_se_aplica", metricas: { precisa_conferir: 1 } });

@@ -19,6 +19,60 @@ export interface ContatosPorAtividade {
   porResultado: { resultado: string; n: number }[];
 }
 
+/**
+ * Indicadores do dia, só a partir dos registros (nada digitado de novo). Tentativas ≠ pacientes:
+ * a mesma paciente com duas tentativas conta 2 tentativas e 1 paciente.
+ */
+export interface IndicadoresDia {
+  tentativas: number;
+  pacientesContatadas: number;
+  comResposta: number;
+  semResposta: number;
+  naoRealizados: number;
+  followupsProgramados: number;
+  followupsConcluidos: number;
+  followupsVencidos: number;
+  posAcompanhados: number;
+  posSemResposta: number;
+  encaminhadosProfissional: number;
+  pendenciasGestao: number;
+}
+
+export function indicadoresDoDia(eventos: EventoRow[], itens: ItemFila[], dia: string, responsavel: string): IndicadoresDia {
+  const det = (e: EventoRow) => (e.payload?.detalhes ?? {}) as Record<string, unknown>;
+  const feitos = eventos.filter((e) => e.contato === "sim");
+  const semResp = eventos.filter((e) => e.contato === "sim" && e.resposta === "nao");
+  const pos = eventos.filter((e) => det(e).rotina_item === "pos_procedimento_ontem");
+  const distintas = (lista: EventoRow[]) => new Set(lista.map((e) => e.patientId ?? `assunto:${e.assunto ?? e.id}`)).size;
+  const programados = new Set(
+    eventos.filter((e) => e.situacao === "aguardando" || e.situacao === "pendente").flatMap((e) => e.alvos.map((a) => a.tarefaId).filter((x): x is string => !!x)),
+  );
+  const meus = itens.filter((i) => i.responsavelId === responsavel);
+  return {
+    tentativas: feitos.length,
+    pacientesContatadas: distintas(feitos),
+    comResposta: eventos.filter((e) => e.resposta === "sim").length,
+    semResposta: semResp.length,
+    naoRealizados: eventos.filter((e) => e.contato === "nao").length,
+    followupsProgramados: programados.size,
+    followupsConcluidos: meus.filter((i) => i.followup && i.status === "concluida" && i.concluidaEm === dia).length,
+    followupsVencidos: meus.filter((i) => i.followup && i.status !== "concluida" && i.due < dia).length,
+    posAcompanhados: distintas(pos),
+    posSemResposta: distintas(pos.filter((e) => e.contato === "nao" || e.resposta === "nao")),
+    encaminhadosProfissional: eventos.filter((e) => det(e).atencao_profissional === "sim").length,
+    pendenciasGestao: itens.filter((i) => i.status !== "concluida" && i.aguardando === "gestao").length,
+  };
+}
+
+export function textoIndicadores(i: IndicadoresDia): string[] {
+  return [
+    `• Contatos realizados: ${i.tentativas} tentativa${i.tentativas === 1 ? "" : "s"} (${i.pacientesContatadas} paciente${i.pacientesContatadas === 1 ? "" : "s"}) · com resposta: ${i.comResposta} · sem resposta: ${i.semResposta}${i.naoRealizados ? ` · não realizados: ${i.naoRealizados}` : ""}`,
+    `• Retornos (follow-ups): ${i.followupsProgramados} programado${i.followupsProgramados === 1 ? "" : "s"} hoje · ${i.followupsConcluidos} concluído${i.followupsConcluidos === 1 ? "" : "s"} · ${i.followupsVencidos} vencido${i.followupsVencidos === 1 ? "" : "s"}`,
+    `• Pós-procedimento: ${i.posAcompanhados} paciente${i.posAcompanhados === 1 ? "" : "s"} acompanhada${i.posAcompanhados === 1 ? "" : "s"} · ${i.posSemResposta} sem resposta · ${i.encaminhadosProfissional} encaminhada${i.encaminhadosProfissional === 1 ? "" : "s"} ao profissional`,
+    `• Aguardando ação da gestão: ${i.pendenciasGestao}`,
+  ];
+}
+
 export interface Prestacao {
   texto: string;
   contadores: Record<string, unknown>;
@@ -28,6 +82,7 @@ export interface Prestacao {
   caixa: EstadoCaixa;
   contatos: ContatosPorAtividade[];
   solicitacoes: ItemFila[];
+  indicadores: IndicadoresDia;
 }
 
 const dataBr = (iso: string) => iso.split("-").reverse().join("/");
@@ -68,7 +123,8 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   const contatos = contatosPorAtividade(eventos);
   const solicitacoes = fila.itens.filter((i) => i.extraordinaria && (i.responsavelId === responsavel || i.aguardando === "gestao") && (i.status !== "concluida" || i.concluidaEm === dia));
 
-  const extra: string[] = [];
+  const indicadores = indicadoresDoDia(eventos, fila.itens, dia, responsavel);
+  const extra: string[] = ["*Indicadores do dia*", ...textoIndicadores(indicadores), ""];
   if (contatos.length) {
     extra.push("*Contatos da rotina*");
     for (const c of contatos) extra.push(`• ${c.rotulo}: ${c.total} paciente${c.total === 1 ? "" : "s"} — ${c.porResultado.map((r) => `${r.n} ${r.resultado.toLowerCase()}`).join(", ")}`);
@@ -98,5 +154,5 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   };
   if (observacao) contadores.observacao_concierge = observacao;
   if (decisoes) contadores.decisoes_concierge = decisoes;
-  return { texto: final.replace(/\n{3,}/g, "\n\n"), contadores, eventos: eventos.map((e) => e.id).sort(), fechamento, eventosRows: eventos, caixa, contatos, solicitacoes };
+  return { texto: final.replace(/\n{3,}/g, "\n\n"), contadores, eventos: eventos.map((e) => e.id).sort(), fechamento, eventosRows: eventos, caixa, contatos, solicitacoes, indicadores };
 }

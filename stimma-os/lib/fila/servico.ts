@@ -481,7 +481,7 @@ export async function listarTarefasGestao(store: FilaStore) {
 
 // ---------------------------------------------------------------- atendimentos
 
-/** Confirma o realizado: o banco cria sempre os três marcos (30 dias, 90 dias, 6 meses), sem escolha. */
+/** Confirma o realizado: o banco cria sempre os três marcos (30, 90 e 180 dias), sem escolha. */
 export async function confirmarAtendimentoPendente(store: FilaStore, ator: Ator, id: string, data: string) {
   if (!isDiaIso(data)) throw new ErroRegra("Informe a data exata do atendimento.");
   if (data > hojeSaoPaulo()) throw new ErroRegra("A data do atendimento não pode estar no futuro.");
@@ -698,6 +698,7 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?:
         orientacao: typeof t.payload.orientacao === "string" ? t.payload.orientacao : undefined,
         resultadoEsperado: typeof t.payload.resultado_esperado === "string" ? t.payload.resultado_esperado : undefined,
         extraordinaria: t.payload.extraordinaria === true || undefined,
+        followup: typeof t.payload.tipo_followup === "string" ? t.payload.tipo_followup : undefined,
         solicitadoPor: typeof t.payload.solicitado_por === "string" ? t.payload.solicitado_por : undefined,
         criadaEm: t.criadoEm ?? undefined,
         ocorrencia, dataOcorrencia: typeof t.payload.data_ocorrencia === "string" ? t.payload.data_ocorrencia : undefined,

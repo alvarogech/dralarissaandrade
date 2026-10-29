@@ -132,7 +132,8 @@ export async function contatosDaRotina(store: FilaStore, userId: string, dia: st
   for (const e of eventos) {
     const r = resultadoDoEvento(e.payload);
     (por[itemDoEvento(e.payload)!] ??= []).push({
-      eventoId: e.id, paciente: (e.patientId && nomes[e.patientId]) || e.assunto || "Paciente", resultado: r ? ROTULO_RESULTADO[r] : e.situacao ?? "registrado",
+      eventoId: e.id, paciente: (e.patientId && nomes[e.patientId]) || e.assunto || "Paciente",
+      resultado: r ? ROTULO_RESULTADO[r] : typeof (e.payload?.detalhes as Record<string, unknown> | undefined)?.acao === "string" ? String((e.payload!.detalhes as Record<string, unknown>).acao) : e.situacao ?? "registrado",
       situacao: e.situacao ?? null, hora: e.registradoEm ?? null,
     });
   }

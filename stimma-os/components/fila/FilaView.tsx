@@ -59,7 +59,7 @@ export function ConferirAtendimento({ item, gestao }: { item: ItemFila; gestao: 
       <div className="flex flex-wrap items-end gap-2">
         <Campo label="Data exata do atendimento"><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></Campo>
       </div>
-      <p className="mt-2 text-xs text-text-muted">Ao confirmar, o sistema cria automaticamente os marcos de 30 dias, 90 dias e 6 meses a partir desta data. Agendamento, orçamento ou pagamento não geram marcos.</p>
+      <p className="mt-2 text-xs text-text-muted">Ao confirmar, o sistema cria automaticamente os acompanhamentos de 30, 90 e 180 dias a partir desta data. Agendamento, orçamento ou pagamento não geram marcos.</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button type="button" loading={salvando} loadingText="Salvando…" disabled={!data} onClick={() => executar("confirmar")}>Confirmar realizado</Button>
         {gestao && <button type="button" className="px-2 py-2 text-sm text-text-muted underline" onClick={() => setAnulando(!anulando)}>Anular</button>}

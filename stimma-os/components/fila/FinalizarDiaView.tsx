@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { textoCaixa, type EstadoCaixa } from "@/lib/fila/caixa";
 import type { Fechamento } from "@/lib/fila/fechamento";
 import type { EstadoExpediente } from "@/lib/fila/meu-dia";
-import type { ContatosPorAtividade } from "@/lib/fila/prestacao";
+import type { ContatosPorAtividade, IndicadoresDia } from "@/lib/fila/prestacao";
 import type { FeedbackRow, PrioridadeDoDia, RascunhoFechamento } from "@/lib/fila/store";
 import { Campo, ErroAcao, chamarApi, classeInput, dataBr, soHora } from "./comum";
 
@@ -38,6 +38,7 @@ interface Props {
   rascunho: RascunhoFechamento;
   prioridades: PrioridadeDoDia[];
   sugestoes: Sugestao[];
+  indicadores: IndicadoresDia;
 }
 
 function Linha({ k, v, tom }: { k: string; v: React.ReactNode; tom?: "critico" | "atencao" }) {
@@ -221,9 +222,18 @@ export function FinalizarDiaView(p: Props) {
             <p className={clsx("text-[14px]", p.caixa.tipo === "nao_conferido" ? "text-important" : "text-text-primary")}>{textoCaixa(p.caixa)}</p>
           </div>
           <div>
-            <h4 className="fb-eyebrow mb-1">Pacientes e acompanhamentos</h4>
+            <h4 className="fb-eyebrow mb-1">Contatos e retornos</h4>
             <dl>
-              <Linha k="Contatos realizados" v={`${f.contadores.tentativasContato}${f.contadores.pacientesContatadas ? ` (${f.contadores.pacientesContatadas} paciente${f.contadores.pacientesContatadas === 1 ? "" : "s"})` : ""}`} />
+              <Linha k="Contatos realizados" v={`${p.indicadores.tentativas} (${p.indicadores.pacientesContatadas} paciente${p.indicadores.pacientesContatadas === 1 ? "" : "s"})`} />
+              <Linha k="Com resposta / sem resposta" v={`${p.indicadores.comResposta} / ${p.indicadores.semResposta}`} />
+              <Linha k="Retornos programados hoje" v={p.indicadores.followupsProgramados} />
+              <Linha k="Retornos concluídos hoje" v={p.indicadores.followupsConcluidos} />
+              <Linha k="Retornos vencidos" v={p.indicadores.followupsVencidos} tom={p.indicadores.followupsVencidos ? "critico" : undefined} />
+              <Linha k="Pós-procedimento: acompanhadas / sem resposta" v={`${p.indicadores.posAcompanhados} / ${p.indicadores.posSemResposta}`} />
+              <Linha k="Encaminhadas ao profissional" v={p.indicadores.encaminhadosProfissional} tom={p.indicadores.encaminhadosProfissional ? "atencao" : undefined} />
+            </dl>
+            <h4 className="fb-eyebrow mb-1 mt-4">Pacientes e acompanhamentos</h4>
+            <dl>
               <Linha k="Registros do dia" v={f.contadores.registros} />
               <Linha k="Agendamentos" v={f.contadores.agendamentos} />
               <Linha k="Resolvidos hoje" v={f.contadores.resolvidos} />

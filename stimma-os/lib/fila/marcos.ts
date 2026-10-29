@@ -1,4 +1,4 @@
-import { somarDias, somarMeses } from "./datas";
+import { somarDias } from "./datas";
 
 /**
  * Marcos automáticos de acompanhamento. Espelha, em TypeScript puro, a regra da função
@@ -8,7 +8,12 @@ import { somarDias, somarMeses } from "./datas";
 export const TIPOS_MARCO = ["d30", "d90", "m6"] as const;
 export type TipoMarco = (typeof TIPOS_MARCO)[number];
 
-export const ROTULO_MARCO: Record<TipoMarco, string> = { d30: "30 dias", d90: "90 dias", m6: "6 meses" };
+/**
+ * Régua de relacionamento (decisão da gestão, 29/10): 30 · 90 · 180 dias CORRIDOS a partir do
+ * atendimento de referência. O código interno "m6" foi mantido (registros e restrição do banco);
+ * o que mudou foi a data — 180 dias, não 6 meses de calendário (migration 0019) — e o nome.
+ */
+export const ROTULO_MARCO: Record<TipoMarco, string> = { d30: "30 dias", d90: "90 dias", m6: "180 dias" };
 
 export type StatusMarco = "previsto" | "contatado" | "contemplado" | "dispensado" | "invalidado";
 
@@ -16,7 +21,7 @@ export function datasDosMarcos(dataAtendimento: string): Record<TipoMarco, strin
   return {
     d30: somarDias(dataAtendimento, 30),
     d90: somarDias(dataAtendimento, 90),
-    m6: somarMeses(dataAtendimento, 6),
+    m6: somarDias(dataAtendimento, 180),
   };
 }
 
