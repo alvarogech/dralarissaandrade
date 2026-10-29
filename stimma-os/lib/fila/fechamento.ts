@@ -197,10 +197,12 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
   };
 
   const proximoDia = proximoDiaUtil(dia);
-  const aguardando = fila.aguardando.flatMap((c) => c.itens.map((i) => ({ i, nome: c.pacienteNome })));
+  // Pendência comercial que ficou com a Mel (ou a gestão) sai daqui: tem seção própria na prestação.
+  const daGabi = (i: ItemFila) => !(i.retornoDe === "rotina:conferencia_mel" && !i.responsavelId);
+  const aguardando = fila.aguardando.flatMap((c) => c.itens.map((i) => ({ i, nome: c.pacienteNome }))).filter(({ i }) => daGabi(i));
   const abertasProximas = [...fila.atrasadas, ...fila.hoje, ...fila.proximas]
     .flatMap((c) => c.itens.map((i) => ({ i, nome: c.pacienteNome })))
-    .filter(({ i }) => i.status === "aberta" && i.due <= proximoDia && i.tipo !== "conferir_atendimento");
+    .filter(({ i }) => i.status === "aberta" && i.due <= proximoDia && i.tipo !== "conferir_atendimento" && daGabi(i));
   const nomeItem = (i: ItemFila, n: string) => (i.semPaciente ? n : nomeCurto(n));
   const pendentesAbertas = historico ? [] : [
     ...abertasProximas.map(({ i, nome }) => ({ ref: refDoItem(i.alvo!), paciente: nomeItem(i, nome), item: i.titulo, quando: i.due < dia ? `vencida desde ${dataBr(i.due)}` : `prazo ${dataBr(i.due)}`, aguardando: false })),

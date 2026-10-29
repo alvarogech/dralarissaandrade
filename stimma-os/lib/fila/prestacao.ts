@@ -1,6 +1,8 @@
 import { estadoCaixa, textoCaixa, type EstadoCaixa } from "./caixa";
 import { itemDoEvento, resultadoDoEvento, ROTULO_RESULTADO } from "./contato-rotina";
-import { itemDaRotina, type ResultadoContato } from "./rotina-itens";
+import { itemDaRotina, itemValeNoDia, type ResultadoContato } from "./rotina-itens";
+import { ITEM_CONFERENCIA, resumirComercial, rotuloResponsavel, textoComercial, type RegistroComercial, type ResumoComercial } from "./conferencia-comercial";
+import { nomeCurto } from "./fechamento";
 import { carregarFechamento, carregarFila } from "./servico";
 import type { ItemFila } from "./agrupamento";
 import type { EventoRow, FilaStore } from "./store";
@@ -83,6 +85,13 @@ export interface Prestacao {
   contatos: ContatosPorAtividade[];
   solicitacoes: ItemFila[];
   indicadores: IndicadoresDia;
+  comercial: { registros: RegistroComercial[]; resumo: ResumoComercial; semMovimentacao: boolean; pendentes: { paciente: string; acao: string; prazo: string; responsavel: string }[] };
+}
+
+/** Pendência comercial aberta (da Mel ou de quem ficou responsável), vinda dos acompanhamentos. */
+function pendentesComerciais(itens: ItemFila[]) {
+  return itens.filter((i) => i.retornoDe === `rotina:${ITEM_CONFERENCIA}` && i.status !== "concluida")
+    .map((i) => ({ paciente: i.pacienteNome, acao: i.proximaAcao ?? i.titulo, prazo: i.due, responsavel: !i.responsavel || i.responsavel === "Comercial Externa" ? rotuloResponsavel("comercial_externa") : i.responsavel }));
 }
 
 const dataBr = (iso: string) => iso.split("-").reverse().join("/");
@@ -91,7 +100,7 @@ export function contatosPorAtividade(eventos: EventoRow[]): ContatosPorAtividade
   const por = new Map<string, Map<string, number>>();
   for (const e of eventos) {
     const k = itemDoEvento(e.payload);
-    if (!k) continue;
+    if (!k || k === ITEM_CONFERENCIA) continue; // a conferência comercial tem seção própria
     const r = resultadoDoEvento(e.payload);
     const rot = r ? ROTULO_RESULTADO[r as ResultadoContato] : "registrado";
     const m = por.get(k) ?? new Map<string, number>();
@@ -123,13 +132,31 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   const contatos = contatosPorAtividade(eventos);
   const solicitacoes = fila.itens.filter((i) => i.extraordinaria && (i.responsavelId === responsavel || i.aguardando === "gestao") && (i.status !== "concluida" || i.concluidaEm === dia));
 
-  const indicadores = indicadoresDoDia(eventos, fila.itens, dia, responsavel);
+  // Conferência comercial da Mel não é contato nem retorno da Gabi: fica fora dos indicadores dela.
+  const indicadores = indicadoresDoDia(eventos.filter((e) => itemDoEvento(e.payload) !== ITEM_CONFERENCIA), fila.itens, dia, responsavel);
+
+  // Conferência comercial da Mel: nomes + situação, a partir dos registros salvos (nada redigitado).
+  const evComerciais = eventos.filter((e) => itemDoEvento(e.payload) === ITEM_CONFERENCIA);
+  const [nomesCom, linhasRotina] = await Promise.all([
+    store.nomesPacientes([...new Set(evComerciais.map((e) => e.patientId).filter((x): x is string => !!x))]),
+    store.rotina(responsavel, dia),
+  ]);
+  const registrosCom: RegistroComercial[] = evComerciais.map((e) => ({
+    eventoId: e.id, pacienteId: e.patientId ?? null, paciente: (e.patientId && nomesCom[e.patientId]) || e.assunto || "Paciente",
+    detalhes: Object.fromEntries(Object.entries((e.payload?.detalhes ?? {}) as Record<string, unknown>).map(([k, v]) => [k, String(v)])),
+    proxima: typeof e.payload?.proxima === "string" ? e.payload.proxima : null, prazo: typeof e.payload?.prazo === "string" ? e.payload.prazo : null,
+  }));
+  const semMovimentacao = linhasRotina.find((l) => l.itemKey === ITEM_CONFERENCIA)?.metricas?.sem_movimentacao === true;
+  const pendentesCom = pendentesComerciais(fila.itens);
+  const itemConf = itemDaRotina(ITEM_CONFERENCIA);
+  const mostraComercial = registrosCom.length > 0 || semMovimentacao || pendentesCom.length > 0 || (!!itemConf && itemValeNoDia(itemConf, dia));
   const extra: string[] = ["*Indicadores do dia*", ...textoIndicadores(indicadores), ""];
   if (contatos.length) {
     extra.push("*Contatos da rotina*");
     for (const c of contatos) extra.push(`• ${c.rotulo}: ${c.total} paciente${c.total === 1 ? "" : "s"} — ${c.porResultado.map((r) => `${r.n} ${r.resultado.toLowerCase()}`).join(", ")}`);
     extra.push("");
   }
+  if (mostraComercial) extra.push(...textoComercial(registrosCom, semMovimentacao, pendentesCom, nomeCurto), "");
   extra.push("*Recebimentos do dia*", `• ${textoCaixa(caixa)}`, "");
   if (solicitacoes.length) {
     extra.push("*Solicitações da gestão*");
@@ -154,5 +181,6 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   };
   if (observacao) contadores.observacao_concierge = observacao;
   if (decisoes) contadores.decisoes_concierge = decisoes;
-  return { texto: final.replace(/\n{3,}/g, "\n\n"), contadores, eventos: eventos.map((e) => e.id).sort(), fechamento, eventosRows: eventos, caixa, contatos, solicitacoes, indicadores };
+  return { texto: final.replace(/\n{3,}/g, "\n\n"), contadores, eventos: eventos.map((e) => e.id).sort(), fechamento, eventosRows: eventos, caixa, contatos, solicitacoes, indicadores,
+    comercial: { registros: registrosCom, resumo: resumirComercial(registrosCom, semMovimentacao), semMovimentacao, pendentes: pendentesCom } };
 }

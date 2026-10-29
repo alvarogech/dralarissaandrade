@@ -699,6 +699,7 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?:
         resultadoEsperado: typeof t.payload.resultado_esperado === "string" ? t.payload.resultado_esperado : undefined,
         extraordinaria: t.payload.extraordinaria === true || undefined,
         followup: typeof t.payload.tipo_followup === "string" ? t.payload.tipo_followup : undefined,
+        retornoDe: typeof t.payload.followup === "string" ? t.payload.followup : undefined,
         solicitadoPor: typeof t.payload.solicitado_por === "string" ? t.payload.solicitado_por : undefined,
         criadaEm: t.criadoEm ?? undefined,
         ocorrencia, dataOcorrencia: typeof t.payload.data_ocorrencia === "string" ? t.payload.data_ocorrencia : undefined,
@@ -739,7 +740,9 @@ export const ROTULO_DETALHE: Record<string, string> = {
 export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo(), responsavel?: string): Promise<{ fechamento: Fechamento; texto: string; eventos: EventoRow[] }> {
   if (!isDiaIso(dia)) throw new ErroRegra("Dia inválido.");
   const [todos, numeros, estado, carregada] = await Promise.all([store.eventosDoDia(dia), store.numerosDoDia(dia), store.estadoDoDia(dia), carregarFila(store, dia)]);
-  const eventos = todos.filter((e) => e.kind !== "nota" && (!responsavel || e.createdBy === responsavel));
+  const eventos = todos.filter((e) => e.kind !== "nota" && !e.payload?.anulado && (!responsavel || e.createdBy === responsavel));
+  // Conferência comercial da Mel não é contato da Gabi: tem seção própria na prestação de contas.
+  const daGabi = eventos.filter((e) => (e.payload?.detalhes as Record<string, unknown> | undefined)?.rotina_item !== "conferencia_mel");
   const pessoas = { eu: responsavel ?? "", conciergeId: carregada.config.conciergeId, gestorId: carregada.config.gestorId };
   const itens = responsavel ? carregada.itens.filter((i) => { const r = responsavelEfetivo(i, pessoas); return !r || r === responsavel || i.aguardando === "gestao"; }) : carregada.itens;
   const fila = responsavel ? montarFila(itens, dia) : carregada.fila;
@@ -749,7 +752,7 @@ export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo(),
     responsavel ? store.perfis() : Promise.resolve([]),
   ]);
   const rotina = responsavel ? resumirRotina(linhasRotina, dia, (r) => rotuloResponsavel(r ?? undefined, perfis)) : null;
-  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos, fila, itens, nomes, numeros, estado, rotina });
+  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos: daGabi, fila, itens, nomes, numeros, estado, rotina });
   return { fechamento, texto: textoWhatsapp(fechamento), eventos };
 }
 

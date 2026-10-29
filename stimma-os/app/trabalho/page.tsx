@@ -168,7 +168,7 @@ export default async function TrabalhoPage({ searchParams }: { searchParams: Rec
                   hoje={hoje} proximoDia={prestacao.fechamento.proximoDia} fechamento={prestacao.fechamento} texto={prestacao.texto} estado={estado} entregue={entregue}
                   aguardandoGestao={conta.aguardando_gestao} atrasadas={conta.atrasada} contatos={prestacao.contatos} caixa={prestacao.caixa}
                   solicitacoes={prestacao.solicitacoes.map((i) => ({ id: i.id, titulo: i.titulo, paciente: i.semPaciente ? null : i.pacienteNome, solicitadoPor: i.solicitadoPor ?? null, situacao: situacaoSolicitacao(i, hoje) }))}
-                  rascunho={estadoHoje.rascunho ?? {}} prioridades={estadoHoje.prioridades} sugestoes={sugestoes} indicadores={prestacao.indicadores}
+                  rascunho={estadoHoje.rascunho ?? {}} prioridades={estadoHoje.prioridades} sugestoes={sugestoes} indicadores={prestacao.indicadores} comercial={prestacao.comercial}
                 />
               ) : <AreaIndisponivel titulo="Resumo do dia" motivo="Não foi possível montar o resumo agora. Seus registros estão salvos; tente de novo em instantes." />,
             }}

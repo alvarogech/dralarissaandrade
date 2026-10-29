@@ -93,6 +93,8 @@ export interface ItemRotina {
   roteiro?: readonly string[];
   /** Permite registrar ocorrências da conferência (paciente opcional, tipo, profissional, providência). */
   ocorrencias?: boolean;
+  /** Conferência comercial da Mel: registro nominal próprio (conferencia-comercial.ts) e opção "sem movimentação". */
+  conferenciaComercial?: boolean;
 }
 
 export const CHAVES_LINK_ROTINA = ["script_aniversario"] as const;
@@ -231,6 +233,25 @@ export const ITENS_ROTINA: readonly ItemRotina[] = [
   { key: "faltas_registradas", grupo: "finais", texto: "Faltas e cancelamentos registrados" },
   { key: "pendencias_continuam", grupo: "finais", texto: "Atividades que exigem continuidade conferidas", dica: "O que continua aberto volta sozinho na data combinada." },
   { key: "agenda_amanha", grupo: "finais", texto: "Agenda do dia seguinte preparada" },
+  {
+    // 29/10: auditoria diária do comercial (a Mel executa; a Gabi confere e registra por nome; a gestão acompanha).
+    key: "conferencia_mel", grupo: "finais", curto: "Conferência comercial — Mel", texto: "Conferir atendimentos comerciais da Mel",
+    dica: "Confira as conversas comerciais realizadas pela Mel, identifique os novos leads, os follow-ups realizados, os agendamentos e as oportunidades que continuam abertas. Registre os nomes das pacientes, os resultados dos contatos e qualquer divergência identificada.",
+    agenda: { diasDaSemana: [1, 2, 3, 4, 5], rotulo: "Segunda a sexta" },
+    roteiro: [
+      "Conferir os novos leads recebidos.",
+      "Verificar se receberam atendimento.",
+      "Conferir os follow-ups comerciais realizados.",
+      "Identificar pacientes aguardando resposta.",
+      "Verificar se as conversas têm uma próxima ação.",
+      "Conferir os agendamentos no Simples Dental.",
+      "Registrar divergências e pendências.",
+      "O resultado vai para a gestão no fechamento do dia.",
+    ],
+    conferenciaComercial: true,
+    pacientes: { categoria: "oportunidade", acao: "Conferência comercial — Mel", resultados: [] },
+    metricas: [{ key: "sem_movimentacao", rotulo: "Sem movimentação comercial identificada", tipo: "sim_nao" }],
+  },
 ];
 
 /** Dia da semana (0 = domingo) de uma data AAAA-MM-DD — sem fuso (a data já é a local da clínica). */

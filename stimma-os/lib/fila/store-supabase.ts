@@ -216,6 +216,17 @@ export function criarStoreSupabase(db: SupabaseClient, org: string): FilaStore {
       falhou(error, "eventosDoDia");
       return (data ?? []).map(eventoRow);
     },
+    async evento(id) {
+      const { data, error } = await db.from("interaction_events").select(COLS_EVENTO).eq("organization_id", org).eq("id", id).maybeSingle();
+      falhou(error, "evento");
+      return data ? eventoRow(data) : null;
+    },
+    async anularEvento(id, anulado) {
+      const { data, error } = await db.from("interaction_events").select("payload").eq("organization_id", org).eq("id", id).maybeSingle();
+      falhou(error, "anularEvento/ler");
+      const payload = { ...((data?.payload as Rec) ?? {}), anulado };
+      falhou((await db.from("interaction_events").update({ payload }).eq("organization_id", org).eq("id", id)).error, "anularEvento");
+    },
     async eventosRecentesDoPaciente(patientId, desde) {
       const { data, error } = await db.from("interaction_events").select(COLS_EVENTO).eq("organization_id", org).eq("patient_id", patientId).gte("occurred_on", desde).order("occurred_on", { ascending: false });
       falhou(error, "eventosRecentesDoPaciente");

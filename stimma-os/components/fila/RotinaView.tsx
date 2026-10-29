@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ESTADOS_ROTINA, GRUPOS_ROTINA, MAX_QUANTIDADE, ROTULO_ESTADO_ROTINA, itensDoDia, textoDoItem, textoMetricas, type EstadoRotina, type GrupoRotina, type ItemRotina, type MetricasRotina } from "@/lib/fila/rotina-itens";
 import type { ContatoDaRotina, RotinaCarregada } from "@/lib/fila/rotina";
 import { FormContatoRotina } from "./FormContatoRotina";
+import { ConferenciaComercialView } from "./ConferenciaComercialView";
 import { FormOcorrenciaAgenda } from "./FormOcorrenciaAgenda";
 import { prazoFollowup, tipoFollowup } from "@/lib/fila/followup";
 import type { RotinaItemRow } from "@/lib/fila/store";
@@ -269,8 +270,10 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
   const atual: EstadoRotina = pendente?.estado ?? salvo;
   const resumoMetricas = textoMetricas(item, linha?.metricas);
   const id = `rotina-${item.key}`;
+  const conferencia = !!item.conferenciaComercial;
+  const semMovimentacao = linha?.metricas?.sem_movimentacao === true;
 
-  async function enviar(envio: Envio) {
+  async function enviar(envio: Envio): Promise<boolean> {
     const n = ++seq.current;
     setPendente(envio);
     setStatus("salvando");
@@ -282,16 +285,17 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
       tarefaId: imp?.tarefaId || linha?.tarefaId || null,
       ...(item.metricas ? { metricas: envio.metricas ?? linha?.metricas ?? {} } : {}),
     });
-    if (n !== seq.current) return; // uma escolha mais nova já foi enviada
+    if (n !== seq.current) return false; // uma escolha mais nova já foi enviada
     if (!r.ok) {
       setStatus("erro");
       setFalha({ erro: r.incerto ? "Não conseguimos confirmar se esta informação foi salva." : `Não conseguimos salvar esta informação. ${r.erro}`, status: r.status });
-      return;
+      return false;
     }
     setPendente(null);
     setStatus("salvo");
     setFormImpedimento(false);
     onSalvo(r.data.item);
+    return true;
   }
 
   function escolher(e: EstadoRotina) {
@@ -301,7 +305,7 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
       return;
     }
     setFormImpedimento(false);
-    if (e === "feito" && item.pacientes && contatos.length + registradasAgora === 0) {
+    if (e === "feito" && item.pacientes && contatos.length + registradasAgora === 0 && !(conferencia && semMovimentacao)) {
       setFormPaciente("concluir");
       return;
     }
@@ -333,7 +337,7 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
     if (pendente) void enviar(pendente);
   }
 
-  const mostrarQuantidades = editavel && item.metricas && (atual === "feito" || Object.keys(linha?.metricas ?? {}).length > 0);
+  const mostrarQuantidades = editavel && !conferencia && item.metricas && (atual === "feito" || Object.keys(linha?.metricas ?? {}).length > 0);
 
   return (
     <li className="py-3" id={id}>
@@ -393,7 +397,21 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
           )}
         </div>
       )}
-      {item.pacientes && (contatos.length > 0 || editavel) && (
+      {conferencia && (
+        <>
+          {formPaciente === "concluir" && !contatos.length && <p role="status" className="mt-2 text-[13px] text-important">Para marcar como feito, registre as pacientes conferidas ou confirme que não houve movimentação comercial.</p>}
+          <ConferenciaComercialView registros={contatos} pacientes={pacientes} usuarioId={usuarioId} hoje={hoje} proximoDiaUtil={proximoDiaUtil}
+            editavel={editavel} semMovimentacao={semMovimentacao}
+            onSemMovimento={() => enviar({ estado: "feito", metricas: { sem_movimentacao: true } })}
+            onMudou={() => {
+              aoRegistrar();
+              // Registrou paciente: "sem movimentação" deixa de valer; pediu "Feito" antes: conclui agora.
+              if (semMovimentacao) void enviar({ estado: "feito", metricas: { sem_movimentacao: false } });
+              else if (formPaciente === "concluir" && atual !== "feito") { setFormPaciente(null); void enviar({ estado: "feito", metricas: {} }); }
+            }} />
+        </>
+      )}
+      {item.pacientes && !conferencia && (contatos.length > 0 || editavel) && (
         <div className="mt-2">
           {contatos.length > 0 && (
             <ul className="flex flex-col gap-0.5 text-[13px] text-text-secondary" aria-label={`Pacientes registradas: ${item.curto ?? item.texto}`}>

@@ -4,6 +4,7 @@ import { JANELA_MARCOS_DIAS } from "./trabalho";
 import { ErroRegra, type Ator } from "./servico";
 import { assuntoDoEvento } from "./assunto";
 import { chaveFollowup, followupAberto, prazoFollowup, semResposta, tipoFollowup } from "./followup";
+import { CONFERENCIAS, GRUPOS_COMERCIAIS, ITEM_CONFERENCIA, SITUACOES_COMERCIAIS } from "./conferencia-comercial";
 import { CATEGORIAS, type Categoria, type FilaStore, type MarcoRow, type SimNao, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 
 /**
@@ -150,6 +151,17 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
         prazo: e.prazo && isDiaIso(e.prazo) ? e.prazo : prazoFollowup(tipoRetorno, hoje, { dataConsulta: e.detalhes?.data_consulta }),
       };
     }
+  }
+  // Conferência comercial da Mel: nominal, com tipo, situação, forma de conferência e resultado.
+  if (rotinaItem === ITEM_CONFERENCIA) {
+    const d = e.detalhes ?? {};
+    if (!e.pacienteId && !limpo(e.novoPaciente?.nome)) throw new ErroRegra("Conferência comercial: informe a paciente (a conferência é nominal).");
+    if (!GRUPOS_COMERCIAIS.some(([k]) => k === d.grupo)) throw new ErroRegra("Conferência comercial: diga o tipo de movimentação.");
+    if (!SITUACOES_COMERCIAIS.some(([k]) => k === d.situacao_comercial)) throw new ErroRegra("Conferência comercial: escolha a situação do contato.");
+    if (!CONFERENCIAS.some(([k]) => k === d.conferencia)) throw new ErroRegra("Conferência comercial: diga como foi conferido.");
+    if (d.conferencia === "nao_conferido" && !limpo(d.motivo_nao_conferido)) throw new ErroRegra("Conferência comercial: diga por que não foi possível conferir.");
+    if (!limpo(d.resultado_conferencia)) throw new ErroRegra("Conferência comercial: escreva o resultado em poucas palavras.");
+    if ((d.grupo === "agendamento" || d.situacao_comercial === "avaliacao_agendada") && !isDiaIso(d.agendamento_data ?? "")) throw new ErroRegra("Conferência comercial: informe a data do agendamento.");
   }
   // Pós-procedimento com resposta: o relato da paciente é obrigatório (registrar, não avaliar).
   if (rotinaItem === "pos_procedimento_ontem" && e.resposta === "sim" && e.detalhes?.relato_paciente !== "sim") {
@@ -342,3 +354,23 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   await store.auditar({ actor: ator.email, action: `fila_registro_${e.situacao}`, target: patientId ? `patients/${patientId}` : `assunto/${assunto}`, after: { evento: e.eventoId, alvos: e.alvos, categoria: e.categoria } });
   return { duplicado: false, tarefaCriada: tarefaCriada ?? reprogramada };
 }
+
+/**
+ * Remove um registro feito por engano, sem apagar: o evento fica marcado como anulado (motivo, autor,
+ * horário) e sai das contagens, listas e do fechamento. Só quem registrou, no mesmo dia, e só se ele
+ * não abriu nem atualizou um acompanhamento (nesse caso a correção é na própria pendência, pela gestão).
+ */
+export async function anularRegistro(store: FilaStore, ator: Ator, p: { eventoId: string; motivo: string }) {
+  const e = await store.evento(p.eventoId);
+  if (!e) throw new ErroRegra("Registro não encontrado.", 404);
+  if (e.createdBy !== ator.id) throw new ErroRegra("Só quem fez o registro pode removê-lo.", 403);
+  if (e.occurredOn !== hojeSaoPaulo()) throw new ErroRegra("Só registros de hoje podem ser removidos.");
+  if ((e.payload as Record<string, unknown> | undefined)?.anulado) return; // repetido
+  if (!limpo(p.motivo)) throw new ErroRegra("Diga por que o registro está sendo removido.");
+  if (e.alvos.length) throw new ErroRegra("Este registro abriu ou atualizou um acompanhamento: corrija pela própria pendência (a gestão pode cancelá-la).");
+  await store.anularEvento(e.id, { motivo: limpo(p.motivo)!, por: ator.id, em: new Date().toISOString() });
+  await store.auditar({ actor: ator.email, action: "fila_registro_anulado", target: `interaction_events/${e.id}`, reason: limpo(p.motivo) });
+}
+
+/** Registro anulado não conta em lugar nenhum. */
+export const ativo = (e: { payload?: Record<string, unknown> }) => !e.payload?.anulado;

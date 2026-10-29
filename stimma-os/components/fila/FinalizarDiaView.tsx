@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { textoCaixa, type EstadoCaixa } from "@/lib/fila/caixa";
 import type { Fechamento } from "@/lib/fila/fechamento";
 import type { EstadoExpediente } from "@/lib/fila/meu-dia";
-import type { ContatosPorAtividade, IndicadoresDia } from "@/lib/fila/prestacao";
+import type { ContatosPorAtividade, IndicadoresDia, Prestacao } from "@/lib/fila/prestacao";
+import { GRUPOS_COMERCIAIS, linhaComercial, rotuloGrupo } from "@/lib/fila/conferencia-comercial";
 import type { FeedbackRow, PrioridadeDoDia, RascunhoFechamento } from "@/lib/fila/store";
 import { Campo, ErroAcao, chamarApi, classeInput, dataBr, soHora } from "./comum";
 
@@ -39,6 +40,47 @@ interface Props {
   prioridades: PrioridadeDoDia[];
   sugestoes: Sugestao[];
   indicadores: IndicadoresDia;
+  /** Conferência comercial da Mel (seção própria; não conta como contato da Gabi). */
+  comercial?: Prestacao["comercial"];
+}
+
+/** Seção "Conferência comercial — Mel": números, relatório nominal por grupo e pendências abertas. */
+export function SecaoComercial({ c }: { c: Prestacao["comercial"] }) {
+  const r = c.resumo;
+  const vazio = !c.registros.length;
+  return (
+    <section aria-labelledby="conf-mel" className="rounded-card border border-border bg-surface p-4 sm:p-5">
+      <h3 id="conf-mel" className="font-serif text-[20px] font-medium text-text-primary">Conferência comercial — Mel</h3>
+      {vazio ? (
+        <p className={clsx("mt-1 text-[14px]", c.semMovimentacao ? "text-opportunity" : "text-important")}>
+          {c.semMovimentacao ? "Sem movimentação comercial identificada (conferido pela Gabi)." : "Conferência ainda não registrada hoje."}
+        </p>
+      ) : (
+        <div className="mt-2 grid gap-5 lg:grid-cols-2">
+          <dl>
+            <Linha k="Pacientes conferidas" v={r.pacientesUnicas} />
+            <Linha k="Novos leads (atendidos / sem atendimento)" v={`${r.novosLeads} (${r.leadsAtendidos} / ${r.leadsSemAtendimento})`} tom={r.leadsSemAtendimento ? "critico" : undefined} />
+            <Linha k="Follow-ups (com / sem resposta)" v={`${r.followups} (${r.comResposta} / ${r.semResposta})`} />
+            <Linha k="Avaliações agendadas (conferidas no SD)" v={`${r.agendadas} (${r.agendamentosConferidos})`} />
+            <Linha k="Oportunidades pendentes" v={r.oportunidades} />
+            <Linha k="Divergências" v={r.divergencias} tom={r.divergencias ? "critico" : undefined} />
+            <Linha k="Conferidos / só informados pela Mel" v={`${r.verificados} / ${r.naoVerificados}`} tom={r.naoVerificados ? "atencao" : undefined} />
+          </dl>
+          <div className="flex flex-col gap-1.5">
+            {GRUPOS_COMERCIAIS.map(([g]) => {
+              const itens = c.registros.filter((x) => (x.detalhes.grupo || "outro") === g);
+              return itens.length ? <Lista key={g} titulo={rotuloGrupo(g)} aberta itens={itens.map((x) => linhaComercial(x))} /> : null;
+            })}
+          </div>
+        </div>
+      )}
+      {c.pendentes.length > 0 && (
+        <div className="mt-3">
+          <Lista titulo="Pendências comerciais para os próximos dias" aberta itens={c.pendentes.map((x) => `${x.paciente} — ${x.acao} · ${x.responsavel} · ${dataBr(x.prazo)}`)} />
+        </div>
+      )}
+    </section>
+  );
 }
 
 function Linha({ k, v, tom }: { k: string; v: React.ReactNode; tom?: "critico" | "atencao" }) {
@@ -249,6 +291,8 @@ export function FinalizarDiaView(p: Props) {
           </div>
         </div>
       </section>
+
+      {p.comercial && <SecaoComercial c={p.comercial} />}
 
       <section className="grid gap-4 rounded-card border border-border bg-surface p-4 sm:p-5 lg:grid-cols-2">
         <div>

@@ -713,3 +713,29 @@ Decisões:
   ao profissional, pendências da gestão — tudo derivado dos registros.
 - A 0019 precisa ser aplicada **antes** do deploy para que novos atendimentos já gerem 180 dias no banco (sem
   ela, nada quebra: o banco continua gerando 6 meses até ser aplicada).
+
+## 2026-10-29 — Conferência comercial da Mel dentro da rotina da Gabi
+
+- **Uma atividade, não um sistema comercial paralelo**: "Conferir atendimentos comerciais da Mel" (chave
+  `conferencia_mel`, conferências finais, segunda a sexta) com roteiro de 8 pontos. Cada paciente conferida é um
+  registro do dia comum (`interaction_events`, categoria `oportunidade`, `detalhes.rotina_item = conferencia_mel`)
+  com tipo (novo lead / follow-up / agendamento / oportunidade / divergência / outra), situação do contato (8
+  opções), forma de conferência (conversa, Simples Dental, só informado pela Mel, divergência, não foi possível +
+  motivo), resultado e, se houver, próxima ação com responsável e prazo. Sem migration.
+- **Não conta como contato da Gabi**: `contato`/`resposta` ficam nulos; os eventos saem dos blocos do fechamento
+  dela, dos "contatos por atividade" e dos indicadores. Têm seção própria "Conferência comercial — Mel" (números,
+  relatório nominal por grupo, pendências em aberto) no mesmo montador de prestação — tela, texto enviado e
+  visão da gestão são o mesmo conteúdo.
+- **A Mel não tem perfil no sistema**: ela é o responsável externo já existente `comercial_externa` (rótulo
+  "Mel (comercial)"). A pendência comercial nasce sem `assigned_to`, e pela regra de retorno (`followup =
+  rotina:conferencia_mel`) a mesma paciente com o mesmo assunto **atualiza** o acompanhamento aberto em vez de
+  criar outro. Pendência da Mel não aparece como pendência nem prioridade sugerida da Gabi.
+- **Sem movimentação**: concluir a atividade sem pacientes exige marcar a confirmação explícita (métrica
+  `sem_movimentacao`); o servidor recusa se houver registro do dia. Nada de paciente fictícia.
+- **Remover registro incorreto = anular, nunca apagar**: `POST /api/fila/registro/anular` marca
+  `payload.anulado {motivo, por, em}` e audita `fila_registro_anulado`. Só quem registrou, só no mesmo dia, motivo
+  obrigatório; se o registro abriu/atualizou um acompanhamento, a correção é pela própria pendência. Anulados
+  saem de listas, contagens e fechamento. Edição in-place não foi feita: anular + registrar de novo preserva a
+  trilha sem mexer em pendências já criadas.
+- **Privacidade**: o histórico nominal (`/api/fila/contatos-recentes`) passou a exigir concierge configurada ou
+  gestão (mesma regra de `podeVerCaixa`). Nada é lido automaticamente do WhatsApp nem enviado sozinho.

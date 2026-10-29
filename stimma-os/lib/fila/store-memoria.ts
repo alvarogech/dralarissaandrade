@@ -119,6 +119,13 @@ export function criarStoreMemoria(configInicial: Partial<FilaConfig> = { concier
     async eventosDoDia(d) {
       return eventos.filter((e) => e.occurredOn === d);
     },
+    async evento(id) {
+      return eventos.find((e) => e.id === id) ?? null;
+    },
+    async anularEvento(id, anulado) {
+      const e = eventos.find((x) => x.id === id);
+      if (e) e.payload = { ...(e.payload ?? {}), anulado };
+    },
     async eventosRecentesDoPaciente(patientId, desde) {
       return eventos.filter((e) => e.patientId === patientId && e.occurredOn >= desde).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
     },

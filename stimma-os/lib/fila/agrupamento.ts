@@ -51,6 +51,8 @@ export interface ItemFila {
   extraordinaria?: boolean;
   /** Retorno de contato sem resposta (regra global de follow-up) e o tipo dele. */
   followup?: string;
+  /** Assunto do retorno (ex.: "rotina:conferencia_mel" para pendência comercial da Mel). */
+  retornoDe?: string;
   solicitadoPor?: string;
   criadaEm?: string;
   /** Falta/cancelamento: ocorrência conhecida (ausente = não informada; nunca presumida). */

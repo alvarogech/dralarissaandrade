@@ -295,6 +295,9 @@ export interface FilaStore {
   criarTarefa(t: { patientId: string | null; assunto?: string | null; kind: TipoTarefa; title: string; chaveOrigem: string | null; due: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null; origem: string; origemData: string; assignedTo?: string | null; nextAction?: string | null; prioridade?: Prioridade | null; status?: StatusTarefaDb; aguardando?: "paciente" | "gestao" | null }): Promise<string>;
   atualizarTarefaEntrada(id: string, t: { title: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null }): Promise<void>;
   registrarEvento(e: EventoRow): Promise<void>;
+  /** Marca um registro como anulado (payload.anulado = motivo, autor, horário). Nunca apaga. */
+  anularEvento(id: string, anulado: { motivo: string; por: string; em: string }): Promise<void>;
+  evento(id: string): Promise<EventoRow | null>;
   atualizarMarco(id: string, m: { status?: StatusMarcoDb; statusReason?: string | null; dueCurrent?: string }): Promise<void>;
   atualizarTarefa(id: string, t: { status?: StatusTarefaDb; due?: string; closedReason?: string | null; waiting?: boolean; title?: string; nextAction?: string | null; assignedTo?: string | null; payload?: Record<string, unknown>; financialImpact?: number | null; aguardando?: "paciente" | "gestao" | null; prioridade?: Prioridade | null; prazoOriginal?: string | null; adiamentos?: number }): Promise<void>;
   salvarNumeros(dia: string, n: NumerosDoDia, ator: string): Promise<void>;
