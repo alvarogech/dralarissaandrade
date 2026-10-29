@@ -1,4 +1,6 @@
 import type { EntradaRegistro } from "./registro";
+import { hojeSaoPaulo } from "./datas";
+import { conferido, detalhesPlanejamento, precisaPendencia, validarPlanejamento, type EntradaPlanejamento } from "./planejamento";
 
 /**
  * Conferência comercial da Mel (auditoria diária feita pela Gabi). A Mel executa o comercial; a Gabi
@@ -79,6 +81,14 @@ export interface EntradaConferencia {
   divergencia?: string;
   resultado: string;
   pendencia?: { responsavel: "comercial_externa" | "gabi" | "gestao"; acao: string; prazo: string } | null;
+  /** Planejamento anual apresentado na conversa comercial (opcional; "não informado" quando ausente). */
+  planejamento?: EntradaPlanejamento | null;
+}
+
+/** O planejamento informado exige próxima ação? (aberto, fechamento não conferido ou a confirmar) */
+export function planejamentoPedePendencia(e: Pick<EntradaConferencia, "planejamento" | "conferencia">): boolean {
+  const p = e.planejamento;
+  return !!p?.resposta && precisaPendencia(p, conferido({ planejamento_conferencia: e.conferencia }));
 }
 
 const t = (v?: string | null) => (v ?? "").trim();
@@ -101,6 +111,8 @@ export function validarConferencia(e: Omit<EntradaConferencia, "eventoId">, hoje
   if (precisaAgendamento(e) && !e.agendamento?.data) erros.push(["agendaData", "Informe a data do agendamento."]);
   if (precisaDivergencia(e) && !e.divergencia) erros.push(["divergencia", "Escolha o tipo de divergência."]);
   if (!t(e.resultado)) erros.push(["resultado", "Escreva em poucas palavras o que aconteceu."]);
+  if (e.planejamento?.resposta) erros.push(...validarPlanejamento(e.planejamento, "whatsapp", hoje));
+  if (planejamentoPedePendencia(e) && !e.pendencia) erros.push(["temPendencia", "Proposta em aberto: defina a próxima ação, o responsável e o prazo."]);
   if (e.pendencia) {
     if (!t(e.pendencia.acao)) erros.push(["acao", "Escreva a ação necessária."]);
     if (!e.pendencia.prazo || e.pendencia.prazo < hoje) erros.push(["prazo", "Escolha a data (hoje ou depois)."]);
@@ -109,7 +121,7 @@ export function validarConferencia(e: Omit<EntradaConferencia, "eventoId">, hoje
 }
 
 /** Monta o registro do dia (mesmo endpoint e regras de qualquer registro). */
-export function registroDaConferencia(e: EntradaConferencia, usuarioId: string): Omit<EntradaRegistro, "data"> {
+export function registroDaConferencia(e: EntradaConferencia, usuarioId: string, hoje = hojeSaoPaulo()): Omit<EntradaRegistro, "data"> {
   const detalhes: Record<string, string> = {
     rotina_item: ITEM_CONFERENCIA, acao: "Conferência comercial — Mel", grupo: e.grupo, situacao_comercial: e.situacao, conferencia: e.conferencia,
     resultado_conferencia: t(e.resultado),
@@ -123,6 +135,7 @@ export function registroDaConferencia(e: EntradaConferencia, usuarioId: string):
   }
   if (e.divergencia) detalhes.divergencia = e.divergencia;
   if (e.pendencia) detalhes.responsavel_pendencia = e.pendencia.responsavel;
+  if (e.planejamento?.resposta) Object.assign(detalhes, detalhesPlanejamento({ ...e.planejamento, responsavel: e.planejamento.responsavel || "Mel" }, "whatsapp", hoje, e.conferencia));
   const p = e.pendencia;
   const responsavel = !p ? undefined : p.responsavel === "gabi" ? `perfil:${usuarioId}` : p.responsavel;
   return {

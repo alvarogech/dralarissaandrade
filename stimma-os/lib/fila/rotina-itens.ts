@@ -95,6 +95,8 @@ export interface ItemRotina {
   ocorrencias?: boolean;
   /** Conferência comercial da Mel: registro nominal próprio (conferencia-comercial.ts) e opção "sem movimentação". */
   conferenciaComercial?: boolean;
+  /** Conferência nominal do planejamento anual nos atendimentos presenciais. */
+  planejamentoAnual?: boolean;
 }
 
 export const CHAVES_LINK_ROTINA = ["script_aniversario"] as const;
@@ -228,7 +230,11 @@ export const ITENS_ROTINA: readonly ItemRotina[] = [
     metricas: [{ key: "pendencias_revisadas", rotulo: "Pendências revisadas", tipo: "numero" }, { key: "orientacao_gestao", rotulo: "Precisa de orientação da gestão", tipo: "sim_nao" }],
   },
 
-  { key: "destino_atendimentos", grupo: "finais", texto: "Cada atendimento do dia teve um destino definido" },
+  {
+    key: "destino_atendimentos", grupo: "finais", texto: "Cada atendimento do dia teve um destino definido",
+    dica: "Para cada paciente atendida, confira com o profissional (ou nos registros) se foi apresentado um planejamento anual e registre abaixo. Não marque por presunção.",
+    planejamentoAnual: true,
+  },
   { key: "registros_crm", grupo: "finais", texto: "Registros administrativos e CRM atualizados" },
   { key: "faltas_registradas", grupo: "finais", texto: "Faltas e cancelamentos registrados" },
   { key: "pendencias_continuam", grupo: "finais", texto: "Atividades que exigem continuidade conferidas", dica: "O que continua aberto volta sozinho na data combinada." },

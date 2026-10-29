@@ -198,7 +198,7 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
 
   const proximoDia = proximoDiaUtil(dia);
   // Pendência comercial que ficou com a Mel (ou a gestão) sai daqui: tem seção própria na prestação.
-  const daGabi = (i: ItemFila) => !(i.retornoDe === "rotina:conferencia_mel" && !i.responsavelId);
+  const daGabi = (i: ItemFila) => !((i.retornoDe === "rotina:conferencia_mel" || i.retornoDe?.startsWith("planejamento:")) && !i.responsavelId);
   const aguardando = fila.aguardando.flatMap((c) => c.itens.map((i) => ({ i, nome: c.pacienteNome }))).filter(({ i }) => daGabi(i));
   const abertasProximas = [...fila.atrasadas, ...fila.hoje, ...fila.proximas]
     .flatMap((c) => c.itens.map((i) => ({ i, nome: c.pacienteNome })))

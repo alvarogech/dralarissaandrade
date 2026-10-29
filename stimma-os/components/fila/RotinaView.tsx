@@ -8,6 +8,7 @@ import { ESTADOS_ROTINA, GRUPOS_ROTINA, MAX_QUANTIDADE, ROTULO_ESTADO_ROTINA, it
 import type { ContatoDaRotina, RotinaCarregada } from "@/lib/fila/rotina";
 import { FormContatoRotina } from "./FormContatoRotina";
 import { ConferenciaComercialView } from "./ConferenciaComercialView";
+import { PlanejamentoPresencialView } from "./PlanejamentoPresencialView";
 import { FormOcorrenciaAgenda } from "./FormOcorrenciaAgenda";
 import { prazoFollowup, tipoFollowup } from "@/lib/fila/followup";
 import type { RotinaItemRow } from "@/lib/fila/store";
@@ -410,6 +411,9 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
               else if (formPaciente === "concluir" && atual !== "feito") { setFormPaciente(null); void enviar({ estado: "feito", metricas: {} }); }
             }} />
         </>
+      )}
+      {item.planejamentoAnual && (contatos.length > 0 || editavel) && (
+        <PlanejamentoPresencialView registros={contatos} pacientes={pacientes} usuarioId={usuarioId} hoje={hoje} proximoDiaUtil={proximoDiaUtil} editavel={editavel} onMudou={aoRegistrar} />
       )}
       {item.pacientes && !conferencia && (contatos.length > 0 || editavel) && (
         <div className="mt-2">

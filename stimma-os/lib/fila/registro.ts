@@ -5,6 +5,7 @@ import { ErroRegra, type Ator } from "./servico";
 import { assuntoDoEvento } from "./assunto";
 import { chaveFollowup, followupAberto, prazoFollowup, semResposta, tipoFollowup } from "./followup";
 import { CONFERENCIAS, GRUPOS_COMERCIAIS, ITEM_CONFERENCIA, SITUACOES_COMERCIAIS } from "./conferencia-comercial";
+import { RESPOSTAS_PLANEJAMENTO, RESULTADOS_PLANEJAMENTO, conferido, escolherOportunidade, oportunidadesDoHistorico, precisaPendencia, type ResultadoPlanejamento, type RespostaPlanejamento } from "./planejamento";
 import { CATEGORIAS, type Categoria, type FilaStore, type MarcoRow, type SimNao, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 
 /**
@@ -163,6 +164,24 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     if (!limpo(d.resultado_conferencia)) throw new ErroRegra("Conferência comercial: escreva o resultado em poucas palavras.");
     if ((d.grupo === "agendamento" || d.situacao_comercial === "avaliacao_agendada") && !isDiaIso(d.agendamento_data ?? "")) throw new ErroRegra("Conferência comercial: informe a data do agendamento.");
   }
+  // Planejamento anual (presencial ou WhatsApp): nominal; apresentação, aceite e fechamento não se confundem.
+  const plan = e.detalhes?.planejamento ? e.detalhes : null;
+  if (plan) {
+    if (!e.pacienteId && !limpo(e.novoPaciente?.nome) && !e.alvos.length) throw new ErroRegra("Planejamento anual: informe a paciente.");
+    if (!RESPOSTAS_PLANEJAMENTO.some(([k]) => k === plan.planejamento)) throw new ErroRegra("Planejamento anual: resposta inválida.");
+    if (plan.planejamento_canal !== "presencial" && plan.planejamento_canal !== "whatsapp") throw new ErroRegra("Planejamento anual: canal inválido.");
+    if (plan.planejamento === "sim") {
+      if (!RESULTADOS_PLANEJAMENTO.some(([k]) => k === plan.planejamento_resultado)) throw new ErroRegra("Planejamento anual: escolha o resultado.");
+      if (plan.planejamento_canal === "presencial" && !limpo(plan.planejamento_profissional)) throw new ErroRegra("Planejamento anual: informe o profissional responsável.");
+      if (!limpo(plan.planejamento_conferencia)) throw new ErroRegra("Planejamento anual: diga como foi confirmado (não marque por presunção).");
+      for (const k of ["planejamento_data", "planejamento_fechamento_data"]) {
+        if (plan[k] && (!isDiaIso(plan[k]!) || plan[k]! > hoje)) throw new ErroRegra("Planejamento anual: a data não pode estar no futuro.");
+      }
+    }
+    if (precisaPendencia({ resposta: plan.planejamento as RespostaPlanejamento, resultado: plan.planejamento_resultado as ResultadoPlanejamento }, conferido(plan)) && !SITUACOES_COM_PENDENCIA.includes(e.situacao)) {
+      throw new ErroRegra("Planejamento em aberto (ou a confirmar): defina a próxima ação, o responsável e o prazo.");
+    }
+  }
   // Pós-procedimento com resposta: o relato da paciente é obrigatório (registrar, não avaliar).
   if (rotinaItem === "pos_procedimento_ontem" && e.resposta === "sim" && e.detalhes?.relato_paciente !== "sim") {
     throw new ErroRegra("Pós-procedimento: descreva como a paciente se encontra (o que ela relatou).");
@@ -240,6 +259,24 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     throw new ErroRegra("Descreva o que foi registrado.");
   }
 
+  // ---- planejamento anual: uma oportunidade por paciente + planejamento, em qualquer canal.
+  // Continua a aberta (ou a já fechada, se o fechamento for informado de novo); senão nasce uma nova,
+  // identificada pelo id deste registro. O acompanhamento dela é único (chave planejamento:<id>).
+  let chavePlanejamento: string | null = null;
+  let encerrarPlanejamento: { tarefa: TarefaRow; como: "fechado" | "recusa" } | null = null;
+  if (plan?.planejamento === "sim" && patientId) {
+    const ops = oportunidadesDoHistorico(await store.eventosRecentesDoPaciente(patientId, somarDias(hoje, -400)));
+    const op = escolherOportunidade(ops, plan);
+    const id = op?.id ?? e.eventoId;
+    const fechouAgora = plan.planejamento_resultado === "fechado" && conferido(plan) && !op?.fechada;
+    e = { ...e, detalhes: { ...plan, oportunidade_id: id, planejamento_novo: op ? "nao" : "sim", planejamento_origem: op?.origem ?? plan.planejamento_canal!, planejamento_mov: data, ...(fechouAgora ? { planejamento_fechou: "sim" } : {}) } };
+    chavePlanejamento = `planejamento:${id}`;
+    if (fechouAgora || plan.planejamento_resultado === "sem_interesse") {
+      const aberta = followupAberto(await store.tarefasAbertasDoPaciente(patientId), chavePlanejamento);
+      if (aberta) encerrarPlanejamento = { tarefa: aberta, como: fechouAgora ? "fechado" : "recusa" };
+    }
+  }
+
   // Marco de acompanhamento (15/30/90/180 dias) já registrado para a mesma paciente há pouco:
   // só repete com motivo — evita contatar duas vezes pelo mesmo marco. Nova tentativa depois de
   // uma sem resposta não é repetição: é o retorno que a regra global manda fazer.
@@ -268,7 +305,8 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   let tarefaCriada: string | null = null;
   let reprogramada: string | null = null;
   if (!marcos.length && !tarefas.length && pendente) {
-    const chaveRetorno = chaveFollowup(e.categoria, rotinaItem);
+    // Proposta encerrada neste registro: outra pendência que vier junto não reabre o acompanhamento dela.
+    const chaveRetorno = (!encerrarPlanejamento && chavePlanejamento) || chaveFollowup(e.categoria, rotinaItem);
     const existente = patientId ? followupAberto(await store.tarefasAbertasDoPaciente(patientId), chaveRetorno) : null;
     if (existente) {
       tarefas.push(existente);
@@ -295,8 +333,16 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
       ...(limpo(e.pergunta) ? { pergunta: limpo(e.pergunta) } : {}), ...(limpo(e.justificativaFuturos) ? { justificativa_futuros: limpo(e.justificativaFuturos) } : {}),
       ...(adiadas.length ? { adiamento: adiadas.map((t) => ({ tarefa: t.id, de: t.due, para: e.prazo })) } : {}),
     },
-    alvos: [...marcos.map((m) => ({ marcoId: m.id })), ...tarefas.map((t) => ({ tarefaId: t.id })), ...(tarefaCriada ? [{ tarefaId: tarefaCriada }] : [])],
+    alvos: [...marcos.map((m) => ({ marcoId: m.id })), ...tarefas.map((t) => ({ tarefaId: t.id })), ...(tarefaCriada ? [{ tarefaId: tarefaCriada }] : []),
+      ...(encerrarPlanejamento ? [{ tarefaId: encerrarPlanejamento.tarefa.id }] : [])],
   });
+  // Fechamento conferido encerra o acompanhamento da proposta; recusa também (nada de follow-up sem fim).
+  if (encerrarPlanejamento) {
+    const { tarefa, como } = encerrarPlanejamento;
+    await store.atualizarTarefa(tarefa.id, como === "fechado"
+      ? { status: "completed", closedReason: "planejamento anual fechado", payload: { ...tarefa.payload, ...payloadExtra } }
+      : { status: "cancelled", closedReason: `não fechou${e.detalhes?.planejamento_motivo_recusa ? `: ${e.detalhes.planejamento_motivo_recusa}` : ""}`, payload: { ...tarefa.payload, ...payloadExtra } });
+  }
 
   // ---- atualiza o caso existente conforme a situação (histórico preservado nos eventos)
   for (const m of marcos) {

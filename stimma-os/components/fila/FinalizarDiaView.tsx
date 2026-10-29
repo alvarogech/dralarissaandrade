@@ -42,6 +42,51 @@ interface Props {
   indicadores: IndicadoresDia;
   /** Conferência comercial da Mel (seção própria; não conta como contato da Gabi). */
   comercial?: Prestacao["comercial"];
+  /** Planejamentos anuais: apresentações e fechamentos do dia + carteira em aberto. */
+  planejamento?: Prestacao["planejamento"];
+}
+
+/** Seção "Planejamentos anuais — Apresentações e fechamentos": números do dia, carteira e grupos nominais. */
+export function SecaoPlanejamento({ p }: { p: Prestacao["planejamento"] }) {
+  const r = p.resumo;
+  const g = p.grupos;
+  const vazio = !p.registros.length && !p.carteira.length;
+  return (
+    <section aria-labelledby="plan-anual" className="rounded-card border border-border bg-surface p-4 sm:p-5">
+      <h3 id="plan-anual" className="font-serif text-[20px] font-medium text-text-primary">Planejamentos anuais — Apresentações e fechamentos</h3>
+      {vazio ? <p className="mt-1 text-[14px] text-text-muted">Nenhum planejamento registrado hoje e nenhuma proposta em aberto.</p> : (
+        <div className="mt-2 grid gap-5 lg:grid-cols-2">
+          <div>
+            <h4 className="fb-eyebrow mb-1">Hoje</h4>
+            <dl>
+              <Linha k="Atendimentos do dia (agenda)" v={r.atendimentosAgenda ?? "—"} />
+              <Linha k="Conferidos quanto ao planejamento" v={r.atendimentosConferidos} />
+              <Linha k="Apresentados presencialmente" v={r.apresentadosPresencial} />
+              <Linha k="Apresentados pelo WhatsApp" v={r.apresentadosWhatsapp} />
+              <Linha k="Oportunidades distintas apresentadas" v={r.oportunidades} />
+              <Linha k="Aceitos (ainda sem fechamento)" v={r.aceitos} />
+              <Linha k="Fechados (conferidos)" v={r.fechados} />
+              <Linha k="Sem fechamento" v={r.semFechamento} />
+              <Linha k="Pendentes de conferência" v={r.pendentesConferencia} tom={r.pendentesConferencia ? "atencao" : undefined} />
+            </dl>
+            <h4 className="fb-eyebrow mb-1 mt-4">Carteira em aberto (acumulada)</h4>
+            <dl>
+              <Linha k="Propostas em avaliação" v={r.emAvaliacao} />
+              <Linha k="Follow-ups comerciais pendentes" v={r.followupsPendentes} />
+            </dl>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Lista titulo="Apresentados presencialmente" itens={g.presencial} aberta />
+            <Lista titulo="Apresentados pelo WhatsApp" itens={g.whatsapp} aberta />
+            <Lista titulo="Fechamentos do dia" itens={g.fechamentos} aberta />
+            <Lista titulo="Em avaliação (carteira)" itens={g.emAvaliacao} />
+            <Lista titulo="Não fechados" itens={g.naoFechados} aberta />
+            <Lista titulo="Informações pendentes" itens={g.pendentes} aberta />
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }
 
 /** Seção "Conferência comercial — Mel": números, relatório nominal por grupo e pendências abertas. */
@@ -293,6 +338,7 @@ export function FinalizarDiaView(p: Props) {
       </section>
 
       {p.comercial && <SecaoComercial c={p.comercial} />}
+      {p.planejamento && <SecaoPlanejamento p={p.planejamento} />}
 
       <section className="grid gap-4 rounded-card border border-border bg-surface p-4 sm:p-5 lg:grid-cols-2">
         <div>

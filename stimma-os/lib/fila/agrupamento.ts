@@ -53,6 +53,8 @@ export interface ItemFila {
   followup?: string;
   /** Assunto do retorno (ex.: "rotina:conferencia_mel" para pendência comercial da Mel). */
   retornoDe?: string;
+  /** Proposta de planejamento anual acompanhada nesta tarefa: último resultado e data. */
+  planejamento?: { resultado: string; data: string };
   solicitadoPor?: string;
   criadaEm?: string;
   /** Falta/cancelamento: ocorrência conhecida (ausente = não informada; nunca presumida). */

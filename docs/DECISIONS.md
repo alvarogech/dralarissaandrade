@@ -739,3 +739,33 @@ Decisões:
   trilha sem mexer em pendências já criadas.
 - **Privacidade**: o histórico nominal (`/api/fila/contatos-recentes`) passou a exigir concierge configurada ou
   gestão (mesma regra de `podeVerCaixa`). Nada é lido automaticamente do WhatsApp nem enviado sozinho.
+
+## 2026-10-29 — Planejamento anual: apresentação, aceitação e fechamento (presencial e WhatsApp)
+
+- **Dimensão do acompanhamento, não módulo à parte**: o presencial entra na atividade "Cada atendimento do dia
+  teve um destino definido" (registro nominal por paciente atendida); o WhatsApp entra no registro da conferência
+  comercial da Mel (pergunta opcional por paciente). Ambos são registros do dia comuns (`interaction_events`,
+  categoria `oportunidade`) com campos `planejamento_*` em `detalhes`. Sem migration.
+- **Oportunidade única por paciente + planejamento**: o servidor resolve `oportunidade_id` a partir do histórico
+  da paciente (400 dias): continua a oportunidade aberta (mesmo tipo, quando informado; senão a mais recente),
+  ou a já fechada quando o fechamento é informado de novo; senão nasce uma nova com o id do próprio registro.
+  "É outra proposta" força uma nova. O registro guarda `planejamento_novo` (primeira apresentação),
+  `planejamento_origem` (canal da primeira) e `planejamento_fechou` (primeiro fechamento conferido) — por isso
+  apresentação de ontem fechada hoje conta só como fechamento de hoje, e presencial → WhatsApp é uma oportunidade.
+- **Estados separados**: avaliando / interesse / aceito exigem próxima ação + responsável + prazo (o acompanhamento
+  usa a chave `planejamento:<oportunidade>` na regra de retorno — nunca duplica entre canais). Aceito não é
+  fechamento. Fechado só conta conferido (presencial: com o profissional ou nos registros; WhatsApp: na conversa
+  ou no Simples Dental); informado fica "pendente de conferência" com próxima ação. Fechamento conferido conclui
+  o acompanhamento; recusa o cancela (motivo opcional; "pediu para não receber contatos" registrado).
+- **Sem presunção, sem justificativa inventada**: "Sim" presencial exige profissional e forma de confirmação;
+  "Não" aceita motivo opcional ("motivo ainda não informado"); "Ainda não foi possível confirmar" vira pendência
+  de esclarecimento (sugestão: Gabi).
+- **Responsabilidade**: próxima ação comercial sugerida para a Mel (`comercial_externa`); conferências para a
+  Gabi. Propostas sem responsável interno não aparecem como pendência/prioridade da Gabi nem nos indicadores dela.
+- **Fechamento do dia**: seção "Planejamentos anuais — Apresentações e fechamentos" (tela + texto enviado, mesmo
+  montador): números do dia separados da carteira acumulada (acompanhamentos `planejamento:*` em aberto) e grupos
+  nominais (apresentados presencialmente / pelo WhatsApp com a situação atual, fechamentos do dia com origem e
+  valor confirmado, em avaliação, não fechados, informações pendentes). Valor contratado nunca entra nos
+  recebimentos. "Atendimentos do dia" vem da agenda sincronizada (cancelados, faltas e remarcados fora).
+- **Correção**: registro errado se corrige com novo registro da mesma oportunidade (o último manda, trilha
+  preservada) ou, se não abriu acompanhamento, anulando com motivo.

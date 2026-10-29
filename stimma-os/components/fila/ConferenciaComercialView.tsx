@@ -4,11 +4,13 @@ import { useId, useMemo, useState } from "react";
 import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
 import {
-  CONFERENCIAS, DIVERGENCIAS, GRUPOS_COMERCIAIS, RESPONSAVEIS_COMERCIAIS, SITUACOES_COMERCIAIS, linhaComercial, precisaAgendamento, precisaDivergencia,
+  CONFERENCIAS, DIVERGENCIAS, GRUPOS_COMERCIAIS, RESPONSAVEIS_COMERCIAIS, SITUACOES_COMERCIAIS, linhaComercial, planejamentoPedePendencia, precisaAgendamento, precisaDivergencia,
   registroDaConferencia, resumirComercial, rotuloConferencia, rotuloGrupo, rotuloResponsavel, rotuloSituacao, validarConferencia,
   type Conferencia, type EntradaConferencia, type GrupoComercial, type RegistroComercial, type SituacaoComercial,
 } from "@/lib/fila/conferencia-comercial";
 import type { ContatoDaRotina } from "@/lib/fila/rotina";
+import { SITUACAO_CURTA, conferido, type EntradaPlanejamento, type ResultadoPlanejamento } from "@/lib/fila/planejamento";
+import { CamposPlanejamento } from "./CamposPlanejamento";
 import { Campo, ErroAcao, chamarApi, classeInput, dataBr } from "./comum";
 
 /**
@@ -108,6 +110,7 @@ function LinhaRegistro({ r, editavel, onMudou }: { r: RegistroComercial; editave
           <p className="text-[14px] font-semibold text-text-primary">{r.paciente}</p>
           <p className="text-[12.5px] text-text-secondary">{rotuloGrupo(d.grupo)}{d.servico ? ` · ${d.servico}` : ""} · {rotuloSituacao(d.situacao_comercial)}</p>
           <p className="text-[13px] text-text-primary">Resultado: {d.resultado_conferencia}</p>
+          {d.planejamento === "sim" && <p className="text-[12.5px] text-text-secondary">Planejamento anual: {d.planejamento_resultado === "fechado" && !conferido(d) ? "fechamento informado, a conferir" : SITUACAO_CURTA[d.planejamento_resultado as ResultadoPlanejamento]}</p>}
           {r.proxima && <p className="text-[12.5px] text-text-secondary">Próxima ação: {rotuloResponsavel(d.responsavel_pendencia)} — {r.proxima}{r.prazo ? ` (${dataBr(r.prazo)})` : ""}</p>}
           <p className={clsx("text-[12.5px]", d.conferencia === "divergencia" ? "text-critical" : verificado ? "text-opportunity" : "text-important")}>Conferência: {rotuloConferencia(d.conferencia)}</p>
         </summary>
@@ -141,11 +144,14 @@ function FormConferencia({ pacientes, usuarioId, hoje, proximoDiaUtil, onSalvo, 
   const [salvando, setSalvando] = useState(false);
   const [ultimo, setUltimo] = useState<string | null>(null);
   const [eventoId, setEventoId] = useState(() => crypto.randomUUID());
+  const [plan, setPlan] = useState<EntradaPlanejamento>({ resposta: "" });
   const candidatos = useMemo(() => {
     const t = busca.trim().toLowerCase();
     return t.length < 2 ? [] : pacientes.filter((p) => p.nome.toLowerCase().includes(t)).slice(0, 6);
   }, [busca, pacientes]);
   const nomeEscolhido = pacienteId ? pacientes.find((p) => p.id === pacienteId)?.nome : null;
+  // Proposta de planejamento em aberto: a próxima ação passa a ser obrigatória.
+  const pedePendencia = planejamentoPedePendencia({ planejamento: plan, conferencia: f.conferencia });
   const set = <K extends keyof typeof vazio>(k: K, v: (typeof vazio)[K]) => setF((x) => ({ ...x, [k]: v }));
 
   async function salvar(ev: React.FormEvent) {
@@ -155,7 +161,8 @@ function FormConferencia({ pacientes, usuarioId, hoje, proximoDiaUtil, onSalvo, 
       pacienteId, nomeNovo: modoNovo ? busca : "", grupo: f.grupo, servico: f.servico, situacao: f.situacao, conferencia: f.conferencia, motivoNaoConferido: f.motivo,
       agendamento: precisaAgendamento(f) ? { data: f.data, hora: f.hora, profissional: f.profissional } : undefined,
       divergencia: precisaDivergencia(f) ? f.divergencia : undefined, resultado: f.resultado,
-      pendencia: f.temPendencia ? { responsavel: f.responsavel, acao: f.acao, prazo: f.prazo } : null,
+      pendencia: f.temPendencia || pedePendencia ? { responsavel: f.responsavel, acao: f.acao, prazo: f.prazo } : null,
+      planejamento: plan.resposta ? plan : null,
     };
     const lista = validarConferencia(entrada, hoje);
     if (!pacienteId && !modoNovo && busca.trim()) lista.unshift(["paciente", "Escolha a paciente na lista ou marque “lead ainda não cadastrado”."]);
@@ -166,7 +173,7 @@ function FormConferencia({ pacientes, usuarioId, hoje, proximoDiaUtil, onSalvo, 
     setSalvando(false);
     if (!r.ok) return setFalha({ erro: r.incerto ? `${r.erro} Pode salvar de novo: não duplica.` : `Não conseguimos salvar: ${r.erro}`, status: r.status });
     setUltimo(nomeEscolhido ?? busca.trim());
-    setF(vazio); setBusca(""); setPacienteId(null); setModoNovo(false); setErros({});
+    setF(vazio); setBusca(""); setPacienteId(null); setModoNovo(false); setErros({}); setPlan({ resposta: "" });
     setEventoId(crypto.randomUUID());
     onSalvo();
   }
@@ -246,10 +253,12 @@ function FormConferencia({ pacientes, usuarioId, hoje, proximoDiaUtil, onSalvo, 
         <input id={idc("resultado")} value={f.resultado} onChange={(e) => set("resultado", e.target.value)} {...inv("resultado")} placeholder="ex.: Mel esclareceu dúvidas e agendou avaliação" />
         {erro("resultado")}
       </Campo>
-      <label className="flex min-h-9 items-center gap-2 text-[14px] text-text-primary">
-        <input type="checkbox" checked={f.temPendencia} onChange={(e) => set("temPendencia", e.target.checked)} /> Ficou uma próxima ação pendente?
+      <CamposPlanejamento canal="whatsapp" valor={plan} onChange={setPlan} erros={erros} idc={idc} hoje={hoje} opcional />
+      <label id={idc("temPendencia")} tabIndex={-1} className="flex min-h-9 items-center gap-2 text-[14px] text-text-primary">
+        <input type="checkbox" checked={f.temPendencia || pedePendencia} disabled={pedePendencia} onChange={(e) => set("temPendencia", e.target.checked)} /> Ficou uma próxima ação pendente?{pedePendencia && <span className="text-[12.5px] text-text-muted"> (obrigatória: proposta em aberto)</span>}
       </label>
-      {f.temPendencia && (
+      {erro("temPendencia")}
+      {(f.temPendencia || pedePendencia) && (
         <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)_160px]">
           <Campo label="Responsável">
             <select value={f.responsavel} onChange={(e) => set("responsavel", e.target.value as typeof f.responsavel)} className={classeInput}>
@@ -260,7 +269,7 @@ function FormConferencia({ pacientes, usuarioId, hoje, proximoDiaUtil, onSalvo, 
           <Campo label="Prazo *"><input id={idc("prazo")} type="date" min={hoje} value={f.prazo} onChange={(e) => set("prazo", e.target.value)} {...inv("prazo")} />{erro("prazo")}</Campo>
         </div>
       )}
-      {f.temPendencia && <p className="text-[12.5px] text-text-muted">Se a paciente já tiver uma pendência comercial aberta, ela é atualizada — não nasce outra. A ação comercial continua com a Mel, salvo se você escolher outro responsável.</p>}
+      {(f.temPendencia || pedePendencia) && <p className="text-[12.5px] text-text-muted">Se a paciente já tiver uma pendência comercial aberta, ela é atualizada — não nasce outra. A ação comercial continua com a Mel, salvo se você escolher outro responsável.</p>}
       {falha && <ErroAcao erro={falha.erro} status={falha.status} />}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" loading={salvando} loadingText="Salvando…">Salvar paciente</Button>

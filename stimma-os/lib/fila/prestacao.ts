@@ -3,6 +3,7 @@ import { itemDoEvento, resultadoDoEvento, ROTULO_RESULTADO } from "./contato-rot
 import { itemDaRotina, itemValeNoDia, type ResultadoContato } from "./rotina-itens";
 import { ITEM_CONFERENCIA, resumirComercial, rotuloResponsavel, textoComercial, type RegistroComercial, type ResumoComercial } from "./conferencia-comercial";
 import { nomeCurto } from "./fechamento";
+import { carteiraPlanejamento, ehPlanejamento, gruposPlanejamento, registroAuxiliar, resumirPlanejamento, textoPlanejamento, type CarteiraPlanejamento, type RegistroPlanejamento, type ResumoPlanejamento } from "./planejamento";
 import { carregarFechamento, carregarFila } from "./servico";
 import type { ItemFila } from "./agrupamento";
 import type { EventoRow, FilaStore } from "./store";
@@ -86,6 +87,7 @@ export interface Prestacao {
   solicitacoes: ItemFila[];
   indicadores: IndicadoresDia;
   comercial: { registros: RegistroComercial[]; resumo: ResumoComercial; semMovimentacao: boolean; pendentes: { paciente: string; acao: string; prazo: string; responsavel: string }[] };
+  planejamento: { registros: RegistroPlanejamento[]; carteira: CarteiraPlanejamento[]; resumo: ResumoPlanejamento; grupos: ReturnType<typeof gruposPlanejamento> };
 }
 
 /** Pendência comercial aberta (da Mel ou de quem ficou responsável), vinda dos acompanhamentos. */
@@ -100,7 +102,7 @@ export function contatosPorAtividade(eventos: EventoRow[]): ContatosPorAtividade
   const por = new Map<string, Map<string, number>>();
   for (const e of eventos) {
     const k = itemDoEvento(e.payload);
-    if (!k || k === ITEM_CONFERENCIA) continue; // a conferência comercial tem seção própria
+    if (!k || registroAuxiliar(e.payload?.detalhes as Record<string, unknown> | undefined)) continue; // conferência da Mel e planejamento têm seção própria
     const r = resultadoDoEvento(e.payload);
     const rot = r ? ROTULO_RESULTADO[r as ResultadoContato] : "registrado";
     const m = por.get(k) ?? new Map<string, number>();
@@ -133,13 +135,15 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   const solicitacoes = fila.itens.filter((i) => i.extraordinaria && (i.responsavelId === responsavel || i.aguardando === "gestao") && (i.status !== "concluida" || i.concluidaEm === dia));
 
   // Conferência comercial da Mel não é contato nem retorno da Gabi: fica fora dos indicadores dela.
-  const indicadores = indicadoresDoDia(eventos.filter((e) => itemDoEvento(e.payload) !== ITEM_CONFERENCIA), fila.itens, dia, responsavel);
+  const indicadores = indicadoresDoDia(eventos.filter((e) => !registroAuxiliar(e.payload?.detalhes as Record<string, unknown> | undefined)), fila.itens, dia, responsavel);
 
   // Conferência comercial da Mel: nomes + situação, a partir dos registros salvos (nada redigitado).
   const evComerciais = eventos.filter((e) => itemDoEvento(e.payload) === ITEM_CONFERENCIA);
-  const [nomesCom, linhasRotina] = await Promise.all([
-    store.nomesPacientes([...new Set(evComerciais.map((e) => e.patientId).filter((x): x is string => !!x))]),
+  const evPlan = eventos.filter((e) => ehPlanejamento((e.payload?.detalhes ?? {}) as Record<string, unknown>));
+  const [nomesCom, linhasRotina, agendaDia] = await Promise.all([
+    store.nomesPacientes([...new Set([...evComerciais, ...evPlan].map((e) => e.patientId).filter((x): x is string => !!x))]),
     store.rotina(responsavel, dia),
+    store.agenda(dia, dia).catch(() => null),
   ]);
   const registrosCom: RegistroComercial[] = evComerciais.map((e) => ({
     eventoId: e.id, pacienteId: e.patientId ?? null, paciente: (e.patientId && nomesCom[e.patientId]) || e.assunto || "Paciente",
@@ -150,6 +154,17 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   const pendentesCom = pendentesComerciais(fila.itens);
   const itemConf = itemDaRotina(ITEM_CONFERENCIA);
   const mostraComercial = registrosCom.length > 0 || semMovimentacao || pendentesCom.length > 0 || (!!itemConf && itemValeNoDia(itemConf, dia));
+
+  // Planejamentos anuais: registros do dia (presencial e WhatsApp) + carteira em aberto (acumulada).
+  const registrosPlan: RegistroPlanejamento[] = evPlan.map((e) => ({
+    eventoId: e.id, pacienteId: e.patientId ?? null, paciente: (e.patientId && nomesCom[e.patientId]) || e.assunto || "Paciente",
+    detalhes: Object.fromEntries(Object.entries((e.payload?.detalhes ?? {}) as Record<string, unknown>).map(([k, v]) => [k, String(v)])),
+    proxima: typeof e.payload?.proxima === "string" ? e.payload.proxima : null, prazo: typeof e.payload?.prazo === "string" ? e.payload.prazo : null,
+    responsavelProxima: typeof e.payload?.responsavel === "string" ? e.payload.responsavel : null,
+  }));
+  const carteira = carteiraPlanejamento(fila.itens);
+  const atendimentosAgenda = agendaDia ? agendaDia.itens.filter((a) => a.inicio.slice(0, 10) === dia && !["cancelled", "no_show", "rescheduled"].includes(a.status)).length : null;
+
   const extra: string[] = ["*Indicadores do dia*", ...textoIndicadores(indicadores), ""];
   if (contatos.length) {
     extra.push("*Contatos da rotina*");
@@ -157,6 +172,7 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
     extra.push("");
   }
   if (mostraComercial) extra.push(...textoComercial(registrosCom, semMovimentacao, pendentesCom, nomeCurto), "");
+  extra.push(...textoPlanejamento(registrosPlan, carteira, atendimentosAgenda, nomeCurto), "");
   extra.push("*Recebimentos do dia*", `• ${textoCaixa(caixa)}`, "");
   if (solicitacoes.length) {
     extra.push("*Solicitações da gestão*");
@@ -182,5 +198,6 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   if (observacao) contadores.observacao_concierge = observacao;
   if (decisoes) contadores.decisoes_concierge = decisoes;
   return { texto: final.replace(/\n{3,}/g, "\n\n"), contadores, eventos: eventos.map((e) => e.id).sort(), fechamento, eventosRows: eventos, caixa, contatos, solicitacoes, indicadores,
-    comercial: { registros: registrosCom, resumo: resumirComercial(registrosCom, semMovimentacao), semMovimentacao, pendentes: pendentesCom } };
+    comercial: { registros: registrosCom, resumo: resumirComercial(registrosCom, semMovimentacao), semMovimentacao, pendentes: pendentesCom },
+    planejamento: { registros: registrosPlan, carteira, resumo: resumirPlanejamento(registrosPlan, carteira, atendimentosAgenda), grupos: gruposPlanejamento(registrosPlan, carteira) } };
 }

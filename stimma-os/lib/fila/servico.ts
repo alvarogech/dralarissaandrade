@@ -1,4 +1,5 @@
 import { hashLote, lerLote, type CabecalhoLote, type ItemEntrada, type PacienteRef } from "./contrato";
+import { registroAuxiliar } from "./planejamento";
 import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
 import { ROTULO_MARCO } from "./marcos";
 import { montarFila, type Fila, type ItemFila } from "./agrupamento";
@@ -700,6 +701,7 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?:
         extraordinaria: t.payload.extraordinaria === true || undefined,
         followup: typeof t.payload.tipo_followup === "string" ? t.payload.tipo_followup : undefined,
         retornoDe: typeof t.payload.followup === "string" ? t.payload.followup : undefined,
+        planejamento: planejamentoDaTarefa(t.payload),
         solicitadoPor: typeof t.payload.solicitado_por === "string" ? t.payload.solicitado_por : undefined,
         criadaEm: t.criadoEm ?? undefined,
         ocorrencia, dataOcorrencia: typeof t.payload.data_ocorrencia === "string" ? t.payload.data_ocorrencia : undefined,
@@ -742,7 +744,7 @@ export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo(),
   const [todos, numeros, estado, carregada] = await Promise.all([store.eventosDoDia(dia), store.numerosDoDia(dia), store.estadoDoDia(dia), carregarFila(store, dia)]);
   const eventos = todos.filter((e) => e.kind !== "nota" && !e.payload?.anulado && (!responsavel || e.createdBy === responsavel));
   // Conferência comercial da Mel não é contato da Gabi: tem seção própria na prestação de contas.
-  const daGabi = eventos.filter((e) => (e.payload?.detalhes as Record<string, unknown> | undefined)?.rotina_item !== "conferencia_mel");
+  const daGabi = eventos.filter((e) => !registroAuxiliar(e.payload?.detalhes as Record<string, unknown> | undefined));
   const pessoas = { eu: responsavel ?? "", conciergeId: carregada.config.conciergeId, gestorId: carregada.config.gestorId };
   const itens = responsavel ? carregada.itens.filter((i) => { const r = responsavelEfetivo(i, pessoas); return !r || r === responsavel || i.aguardando === "gestao"; }) : carregada.itens;
   const fila = responsavel ? montarFila(itens, dia) : carregada.fila;
@@ -935,4 +937,10 @@ export async function tarefasAbertasDetalhadas(store: FilaStore) {
     id: t.id, ref: refDoItem({ tipo: "tarefa", id: t.id }), paciente: t.patientId ? nomes[t.patientId] ?? "Paciente" : t.assunto ?? "Assunto",
     idsSd: t.patientId ? ids.get(t.patientId) ?? [] : [], tipo: t.kind, titulo: t.title,
   }));
+}
+
+/** Último resultado de planejamento anual registrado na tarefa (o payload guarda os detalhes do último registro). */
+function planejamentoDaTarefa(payload: Record<string, unknown>): { resultado: string; data: string } | undefined {
+  const d = (payload.detalhes ?? {}) as Record<string, unknown>;
+  return typeof d.planejamento_resultado === "string" ? { resultado: d.planejamento_resultado, data: typeof d.planejamento_mov === "string" ? d.planejamento_mov : typeof d.planejamento_data === "string" ? d.planejamento_data : "" } : undefined;
 }
