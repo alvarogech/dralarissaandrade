@@ -47,6 +47,16 @@ export interface ItemFila {
   /** Orientação da gestão e resultado esperado (o que fazer). */
   orientacao?: string;
   resultadoEsperado?: string;
+  /** Solicitação extraordinária da gestão e quem pediu. */
+  extraordinaria?: boolean;
+  /** Retorno de contato sem resposta (regra global de follow-up) e o tipo dele. */
+  followup?: string;
+  /** Assunto do retorno (ex.: "rotina:conferencia_mel" para pendência comercial da Mel). */
+  retornoDe?: string;
+  /** Proposta de planejamento anual acompanhada nesta tarefa: último resultado e data. */
+  planejamento?: { resultado: string; data: string };
+  solicitadoPor?: string;
+  criadaEm?: string;
   /** Falta/cancelamento: ocorrência conhecida (ausente = não informada; nunca presumida). */
   ocorrencia?: "falta" | "cancelamento";
   dataOcorrencia?: string;

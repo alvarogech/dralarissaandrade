@@ -3,6 +3,9 @@ import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
 import { JANELA_MARCOS_DIAS } from "./trabalho";
 import { ErroRegra, type Ator } from "./servico";
 import { assuntoDoEvento } from "./assunto";
+import { chaveFollowup, followupAberto, prazoFollowup, semResposta, tipoFollowup } from "./followup";
+import { CONFERENCIAS, GRUPOS_COMERCIAIS, ITEM_CONFERENCIA, SITUACOES_COMERCIAIS } from "./conferencia-comercial";
+import { RESPOSTAS_PLANEJAMENTO, RESULTADOS_PLANEJAMENTO, conferido, escolherOportunidade, oportunidadesDoHistorico, precisaPendencia, type ResultadoPlanejamento, type RespostaPlanejamento } from "./planejamento";
 import { CATEGORIAS, type Categoria, type FilaStore, type MarcoRow, type SimNao, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 
 /**
@@ -65,6 +68,9 @@ export interface EntradaRegistro {
   /** Marcos além da janela de trabalho incluídos no mesmo registro: exige justificativa. */
   justificativaFuturos?: string;
 }
+
+/** Janela em que o mesmo marco para a mesma paciente conta como repetição (dias). */
+export const JANELA_MARCO_REPETIDO = 25;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const dataBr = (iso: string) => iso.split("-").reverse().join("/");
@@ -129,6 +135,60 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     if (!config.gestorId) throw new ErroRegra("Gestor não configurado: não há para quem encaminhar. Avise a administração.");
     if (e.situacao === "aguardando_gestao" && !limpo(e.pergunta)) throw new ErroRegra("Aguardando gestão: escreva a dúvida ou o impedimento.");
     e = { ...e, responsavel: `perfil:${config.gestorId}`, proximaAcao: limpo(e.proximaAcao) ?? (limpo(e.pergunta) ? `Responder: ${limpo(e.pergunta)}` : limpo(e.detalhes?.motivo_encaminhamento) ? `Avaliar encaminhamento: ${limpo(e.detalhes?.motivo_encaminhamento)}` : undefined) };
+  }
+  // ---- regra global (followup.ts): contato sem resposta sempre tem uma próxima tentativa rastreável.
+  // Sem data informada, usa o prazo padrão do tipo; sem próxima ação, a tentativa óbvia.
+  const rotinaItem = limpo(e.detalhes?.rotina_item);
+  const tipoRetorno = tipoFollowup(e.categoria, rotinaItem, e.detalhes);
+  if (semResposta(e.contato, e.resposta)) {
+    if (!["aguardando", "pendente", "aguardando_gestao", "encaminhado", "dispensado"].includes(e.situacao)) {
+      throw new ErroRegra("Contato sem resposta precisa de uma próxima tentativa: use “Aguardando paciente” ou “Próxima ação programada” (ou encerre com motivo).");
+    }
+    if (e.situacao === "aguardando" || e.situacao === "pendente") {
+      e = {
+        ...e,
+        proximaAcao: limpo(e.proximaAcao) ?? (e.situacao === "aguardando" ? "Verificar se respondeu" : "Tentar contato de novo"),
+        responsavel: e.responsavel || `perfil:${ator.id}`,
+        prazo: e.prazo && isDiaIso(e.prazo) ? e.prazo : prazoFollowup(tipoRetorno, hoje, { dataConsulta: e.detalhes?.data_consulta }),
+      };
+    }
+  }
+  // Conferência comercial da Mel: nominal, com tipo, situação, forma de conferência e resultado.
+  if (rotinaItem === ITEM_CONFERENCIA) {
+    const d = e.detalhes ?? {};
+    if (!e.pacienteId && !limpo(e.novoPaciente?.nome)) throw new ErroRegra("Conferência comercial: informe a paciente (a conferência é nominal).");
+    if (!GRUPOS_COMERCIAIS.some(([k]) => k === d.grupo)) throw new ErroRegra("Conferência comercial: diga o tipo de movimentação.");
+    if (!SITUACOES_COMERCIAIS.some(([k]) => k === d.situacao_comercial)) throw new ErroRegra("Conferência comercial: escolha a situação do contato.");
+    if (!CONFERENCIAS.some(([k]) => k === d.conferencia)) throw new ErroRegra("Conferência comercial: diga como foi conferido.");
+    if (d.conferencia === "nao_conferido" && !limpo(d.motivo_nao_conferido)) throw new ErroRegra("Conferência comercial: diga por que não foi possível conferir.");
+    if (!limpo(d.resultado_conferencia)) throw new ErroRegra("Conferência comercial: escreva o resultado em poucas palavras.");
+    if ((d.grupo === "agendamento" || d.situacao_comercial === "avaliacao_agendada") && !isDiaIso(d.agendamento_data ?? "")) throw new ErroRegra("Conferência comercial: informe a data do agendamento.");
+  }
+  // Planejamento anual (presencial ou WhatsApp): nominal; apresentação, aceite e fechamento não se confundem.
+  const plan = e.detalhes?.planejamento ? e.detalhes : null;
+  if (plan) {
+    if (!e.pacienteId && !limpo(e.novoPaciente?.nome) && !e.alvos.length) throw new ErroRegra("Planejamento anual: informe a paciente.");
+    if (!RESPOSTAS_PLANEJAMENTO.some(([k]) => k === plan.planejamento)) throw new ErroRegra("Planejamento anual: resposta inválida.");
+    if (plan.planejamento_canal !== "presencial" && plan.planejamento_canal !== "whatsapp") throw new ErroRegra("Planejamento anual: canal inválido.");
+    if (plan.planejamento === "sim") {
+      if (!RESULTADOS_PLANEJAMENTO.some(([k]) => k === plan.planejamento_resultado)) throw new ErroRegra("Planejamento anual: escolha o resultado.");
+      if (plan.planejamento_canal === "presencial" && !limpo(plan.planejamento_profissional)) throw new ErroRegra("Planejamento anual: informe o profissional responsável.");
+      if (!limpo(plan.planejamento_conferencia)) throw new ErroRegra("Planejamento anual: diga como foi confirmado (não marque por presunção).");
+      for (const k of ["planejamento_data", "planejamento_fechamento_data"]) {
+        if (plan[k] && (!isDiaIso(plan[k]!) || plan[k]! > hoje)) throw new ErroRegra("Planejamento anual: a data não pode estar no futuro.");
+      }
+    }
+    if (precisaPendencia({ resposta: plan.planejamento as RespostaPlanejamento, resultado: plan.planejamento_resultado as ResultadoPlanejamento }, conferido(plan)) && !SITUACOES_COM_PENDENCIA.includes(e.situacao)) {
+      throw new ErroRegra("Planejamento em aberto (ou a confirmar): defina a próxima ação, o responsável e o prazo.");
+    }
+  }
+  // Pós-procedimento com resposta: o relato da paciente é obrigatório (registrar, não avaliar).
+  if (rotinaItem === "pos_procedimento_ontem" && e.resposta === "sim" && e.detalhes?.relato_paciente !== "sim") {
+    throw new ErroRegra("Pós-procedimento: descreva como a paciente se encontra (o que ela relatou).");
+  }
+  const dataConsulta = e.detalhes?.data_consulta;
+  if (tipoRetorno === "confirmacao" && e.prazo && dataConsulta && isDiaIso(dataConsulta) && e.prazo > dataConsulta) {
+    throw new ErroRegra("A nova tentativa de confirmação precisa ser até a data da consulta.");
   }
   const pendente = SITUACOES_COM_PENDENCIA.includes(e.situacao);
   const proxima = limpo(e.proximaAcao);
@@ -199,6 +259,34 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     throw new ErroRegra("Descreva o que foi registrado.");
   }
 
+  // ---- planejamento anual: uma oportunidade por paciente + planejamento, em qualquer canal.
+  // Continua a aberta (ou a já fechada, se o fechamento for informado de novo); senão nasce uma nova,
+  // identificada pelo id deste registro. O acompanhamento dela é único (chave planejamento:<id>).
+  let chavePlanejamento: string | null = null;
+  let encerrarPlanejamento: { tarefa: TarefaRow; como: "fechado" | "recusa" } | null = null;
+  if (plan?.planejamento === "sim" && patientId) {
+    const ops = oportunidadesDoHistorico(await store.eventosRecentesDoPaciente(patientId, somarDias(hoje, -400)));
+    const op = escolherOportunidade(ops, plan);
+    const id = op?.id ?? e.eventoId;
+    const fechouAgora = plan.planejamento_resultado === "fechado" && conferido(plan) && !op?.fechada;
+    e = { ...e, detalhes: { ...plan, oportunidade_id: id, planejamento_novo: op ? "nao" : "sim", planejamento_origem: op?.origem ?? plan.planejamento_canal!, planejamento_mov: data, ...(fechouAgora ? { planejamento_fechou: "sim" } : {}) } };
+    chavePlanejamento = `planejamento:${id}`;
+    if (fechouAgora || plan.planejamento_resultado === "sem_interesse") {
+      const aberta = followupAberto(await store.tarefasAbertasDoPaciente(patientId), chavePlanejamento);
+      if (aberta) encerrarPlanejamento = { tarefa: aberta, como: fechouAgora ? "fechado" : "recusa" };
+    }
+  }
+
+  // Marco de acompanhamento (15/30/90/180 dias) já registrado para a mesma paciente há pouco:
+  // só repete com motivo — evita contatar duas vezes pelo mesmo marco. Nova tentativa depois de
+  // uma sem resposta não é repetição: é o retorno que a regra global manda fazer.
+  const marco = limpo(e.detalhes?.marco);
+  if (marco && patientId && !limpo(e.detalhes?.justificativa_repeticao)) {
+    const anterior = (await store.eventosRecentesDoPaciente(patientId, somarDias(hoje, -JANELA_MARCO_REPETIDO)))
+      .find((x) => (x.payload?.detalhes as Record<string, unknown> | undefined)?.marco === marco && !semResposta(x.contato ?? null, x.resposta ?? null));
+    if (anterior) throw new ErroRegra(`Esta paciente já teve o acompanhamento de ${marco} registrado em ${dataBr(anterior.occurredOn)}. Se precisar repetir, informe o motivo.`, 409);
+  }
+
   const respRotulo = rotuloResponsavel(e.responsavel, perfis);
   const assignedTo = e.responsavel?.startsWith("perfil:") ? e.responsavel.slice(7) : null;
   const payloadExtra: Record<string, unknown> = {
@@ -211,15 +299,26 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   };
   const aguardando: "paciente" | "gestao" | null = paraGestao ? "gestao" : e.situacao === "aguardando" ? "paciente" : null;
 
-  // ---- registro espontâneo com pendência vira um caso (tarefa) — sem pendência, só o evento
+  // ---- registro espontâneo com pendência vira um caso (tarefa) — sem pendência, só o evento.
+  // Já existe retorno aberto da mesma paciente e do mesmo assunto? Reprograma esse (a tentativa
+  // entra no histórico dele) em vez de criar outro: nada de tarefas repetidas para o mesmo caso.
   let tarefaCriada: string | null = null;
+  let reprogramada: string | null = null;
   if (!marcos.length && !tarefas.length && pendente) {
-    const chave = `registro:${e.eventoId}`;
-    tarefaCriada = (await store.tarefaPorChave(chave))?.id ?? (await store.criarTarefa({
-      patientId, assunto, kind: e.categoria === "agenda" && /falta|cancel/i.test(e.detalhes?.ocorrencia ?? "") ? "recuperacao_falta" : KIND_DA_CATEGORIA[e.categoria], title: proxima!, chaveOrigem: chave, due: e.prazo!, aConferir: [],
-      payload: payloadExtra, financialImpact: null, origem: "registro do dia", origemData: data, assignedTo, nextAction: proxima,
-    }));
-    if (e.situacao !== "pendente") await store.atualizarTarefa(tarefaCriada, { status: "waiting", waiting: true, aguardando });
+    // Proposta encerrada neste registro: outra pendência que vier junto não reabre o acompanhamento dela.
+    const chaveRetorno = (!encerrarPlanejamento && chavePlanejamento) || chaveFollowup(e.categoria, rotinaItem);
+    const existente = patientId ? followupAberto(await store.tarefasAbertasDoPaciente(patientId), chaveRetorno) : null;
+    if (existente) {
+      tarefas.push(existente);
+      reprogramada = existente.id;
+    } else {
+      const chave = `registro:${e.eventoId}`;
+      tarefaCriada = (await store.tarefaPorChave(chave))?.id ?? (await store.criarTarefa({
+        patientId, assunto, kind: e.categoria === "agenda" && /falta|cancel/i.test(e.detalhes?.ocorrencia ?? "") ? "recuperacao_falta" : KIND_DA_CATEGORIA[e.categoria], title: proxima!, chaveOrigem: chave, due: e.prazo!, aConferir: [],
+        payload: { ...payloadExtra, followup: chaveRetorno, tipo_followup: tipoRetorno }, financialImpact: null, origem: "registro do dia", origemData: data, assignedTo, nextAction: proxima,
+      }));
+      if (e.situacao !== "pendente") await store.atualizarTarefa(tarefaCriada, { status: "waiting", waiting: true, aguardando });
+    }
   }
 
   // ---- evento (fonte única para histórico, contadores e feedback)
@@ -234,8 +333,16 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
       ...(limpo(e.pergunta) ? { pergunta: limpo(e.pergunta) } : {}), ...(limpo(e.justificativaFuturos) ? { justificativa_futuros: limpo(e.justificativaFuturos) } : {}),
       ...(adiadas.length ? { adiamento: adiadas.map((t) => ({ tarefa: t.id, de: t.due, para: e.prazo })) } : {}),
     },
-    alvos: [...marcos.map((m) => ({ marcoId: m.id })), ...tarefas.map((t) => ({ tarefaId: t.id })), ...(tarefaCriada ? [{ tarefaId: tarefaCriada }] : [])],
+    alvos: [...marcos.map((m) => ({ marcoId: m.id })), ...tarefas.map((t) => ({ tarefaId: t.id })), ...(tarefaCriada ? [{ tarefaId: tarefaCriada }] : []),
+      ...(encerrarPlanejamento ? [{ tarefaId: encerrarPlanejamento.tarefa.id }] : [])],
   });
+  // Fechamento conferido encerra o acompanhamento da proposta; recusa também (nada de follow-up sem fim).
+  if (encerrarPlanejamento) {
+    const { tarefa, como } = encerrarPlanejamento;
+    await store.atualizarTarefa(tarefa.id, como === "fechado"
+      ? { status: "completed", closedReason: "planejamento anual fechado", payload: { ...tarefa.payload, ...payloadExtra } }
+      : { status: "cancelled", closedReason: `não fechou${e.detalhes?.planejamento_motivo_recusa ? `: ${e.detalhes.planejamento_motivo_recusa}` : ""}`, payload: { ...tarefa.payload, ...payloadExtra } });
+  }
 
   // ---- atualiza o caso existente conforme a situação (histórico preservado nos eventos)
   for (const m of marcos) {
@@ -291,5 +398,25 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   }
 
   await store.auditar({ actor: ator.email, action: `fila_registro_${e.situacao}`, target: patientId ? `patients/${patientId}` : `assunto/${assunto}`, after: { evento: e.eventoId, alvos: e.alvos, categoria: e.categoria } });
-  return { duplicado: false, tarefaCriada };
+  return { duplicado: false, tarefaCriada: tarefaCriada ?? reprogramada };
 }
+
+/**
+ * Remove um registro feito por engano, sem apagar: o evento fica marcado como anulado (motivo, autor,
+ * horário) e sai das contagens, listas e do fechamento. Só quem registrou, no mesmo dia, e só se ele
+ * não abriu nem atualizou um acompanhamento (nesse caso a correção é na própria pendência, pela gestão).
+ */
+export async function anularRegistro(store: FilaStore, ator: Ator, p: { eventoId: string; motivo: string }) {
+  const e = await store.evento(p.eventoId);
+  if (!e) throw new ErroRegra("Registro não encontrado.", 404);
+  if (e.createdBy !== ator.id) throw new ErroRegra("Só quem fez o registro pode removê-lo.", 403);
+  if (e.occurredOn !== hojeSaoPaulo()) throw new ErroRegra("Só registros de hoje podem ser removidos.");
+  if ((e.payload as Record<string, unknown> | undefined)?.anulado) return; // repetido
+  if (!limpo(p.motivo)) throw new ErroRegra("Diga por que o registro está sendo removido.");
+  if (e.alvos.length) throw new ErroRegra("Este registro abriu ou atualizou um acompanhamento: corrija pela própria pendência (a gestão pode cancelá-la).");
+  await store.anularEvento(e.id, { motivo: limpo(p.motivo)!, por: ator.id, em: new Date().toISOString() });
+  await store.auditar({ actor: ator.email, action: "fila_registro_anulado", target: `interaction_events/${e.id}`, reason: limpo(p.motivo) });
+}
+
+/** Registro anulado não conta em lugar nenhum. */
+export const ativo = (e: { payload?: Record<string, unknown> }) => !e.payload?.anulado;

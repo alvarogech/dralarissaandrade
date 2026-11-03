@@ -1,6 +1,7 @@
 import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
 import { situacaoEntrega, type SituacaoEntrega } from "./expediente";
-import { carregarFechamento, ErroRegra, type Ator } from "./servico";
+import { ErroRegra, type Ator } from "./servico";
+import { montarPrestacao } from "./prestacao";
 import type { FeedbackRow, FilaStore } from "./store";
 
 /**
@@ -18,23 +19,20 @@ function exigirConcierge(ator: Ator) {
   if (ator.gestao) throw new ErroRegra("O feedback diário é entregue pela concierge; a gestão acompanha em “Feedbacks da Gabi”.", 403);
 }
 
-async function montar(store: FilaStore, responsavel: string, dia: string, observacao: string | null = null) {
-  const { fechamento, texto, eventos } = await carregarFechamento(store, dia, responsavel);
-  // A assinatura da rotina vai junto: mudar o checklist depois de gerar exige gerar de novo.
-  const contadores: Record<string, unknown> = { ...(fechamento.contadores as unknown as Record<string, unknown>), rotina_assinatura: fechamento.rotina?.assinatura ?? "" };
-  if (observacao) contadores.observacao_concierge = observacao;
-  return { texto: observacao ? `${texto}
-
-*Observações do dia*
-${observacao}` : texto, contadores, eventos: eventos.map((e) => e.id).sort() };
+async function montar(store: FilaStore, responsavel: string, dia: string, opts: { observacao?: string | null; decisoes?: string | null } = {}) {
+  // Mesmo montador da prévia e da visão da gestão (prestacao.ts). As assinaturas da rotina e da
+  // conferência de recebimentos vão junto: mudar algo depois de gerar exige gerar de novo.
+  const p = await montarPrestacao(store, responsavel, dia, opts);
+  return { texto: p.texto, contadores: p.contadores, eventos: p.eventos };
 }
 
 /** A versão gerada ainda corresponde aos registros e à rotina atuais? */
 function mesmaBase(f: FeedbackRow, m: { eventos: string[]; contadores: Record<string, unknown> }): boolean {
-  return m.eventos.join(",") === [...f.eventos].sort().join(",") && String(f.contadores.rotina_assinatura ?? "") === String(m.contadores.rotina_assinatura ?? "");
+  return m.eventos.join(",") === [...f.eventos].sort().join(",") && String(f.contadores.rotina_assinatura ?? "") === String(m.contadores.rotina_assinatura ?? "")
+    && String(f.contadores.caixa_assinatura ?? "") === String(m.contadores.caixa_assinatura ?? "");
 }
 
-const observacaoDe = (f: FeedbackRow) => String(f.contadores.observacao_concierge ?? "");
+const observacaoDe = (f: FeedbackRow) => `${String(f.contadores.observacao_concierge ?? "")}|${String(f.contadores.decisoes_concierge ?? "")}`;
 
 export interface EstadoDoFeedback {
   dia: string;
@@ -98,12 +96,13 @@ export async function entregarFeedback(store: FilaStore, ator: Ator, id: string)
  * o feedback já enviado, sem criar versão. Se houve registros depois do envio, uma nova versão só
  * nasce com `corrigir` (a anterior continua no histórico). Não mexe em tarefas nem envia mensagens.
  */
-export async function finalizarFeedback(store: FilaStore, ator: Ator, p: { id: string; dia?: string; observacao?: string | null; corrigir?: boolean }): Promise<{ feedback: FeedbackRow; jaEnviado: boolean }> {
+export async function finalizarFeedback(store: FilaStore, ator: Ator, p: { id: string; dia?: string; observacao?: string | null; decisoes?: string | null; corrigir?: boolean }): Promise<{ feedback: FeedbackRow; jaEnviado: boolean }> {
   exigirConcierge(ator);
   if (!UUID.test(p.id)) throw new ErroRegra("Identificador inválido.");
   const dia = p.dia ?? hojeSaoPaulo();
   if (!isDiaIso(dia) || dia > hojeSaoPaulo()) throw new ErroRegra("Dia inválido.");
   const observacao = typeof p.observacao === "string" && p.observacao.trim() ? p.observacao.trim().slice(0, 2000) : null;
+  const decisoes = typeof p.decisoes === "string" && p.decisoes.trim() ? p.decisoes.trim().slice(0, 2000) : null;
 
   const mesmo = await store.feedback(p.id);
   if (mesmo && mesmo.responsavel !== ator.id) throw new ErroRegra("Feedback de outra pessoa.", 403);
@@ -112,11 +111,16 @@ export async function finalizarFeedback(store: FilaStore, ator: Ator, p: { id: s
   const versoes = (await store.feedbacks({ dia, responsavel: ator.id })).sort((a, b) => b.versao - a.versao);
   const ultima = versoes[0];
   const entregue = versoes.find((v) => v.status === "entregue");
-  const m = await montar(store, ator.id, dia, observacao);
+  // Prioridades do próximo dia útil: seção obrigatória (revisar, mesmo que seja "nenhuma").
+  const estadoHoje = await store.estadoDoDia(dia);
+  if (!estadoHoje.rascunho?.prioridadesConfirmadas) {
+    throw new ErroRegra("Antes de enviar, revise as prioridades para o próximo dia útil (confirme as sugeridas, ajuste ou marque que não há).", 422);
+  }
+  const m = await montar(store, ator.id, dia, { observacao, decisoes });
   const agora = new Date().toISOString();
 
   if (entregue && ultima?.id === entregue.id) {
-    const igual = mesmaBase(entregue, m) && observacaoDe(entregue) === (observacao ?? "");
+    const igual = mesmaBase(entregue, m) && observacaoDe(entregue) === `${observacao ?? ""}|${decisoes ?? ""}`;
     const ajustePendente = !!entregue.ajusteSolicitadoEm;
     if (igual && !ajustePendente) return { feedback: entregue, jaEnviado: true };
     if (!p.corrigir) {

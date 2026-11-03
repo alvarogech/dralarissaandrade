@@ -150,10 +150,10 @@ function EditarForm({ t, perfis, onSalvo }: { t: TarefaG; perfis: Dados["perfis"
 function NovaTarefaForm({ dados, onCriada }: { dados: Dados; onCriada: () => void }) {
   // Tarefa nova vai para a concierge configurada (se houver); publicar sem responsável não é permitido.
   const [modo, setModo] = useState<"existente" | "nova" | "assunto">("existente");
-  const [f, setF] = useState({ pacienteId: "", nome: "", sd_codigo: "", telefone: "", assunto: "", kind: "outro", acao: "", contexto: "", orientacao: "", resultadoEsperado: "", prioridade: "normal", ocorrencia: "", dataOcorrencia: "", prazo: "", valor: "", vencimento: "", responsavel: dados.conciergeId ?? "" });
+  const [f, setF] = useState({ pacienteId: "", nome: "", sd_codigo: "", telefone: "", assunto: "", kind: "outro", acao: "", contexto: "", orientacao: "", resultadoEsperado: "", prioridade: "normal", ocorrencia: "", dataOcorrencia: "", prazo: "", valor: "", vencimento: "", responsavel: dados.conciergeId ?? "", extraordinaria: false, solicitadoPor: "Álvaro" });
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
+  const set = (k: Exclude<keyof typeof f, "extraordinaria">) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
 
   async function criar(e: React.FormEvent) {
     e.preventDefault();
@@ -169,6 +169,7 @@ function NovaTarefaForm({ dados, onCriada }: { dados: Dados; onCriada: () => voi
       prioridade: f.prioridade === "normal" ? null : f.prioridade, prazo: f.prazo, valor, vencimento: f.vencimento || null, responsavel: f.responsavel || null,
       ocorrencia: f.kind === "recuperacao_falta" ? f.ocorrencia || null : null, dataOcorrencia: f.kind === "recuperacao_falta" ? f.dataOcorrencia || null : null,
       origem: "manual (gestão)",
+      extraordinaria: f.extraordinaria, solicitadoPor: f.extraordinaria ? f.solicitadoPor : null,
     });
     setSalvando(false);
     if (!r.ok) return setErro(r.erro);
@@ -201,6 +202,17 @@ function NovaTarefaForm({ dados, onCriada }: { dados: Dados; onCriada: () => voi
           <Campo label="Telefone"><input value={f.telefone} onChange={set("telefone")} className={classeInput} /></Campo>
         </>
       )}
+      <div className="flex flex-wrap items-end gap-3 rounded-control border border-border bg-surface-raised p-2.5 sm:col-span-3">
+        <label className="flex min-h-10 items-center gap-2 text-sm text-text-primary">
+          <input type="checkbox" checked={f.extraordinaria} onChange={(e) => setF({ ...f, extraordinaria: e.target.checked })} />
+          Solicitação extraordinária (aparece em “Solicitações da gestão” na rotina da Gabi)
+        </label>
+        {f.extraordinaria && (
+          <Campo label="Quem solicitou">
+            <select value={f.solicitadoPor} onChange={set("solicitadoPor")} className={classeInput}><option>Álvaro</option><option>Dra. Larissa</option></select>
+          </Campo>
+        )}
+      </div>
       <Campo label="Ação solicitada *" largo><input required value={f.acao} onChange={set("acao")} className={classeInput} /></Campo>
       <Campo label="Prazo *"><input required type="date" value={f.prazo} onChange={set("prazo")} className={classeInput} /></Campo>
       <Campo label="Contexto" largo><input value={f.contexto} onChange={set("contexto")} className={classeInput} /></Campo>

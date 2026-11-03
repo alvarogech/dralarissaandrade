@@ -4,8 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
-import { ESTADOS_ROTINA, GRUPOS_ROTINA, MAX_QUANTIDADE, ROTULO_ESTADO_ROTINA, itensDoDia, textoDoItem, textoMetricas, type EstadoRotina, type ItemRotina, type MetricasRotina } from "@/lib/fila/rotina-itens";
-import type { RotinaCarregada } from "@/lib/fila/rotina";
+import { ESTADOS_ROTINA, GRUPOS_ROTINA, MAX_QUANTIDADE, ROTULO_ESTADO_ROTINA, itensDoDia, textoDoItem, textoMetricas, type EstadoRotina, type GrupoRotina, type ItemRotina, type MetricasRotina } from "@/lib/fila/rotina-itens";
+import type { ContatoDaRotina, RotinaCarregada } from "@/lib/fila/rotina";
+import { FormContatoRotina } from "./FormContatoRotina";
+import { ConferenciaComercialView } from "./ConferenciaComercialView";
+import { PlanejamentoPresencialView } from "./PlanejamentoPresencialView";
+import { FormOcorrenciaAgenda } from "./FormOcorrenciaAgenda";
+import { prazoFollowup, tipoFollowup } from "@/lib/fila/followup";
 import type { RotinaItemRow } from "@/lib/fila/store";
 import { Campo, ErroAcao, chamarApi, classeInput, dataBr, soHora } from "./comum";
 
@@ -35,6 +40,16 @@ interface Props {
   gestao?: boolean;
   /** Dentro do percurso guiado: sem cabeçalho recolhível próprio (a etapa já tem título). */
   embutida?: boolean;
+  /**
+   * Conteúdo de cada grupo além dos itens fixos (prioridades herdadas, solicitações da gestão,
+   * acompanhamentos em aberto, conferência de recebimentos, agenda). `resumo` aparece no cabeçalho.
+   */
+  extras?: Partial<Record<GrupoRotina, { conteudo: React.ReactNode; resumo?: string; atencao?: boolean }>>;
+  /** Pacientes já registradas hoje em cada atividade com pacientes. */
+  contatos?: Record<string, ContatoDaRotina[]>;
+  pacientes?: { id: string; nome: string }[];
+  usuarioId?: string;
+  proximoDiaUtil?: string;
 }
 
 const TOM: Record<EstadoRotina, string> = {
@@ -65,7 +80,7 @@ export function detalheContagem(c: ContagemRotina): string {
   return [c.feitos ? `${c.feitos} feita${c.feitos > 1 ? "s" : ""}` : "", c.naoSeAplica ? `${c.naoSeAplica} não se aplica` : "", c.impedimentos ? `${c.impedimentos} com impedimento` : ""].filter(Boolean).join(" · ");
 }
 
-export function RotinaView({ rotina, perfis, tarefas, hoje, titulo, abertaInicial = true, motivoLeitura, gestao = false, embutida = false }: Props) {
+export function RotinaView({ rotina, perfis, tarefas, hoje, titulo, abertaInicial = true, motivoLeitura, gestao = false, embutida = false, extras = {}, contatos = {}, pacientes = [], usuarioId = "", proximoDiaUtil = hoje }: Props) {
   const router = useRouter();
   const [linhas, setLinhas] = useState<Record<string, RotinaItemRow>>(() => Object.fromEntries(rotina.linhas.map((l) => [l.itemKey, l])));
   const [aberta, setAberta] = useState(abertaInicial);
@@ -81,15 +96,18 @@ export function RotinaView({ rotina, perfis, tarefas, hoje, titulo, abertaInicia
   const chave = `stimma-rotina-grupos:${rotina.dia}`;
   const [abertos, setAbertos] = useState<Set<string>>(() => {
     const primeiro = GRUPOS_ROTINA.find((g) => itensDia.some((i) => i.grupo === g.id && estado(i.key) === "a_fazer"));
-    return new Set(editavel ? (primeiro ? [primeiro.id] : []) : GRUPOS_ROTINA.map((g) => g.id));
+    // Prioridades de hoje sempre abertas quando existem; depois, o primeiro grupo com algo a fazer.
+    const abrir = [extras.prioridades ? "prioridades" : null, primeiro?.id ?? null].filter((x): x is string => !!x);
+    return new Set(editavel ? abrir : GRUPOS_ROTINA.map((g) => g.id));
   });
   useEffect(() => {
     if (!editavel) return;
     try {
       const s = JSON.parse(localStorage.getItem(chave) ?? "null");
-      if (Array.isArray(s)) setAbertos(new Set(s.filter((x) => typeof x === "string")));
+      // Preferência do dia, mas o que pede atenção (atraso) abre de qualquer jeito.
+      if (Array.isArray(s)) setAbertos(new Set([...s.filter((x) => typeof x === "string"), ...GRUPOS_ROTINA.filter((g) => extras[g.id]?.atencao).map((g) => g.id)]));
     } catch { /* sem armazenamento: fica o padrão */ }
-  }, [chave, editavel]);
+  }, [chave, editavel]); // eslint-disable-line react-hooks/exhaustive-deps
   function alternarGrupo(id: string) {
     const n = new Set(abertos);
     if (n.has(id)) n.delete(id);
@@ -123,6 +141,8 @@ export function RotinaView({ rotina, perfis, tarefas, hoje, titulo, abertaInicia
       <div className="mt-3 flex flex-col gap-2.5">
         {GRUPOS_ROTINA.map((g) => {
           const itens = itensDia.filter((i) => i.grupo === g.id);
+          const extra = extras[g.id];
+          if (!itens.length && !extra) return null;
           const c = contarRotina(itens, estado);
           const aberto = abertos.has(g.id);
           const det = detalheContagem(c);
@@ -133,23 +153,33 @@ export function RotinaView({ rotina, perfis, tarefas, hoje, titulo, abertaInicia
                   <span className="min-w-0 flex-1">
                     <span className="block text-[15px] font-semibold text-text-primary">{g.titulo}</span>
                     <span className="mt-0.5 block text-[13px] text-text-secondary">
-                      {c.respondidos} de {c.total} registradas{det ? <span className="text-text-muted"> · {det}</span> : null}
+                      {itens.length > 0 && <>{c.respondidos} de {c.total} registradas{det ? <span className="text-text-muted"> · {det}</span> : null}</>}
+                      {itens.length > 0 && extra?.resumo ? " · " : null}
+                      {extra?.resumo && <span className={extra.atencao ? "font-medium text-critical" : undefined}>{extra.resumo}</span>}
                     </span>
                   </span>
-                  <span aria-hidden className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-surface-raised sm:block">
-                    <span className={clsx("block h-full", c.respondidos === c.total ? "bg-opportunity" : "bg-accent")} style={{ width: `${c.total ? (c.respondidos / c.total) * 100 : 0}%` }} />
-                  </span>
-                  {c.respondidos === c.total && c.total > 0 && <span className="text-[12.5px] font-medium text-opportunity">Concluído</span>}
+                  {itens.length > 0 && (
+                    <span aria-hidden className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-surface-raised sm:block">
+                      <span className={clsx("block h-full", c.respondidos === c.total ? "bg-opportunity" : "bg-accent")} style={{ width: `${c.total ? (c.respondidos / c.total) * 100 : 0}%` }} />
+                    </span>
+                  )}
+                  {itens.length > 0 && c.respondidos === c.total && !extra && <span className="text-[12.5px] font-medium text-opportunity">Concluído</span>}
                   <span aria-hidden className="text-text-muted">{aberto ? "▴" : "▾"}</span>
                 </button>
               </h3>
               {aberto && (
-                <ul className="flex flex-col divide-y divide-border border-t border-border px-4">
-                  {itens.map((i) => (
-                    <LinhaRotina key={i.key} item={i} linha={linhas[i.key]} editavel={editavel} perfis={perfis} tarefas={tarefas} hoje={hoje} nomeResp={nomeResp}
-                      link={i.link ? rotina.links[i.link.config] ?? null : null} gestao={gestao} onSalvo={aoSalvar} />
-                  ))}
-                </ul>
+                <div className="border-t border-border">
+                  {itens.length > 0 && (
+                    <ul className="flex flex-col divide-y divide-border px-4">
+                      {itens.map((i) => (
+                        <LinhaRotina key={i.key} item={i} linha={linhas[i.key]} editavel={editavel} perfis={perfis} tarefas={tarefas} hoje={hoje} nomeResp={nomeResp}
+                          link={i.link ? rotina.links[i.link.config] ?? null : null} gestao={gestao} onSalvo={aoSalvar}
+                          contatos={contatos[i.key] ?? []} pacientes={pacientes} usuarioId={usuarioId} proximoDiaUtil={proximoDiaUtil} aoRegistrar={() => router.refresh()} />
+                      ))}
+                    </ul>
+                  )}
+                  {extra && <div className={clsx("px-4 pb-4", itens.length ? "border-t border-border pt-3" : "pt-3")}>{extra.conteudo}</div>}
+                </div>
               )}
             </section>
           );
@@ -217,10 +247,15 @@ const mesmasMetricas = (a: MetricasRotina, b: MetricasRotina | null | undefined)
 
 type Envio = { estado: EstadoRotina; metricas?: MetricasRotina; impedimento?: { motivo: string; proximaAcao: string; prazo: string; responsavel: string; tarefaId: string } };
 
-function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, onSalvo, link, gestao }: {
+function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, onSalvo, link, gestao, contatos, pacientes, usuarioId, proximoDiaUtil, aoRegistrar }: {
   item: ItemRotina; linha?: RotinaItemRow; editavel: boolean; perfis: Props["perfis"]; tarefas: Props["tarefas"]; hoje: string;
   nomeResp: (r: string | null) => string | null; onSalvo: (l: RotinaItemRow) => void; link: string | null; gestao: boolean;
+  contatos: ContatoDaRotina[]; pacientes: { id: string; nome: string }[]; usuarioId: string; proximoDiaUtil: string; aoRegistrar: () => void;
 }) {
+  // Atividade com pacientes: "Feito" só depois de ao menos uma paciente registrada.
+  const [formPaciente, setFormPaciente] = useState<null | "livre" | "concluir">(null);
+  const [formOcorrencia, setFormOcorrencia] = useState(false);
+  const [registradasAgora, setRegistradasAgora] = useState(0);
   const salvo: EstadoRotina = linha?.estado ?? "a_fazer";
   const [pendente, setPendente] = useState<Envio | null>(null);
   const [status, setStatus] = useState<"ocioso" | "salvando" | "salvo" | "erro">("ocioso");
@@ -236,8 +271,10 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
   const atual: EstadoRotina = pendente?.estado ?? salvo;
   const resumoMetricas = textoMetricas(item, linha?.metricas);
   const id = `rotina-${item.key}`;
+  const conferencia = !!item.conferenciaComercial;
+  const semMovimentacao = linha?.metricas?.sem_movimentacao === true;
 
-  async function enviar(envio: Envio) {
+  async function enviar(envio: Envio): Promise<boolean> {
     const n = ++seq.current;
     setPendente(envio);
     setStatus("salvando");
@@ -249,16 +286,17 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
       tarefaId: imp?.tarefaId || linha?.tarefaId || null,
       ...(item.metricas ? { metricas: envio.metricas ?? linha?.metricas ?? {} } : {}),
     });
-    if (n !== seq.current) return; // uma escolha mais nova já foi enviada
+    if (n !== seq.current) return false; // uma escolha mais nova já foi enviada
     if (!r.ok) {
       setStatus("erro");
       setFalha({ erro: r.incerto ? "Não conseguimos confirmar se esta informação foi salva." : `Não conseguimos salvar esta informação. ${r.erro}`, status: r.status });
-      return;
+      return false;
     }
     setPendente(null);
     setStatus("salvo");
     setFormImpedimento(false);
     onSalvo(r.data.item);
+    return true;
   }
 
   function escolher(e: EstadoRotina) {
@@ -268,6 +306,10 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
       return;
     }
     setFormImpedimento(false);
+    if (e === "feito" && item.pacientes && contatos.length + registradasAgora === 0 && !(conferencia && semMovimentacao)) {
+      setFormPaciente("concluir");
+      return;
+    }
     const q = item.metricas ? metricasDoForm(item, fm) : null;
     void enviar({ estado: e, metricas: q ? (q.ok ? q.m : linha?.metricas ?? {}) : undefined });
   }
@@ -296,7 +338,7 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
     if (pendente) void enviar(pendente);
   }
 
-  const mostrarQuantidades = editavel && item.metricas && (atual === "feito" || Object.keys(linha?.metricas ?? {}).length > 0);
+  const mostrarQuantidades = editavel && !conferencia && item.metricas && (atual === "feito" || Object.keys(linha?.metricas ?? {}).length > 0);
 
   return (
     <li className="py-3" id={id}>
@@ -320,11 +362,11 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
           {linha?.tarefaId && <p className="text-[12.5px] text-text-secondary">Relacionado a: {tarefas.find((t) => t.id === linha.tarefaId)?.rotulo ?? "tarefa existente"}</p>}
         </div>
         {editavel ? (
-          <div role="radiogroup" aria-label={`O que aconteceu: ${item.texto}`} className="inline-flex flex-wrap overflow-hidden rounded-control border border-border-strong bg-surface">
+          <div role="radiogroup" aria-label={`O que aconteceu: ${item.texto}`} className="grid w-full grid-cols-2 gap-px overflow-hidden rounded-control border border-border-strong bg-border-strong sm:inline-flex sm:w-auto sm:gap-0 sm:bg-surface">
             {ESTADOS_ROTINA.map((e, k) => (
               <button key={e} type="button" role="radio" aria-checked={atual === e} onClick={() => escolher(e)}
-                className={clsx("min-h-9 px-2.5 text-[12.5px] transition-colors focus-visible:relative focus-visible:z-10", k > 0 && "border-l border-border-strong",
-                  atual === e ? `${TOM[e]} font-semibold` : "text-text-secondary hover:bg-surface-hover")}>
+                className={clsx("min-h-10 px-2.5 text-[12.5px] transition-colors focus-visible:relative focus-visible:z-10 sm:min-h-9", k > 0 && "sm:border-l sm:border-border-strong",
+                  atual === e ? `${TOM[e]} font-semibold` : "bg-surface text-text-secondary hover:bg-surface-hover")}>
                 {atual === e && <span aria-hidden>✓ </span>}
                 <span className="sm:hidden">{ROTULO_CURTO[e]}</span><span className="hidden sm:inline">{ROTULO_ESTADO_ROTINA[e]}</span>
               </button>
@@ -334,6 +376,72 @@ function LinhaRotina({ item, linha, editavel, perfis, tarefas, hoje, nomeResp, o
           <span className={clsx("inline-flex items-center rounded-sm border px-1.5 text-[12px] font-medium leading-5", TOM[salvo])}>{ROTULO_ESTADO_ROTINA[salvo]}</span>
         )}
       </div>
+
+      {item.roteiro && (
+        <details className="mt-1.5 rounded-control border border-border bg-surface-raised">
+          <summary className="cursor-pointer px-2.5 py-1.5 text-[13px] text-text-secondary">O que conferir ({item.roteiro.length} pontos)</summary>
+          <ol className="list-decimal space-y-0.5 border-t border-border px-2.5 py-2 pl-7 text-[13px] text-text-secondary">{item.roteiro.map((r) => <li key={r}>{r}</li>)}</ol>
+        </details>
+      )}
+      {item.ocorrencias && (contatos.length > 0 || editavel) && (
+        <div className="mt-2">
+          {contatos.length > 0 && (
+            <ul className="flex flex-col gap-0.5 text-[13px] text-text-secondary" aria-label="Ocorrências registradas">
+              {contatos.map((x) => <li key={x.eventoId}>{x.resultado} · <span className="text-text-primary">{x.paciente}</span></li>)}
+            </ul>
+          )}
+          {editavel && !formOcorrencia && (
+            <button type="button" className="mt-1 text-[13px] font-medium text-accent underline-offset-4 hover:underline" onClick={() => setFormOcorrencia(true)}>+ Registrar ocorrência</button>
+          )}
+          {editavel && formOcorrencia && (
+            <FormOcorrenciaAgenda pacientes={pacientes} usuarioId={usuarioId} hoje={hoje} proximoDiaUtil={proximoDiaUtil} onSalvo={aoRegistrar} onFechar={() => setFormOcorrencia(false)} />
+          )}
+        </div>
+      )}
+      {conferencia && (
+        <>
+          {formPaciente === "concluir" && !contatos.length && <p role="status" className="mt-2 text-[13px] text-important">Para marcar como feito, registre as pacientes conferidas ou confirme que não houve movimentação comercial.</p>}
+          <ConferenciaComercialView registros={contatos} pacientes={pacientes} usuarioId={usuarioId} hoje={hoje} proximoDiaUtil={proximoDiaUtil}
+            editavel={editavel} semMovimentacao={semMovimentacao}
+            onSemMovimento={() => enviar({ estado: "feito", metricas: { sem_movimentacao: true } })}
+            onMudou={() => {
+              aoRegistrar();
+              // Registrou paciente: "sem movimentação" deixa de valer; pediu "Feito" antes: conclui agora.
+              if (semMovimentacao) void enviar({ estado: "feito", metricas: { sem_movimentacao: false } });
+              else if (formPaciente === "concluir" && atual !== "feito") { setFormPaciente(null); void enviar({ estado: "feito", metricas: {} }); }
+            }} />
+        </>
+      )}
+      {item.planejamentoAnual && (contatos.length > 0 || editavel) && (
+        <PlanejamentoPresencialView registros={contatos} pacientes={pacientes} usuarioId={usuarioId} hoje={hoje} proximoDiaUtil={proximoDiaUtil} editavel={editavel} onMudou={aoRegistrar} />
+      )}
+      {item.pacientes && !conferencia && (contatos.length > 0 || editavel) && (
+        <div className="mt-2">
+          {contatos.length > 0 && (
+            <ul className="flex flex-col gap-0.5 text-[13px] text-text-secondary" aria-label={`Pacientes registradas: ${item.curto ?? item.texto}`}>
+              {contatos.map((x) => <li key={x.eventoId}><span className="text-text-primary">{x.paciente}</span> · {x.resultado}</li>)}
+            </ul>
+          )}
+          {item.pacientes.meta && <p className="text-[12.5px] text-text-muted">{contatos.length} de {item.pacientes.meta} (meta do dia)</p>}
+          {editavel && !formPaciente && (
+            <button type="button" className="mt-1 text-[13px] font-medium text-accent underline-offset-4 hover:underline" onClick={() => setFormPaciente("livre")}>
+              + Registrar paciente{contatos.length ? "" : "s"}
+            </button>
+          )}
+          {editavel && formPaciente && (
+            <FormContatoRotina item={item} pacientes={pacientes} usuarioId={usuarioId} hoje={hoje} proximoDiaUtil={proximoDiaUtil}
+              prazoSugerido={prazoFollowup(tipoFollowup(item.pacientes.categoria, item.key), hoje)}
+              aviso={formPaciente === "concluir" && contatos.length + registradasAgora === 0 ? "Para marcar como feito, registre quem foi contatada (uma ou mais pacientes)." : undefined}
+              onSalvo={() => {
+                setRegistradasAgora((n) => n + 1);
+                aoRegistrar();
+                // Pediu "Feito" antes de registrar: conclui depois da primeira paciente gravada.
+                if (formPaciente === "concluir" && atual !== "feito") void enviar({ estado: "feito", metricas: item.metricas ? linha?.metricas ?? {} : undefined });
+              }}
+              onFechar={() => setFormPaciente(null)} />
+          )}
+        </div>
+      )}
 
       {mostrarQuantidades && (
         <div className="mt-2 flex flex-wrap items-end gap-3" role="group" aria-label={`Quantidades: ${item.texto}`}>

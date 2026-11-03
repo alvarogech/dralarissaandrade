@@ -60,9 +60,10 @@ export function lerAgendaColada(bruto: string): AgendaColada {
       continue;
     }
     const profissional = texto(x?.profissional, 80);
+    const nascimento = texto(x?.nascimento, 10);
     const motivo = texto(x?.motivo, 120);
     itens.push({
-      source: "simples_dental_browser", sdAppointmentId: id, patient: { fullName: paciente },
+      source: "simples_dental_browser", sdAppointmentId: id, patient: { fullName: paciente, ...(/^\d{4}-\d{2}-\d{2}$/.test(nascimento) ? { birthDate: nascimento } : {}) },
       startsAt: new Date(ini).toISOString(), endsAt: new Date(fim).toISOString(), status,
       reason: [motivo, profissional ? `Dr(a). ${profissional}` : "", /^em atendimento/i.test(statusSd) ? "em atendimento" : ""].filter(Boolean).join(" · "),
       requiresPayment: false,

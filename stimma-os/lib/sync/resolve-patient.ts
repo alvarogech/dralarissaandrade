@@ -17,9 +17,9 @@ export type ResolvePatientResult =
 export async function resolvePatient(
   supabase: SupabaseClient,
   organizationId: string,
-  input: { sdPatientId?: string; phone?: string; fullName: string }
+  input: { sdPatientId?: string; phone?: string; fullName: string; birthDate?: string }
 ): Promise<ResolvePatientResult> {
-  const { sdPatientId, phone, fullName } = input;
+  const { sdPatientId, phone, fullName, birthDate } = input;
 
   if (sdPatientId) {
     const { data: existingLink } = await supabase
@@ -41,16 +41,17 @@ export async function resolvePatient(
 
   const { data: candidateRows } = await supabase
     .from("patients")
-    .select("id, full_name, phone")
+    .select("id, full_name, phone, birth_date")
     .eq("organization_id", organizationId);
 
   const candidates: PatientCandidate[] = (candidateRows ?? []).map((c) => ({
     id: c.id,
     fullName: c.full_name,
     phone: c.phone,
+    birthDate: c.birth_date ?? null,
   }));
 
-  const decision = decidePatientMatch({ phone, fullName }, candidates);
+  const decision = decidePatientMatch({ phone, fullName, birthDate }, candidates);
 
   if (decision.action === "use_existing") {
     if (sdPatientId) {
@@ -75,6 +76,7 @@ export async function resolvePatient(
       organization_id: organizationId,
       full_name: fullName,
       phone: phone ?? null,
+      birth_date: birthDate ?? null,
       requires_continuation: true,
     })
     .select("id")

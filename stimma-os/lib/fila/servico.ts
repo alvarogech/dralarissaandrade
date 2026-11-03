@@ -1,4 +1,5 @@
 import { hashLote, lerLote, type CabecalhoLote, type ItemEntrada, type PacienteRef } from "./contrato";
+import { registroAuxiliar } from "./planejamento";
 import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
 import { ROTULO_MARCO } from "./marcos";
 import { montarFila, type Fila, type ItemFila } from "./agrupamento";
@@ -8,6 +9,7 @@ import { lerFeedback, linhaSemConteudo } from "./feedback";
 import { CATEGORIAS, type EstadoDoDia, type EventoRow, type FilaConfig, type FilaStore, type MarcoRow, type NumerosDoDia, type Prioridade, type TarefaRow, type TipoEvento, type TipoTarefa } from "./store";
 import { categoriaDaTarefa, rotuloResponsavel, type EtapaClinica } from "./registro";
 import { assuntoDoEvento } from "./assunto";
+import { limparPrioridades } from "./prioridades";
 export { assuntoDoEvento };
 import { responsavelEfetivo } from "./trabalho";
 import { CHAVES_LINK_ROTINA, linkSeguro, resumirRotina } from "./rotina-itens";
@@ -291,7 +293,14 @@ export interface NovaTarefa {
   /** Falta/cancelamento: só o que se sabe (nunca presumido). */
   ocorrencia?: "falta" | "cancelamento" | null;
   dataOcorrencia?: string | null;
+  /** Solicitação extraordinária da gestão (aparece em "Solicitações da gestão" na rotina). */
+  extraordinaria?: boolean;
+  /** Quem pediu: gestão (Álvaro) ou Dra. Larissa. */
+  solicitadoPor?: string | null;
 }
+
+/** Quem pode pedir uma solicitação extraordinária (texto fixo; a gestão registra em nome da Dra.). */
+export const SOLICITANTES = ["Álvaro", "Dra. Larissa"] as const;
 
 export const KINDS_MANUAIS: TipoTarefa[] = ["pendencia", "outro", "recuperacao_falta", "continuidade", "relacionamento", "oportunidade", "pos_atendimento", "encaminhamento", "cobranca"];
 const PRIORIDADES: Prioridade[] = ["alta", "normal", "baixa"];
@@ -308,6 +317,7 @@ export async function criarTarefaManual(store: FilaStore, ator: Ator, t: NovaTar
   if (t.dataOcorrencia && !isDiaIso(t.dataOcorrencia)) throw new ErroRegra("Data da ocorrência inválida.");
   if (t.valor !== undefined && t.valor !== null && !(typeof t.valor === "number" && t.valor >= 0)) throw new ErroRegra("Valor inválido.");
   if (t.vencimento && !isDiaIso(t.vencimento)) throw new ErroRegra("Vencimento inválido.");
+  if (t.extraordinaria && !(SOLICITANTES as readonly string[]).includes(t.solicitadoPor ?? "")) throw new ErroRegra("Informe quem solicitou (Álvaro ou Dra. Larissa).");
   let pacienteId = t.pacienteId ?? null;
   const assunto = !pacienteId && !t.novoPaciente?.nome?.trim() ? t.assunto?.trim() || null : null;
   if (pacienteId) {
@@ -333,6 +343,7 @@ export async function criarTarefaManual(store: FilaStore, ator: Ator, t: NovaTar
       ...(t.kind === "cobranca" ? { excecao: true } : {}),
       ...(t.kind === "recuperacao_falta" && t.ocorrencia ? { ocorrencia: t.ocorrencia } : {}),
       ...(t.kind === "recuperacao_falta" && t.dataOcorrencia ? { data_ocorrencia: t.dataOcorrencia } : {}),
+      ...(t.extraordinaria ? { extraordinaria: true, solicitado_por: t.solicitadoPor } : {}),
     },
     financialImpact: t.valor ?? null, origem: t.origem || "manual", origemData: hojeSaoPaulo(), assignedTo: t.responsavel, prioridade: t.prioridade ?? null,
   });
@@ -471,7 +482,7 @@ export async function listarTarefasGestao(store: FilaStore) {
 
 // ---------------------------------------------------------------- atendimentos
 
-/** Confirma o realizado: o banco cria sempre os três marcos (30 dias, 90 dias, 6 meses), sem escolha. */
+/** Confirma o realizado: o banco cria sempre os três marcos (30, 90 e 180 dias), sem escolha. */
 export async function confirmarAtendimentoPendente(store: FilaStore, ator: Ator, id: string, data: string) {
   if (!isDiaIso(data)) throw new ErroRegra("Informe a data exata do atendimento.");
   if (data > hojeSaoPaulo()) throw new ErroRegra("A data do atendimento não pode estar no futuro.");
@@ -687,6 +698,12 @@ export async function carregarFila(store: FilaStore, hoje = hojeSaoPaulo(), eu?:
         responsavelId: t.assignedTo, origem: t.origem ?? undefined, origemData: t.origemData ?? undefined, prioridade: t.prioridade ?? undefined,
         orientacao: typeof t.payload.orientacao === "string" ? t.payload.orientacao : undefined,
         resultadoEsperado: typeof t.payload.resultado_esperado === "string" ? t.payload.resultado_esperado : undefined,
+        extraordinaria: t.payload.extraordinaria === true || undefined,
+        followup: typeof t.payload.tipo_followup === "string" ? t.payload.tipo_followup : undefined,
+        retornoDe: typeof t.payload.followup === "string" ? t.payload.followup : undefined,
+        planejamento: planejamentoDaTarefa(t.payload),
+        solicitadoPor: typeof t.payload.solicitado_por === "string" ? t.payload.solicitado_por : undefined,
+        criadaEm: t.criadoEm ?? undefined,
         ocorrencia, dataOcorrencia: typeof t.payload.data_ocorrencia === "string" ? t.payload.data_ocorrencia : undefined,
         prazoOriginal: t.prazoOriginal ?? undefined, adiamentos: t.adiamentos ?? 0,
         atualizadoEm: ult?.em ?? t.criadoEm ?? t.updatedAt,
@@ -725,7 +742,9 @@ export const ROTULO_DETALHE: Record<string, string> = {
 export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo(), responsavel?: string): Promise<{ fechamento: Fechamento; texto: string; eventos: EventoRow[] }> {
   if (!isDiaIso(dia)) throw new ErroRegra("Dia inválido.");
   const [todos, numeros, estado, carregada] = await Promise.all([store.eventosDoDia(dia), store.numerosDoDia(dia), store.estadoDoDia(dia), carregarFila(store, dia)]);
-  const eventos = todos.filter((e) => e.kind !== "nota" && (!responsavel || e.createdBy === responsavel));
+  const eventos = todos.filter((e) => e.kind !== "nota" && !e.payload?.anulado && (!responsavel || e.createdBy === responsavel));
+  // Conferência comercial da Mel não é contato da Gabi: tem seção própria na prestação de contas.
+  const daGabi = eventos.filter((e) => !registroAuxiliar(e.payload?.detalhes as Record<string, unknown> | undefined));
   const pessoas = { eu: responsavel ?? "", conciergeId: carregada.config.conciergeId, gestorId: carregada.config.gestorId };
   const itens = responsavel ? carregada.itens.filter((i) => { const r = responsavelEfetivo(i, pessoas); return !r || r === responsavel || i.aguardando === "gestao"; }) : carregada.itens;
   const fila = responsavel ? montarFila(itens, dia) : carregada.fila;
@@ -735,7 +754,7 @@ export async function carregarFechamento(store: FilaStore, dia = hojeSaoPaulo(),
     responsavel ? store.perfis() : Promise.resolve([]),
   ]);
   const rotina = responsavel ? resumirRotina(linhasRotina, dia, (r) => rotuloResponsavel(r ?? undefined, perfis)) : null;
-  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos, fila, itens, nomes, numeros, estado, rotina });
+  const fechamento = montarFechamento({ dia, hoje: hojeSaoPaulo(), eventos: daGabi, fila, itens, nomes, numeros, estado, rotina });
   return { fechamento, texto: textoWhatsapp(fechamento), eventos };
 }
 
@@ -744,10 +763,7 @@ export async function salvarEstadoDoDia(store: FilaStore, ator: Ator, dia: strin
   if (!isDiaIso(dia) || dia > hojeSaoPaulo()) throw new ErroRegra("Dia inválido.");
   const limpo: Partial<EstadoDoDia> = {};
   if (e.prioridades !== undefined) {
-    if (!Array.isArray(e.prioridades) || e.prioridades.length > 5) throw new ErroRegra("Escolha até cinco prioridades.");
-    limpo.prioridades = e.prioridades
-      .map((p) => ({ ref: typeof p.ref === "string" && p.ref ? p.ref : null, texto: String(p.texto ?? "").trim().slice(0, 200) }))
-      .filter((p) => p.texto);
+    limpo.prioridades = limparPrioridades(e.prioridades);
   }
   if (e.secoes !== undefined) {
     const ok = e.secoes && typeof e.secoes === "object" && Object.entries(e.secoes).every(([k, v]) => (CATEGORIAS as readonly string[]).includes(k) && v === "sem_ocorrencias");
@@ -921,4 +937,10 @@ export async function tarefasAbertasDetalhadas(store: FilaStore) {
     id: t.id, ref: refDoItem({ tipo: "tarefa", id: t.id }), paciente: t.patientId ? nomes[t.patientId] ?? "Paciente" : t.assunto ?? "Assunto",
     idsSd: t.patientId ? ids.get(t.patientId) ?? [] : [], tipo: t.kind, titulo: t.title,
   }));
+}
+
+/** Último resultado de planejamento anual registrado na tarefa (o payload guarda os detalhes do último registro). */
+function planejamentoDaTarefa(payload: Record<string, unknown>): { resultado: string; data: string } | undefined {
+  const d = (payload.detalhes ?? {}) as Record<string, unknown>;
+  return typeof d.planejamento_resultado === "string" ? { resultado: d.planejamento_resultado, data: typeof d.planejamento_mov === "string" ? d.planejamento_mov : typeof d.planejamento_data === "string" ? d.planejamento_data : "" } : undefined;
 }

@@ -1,6 +1,7 @@
 import { hojeSaoPaulo, isDiaIso } from "./datas";
 import { ErroRegra, type Ator } from "./servico";
 import type { FilaStore, RotinaItemRow } from "./store";
+import { itemDoEvento, resultadoDoEvento, ROTULO_RESULTADO } from "./contato-rotina";
 
 /**
  * Rotina diária da concierge — checklist geral do expediente (início, durante, fechamento).
@@ -74,6 +75,18 @@ export async function salvarItemRotina(store: FilaStore, ator: Ator, e: EntradaR
   if (!itemValeNoDia(item, hoje)) throw new ErroRegra("Este item não faz parte da rotina de hoje.");
   const m = normalizarMetricas(item, e.metricas);
   if (!m.ok) throw new ErroRegra(m.erro);
+  // Atividade com pacientes: "Feito" só depois de ao menos uma paciente registrada nela hoje.
+  if (item.pacientes && e.estado === "feito") {
+    const n = (await store.eventosDoDia(hoje)).filter((x) => x.createdBy === ator.id && itemDoEvento(x.payload) === item.key && !x.payload?.anulado).length;
+    // Conferência comercial sem movimentação: só com a confirmação explícita, e só se nada foi registrado.
+    const semMovimento = item.conferenciaComercial && m.metricas.sem_movimentacao === true;
+    if (semMovimento && n) throw new ErroRegra("Há pacientes registradas na conferência de hoje: não dá para marcar “sem movimentação”.");
+    if (!n && !semMovimento) {
+      throw new ErroRegra(item.conferenciaComercial
+        ? "Registre as pacientes conferidas ou confirme que não houve movimentação comercial."
+        : "Registre ao menos uma paciente desta atividade antes de marcar como feita.", 409);
+    }
+  }
   const impedimento = e.estado === "impedimento";
   const motivo = impedimento ? limpo(e.motivo) : null;
   const proxima = impedimento ? limpo(e.proximaAcao) : null;
@@ -107,4 +120,36 @@ export async function salvarItemRotina(store: FilaStore, ator: Ator, e: EntradaR
   // Auditoria só com estado e quantidades (nunca dados de paciente).
   await store.auditar({ actor: ator.email, action: "fila_rotina_item", target: `daily_routine_items/${hoje}/${e.itemKey}`, after: { estado: e.estado, tarefaId, temImpedimento: impedimento, metricas: m.metricas } });
   return linha;
+}
+
+/** Paciente registrada numa atividade da rotina (para a lista da atividade e o fechamento). */
+export interface ContatoDaRotina {
+  eventoId: string;
+  pacienteId: string | null;
+  paciente: string;
+  resultado: string;
+  situacao: string | null;
+  hora: string | null;
+  /** Campos do registro (conferência comercial, marco…) e a próxima ação, quando houver. */
+  detalhes: Record<string, string>;
+  proxima: string | null;
+  prazo: string | null;
+}
+
+/** Contatos do dia por atividade (só os da própria pessoa), com o nome da paciente. */
+export async function contatosDaRotina(store: FilaStore, userId: string, dia: string): Promise<Record<string, ContatoDaRotina[]>> {
+  const eventos = (await store.eventosDoDia(dia)).filter((e) => e.createdBy === userId && itemDoEvento(e.payload) && !e.payload?.anulado);
+  const nomes = await store.nomesPacientes([...new Set(eventos.map((e) => e.patientId).filter((x): x is string => !!x))]);
+  const por: Record<string, ContatoDaRotina[]> = {};
+  for (const e of eventos) {
+    const r = resultadoDoEvento(e.payload);
+    (por[itemDoEvento(e.payload)!] ??= []).push({
+      eventoId: e.id, paciente: (e.patientId && nomes[e.patientId]) || e.assunto || "Paciente",
+      resultado: r ? ROTULO_RESULTADO[r] : typeof (e.payload?.detalhes as Record<string, unknown> | undefined)?.acao === "string" ? String((e.payload!.detalhes as Record<string, unknown>).acao) : e.situacao ?? "registrado",
+      situacao: e.situacao ?? null, hora: e.registradoEm ?? null, pacienteId: e.patientId ?? null,
+      detalhes: Object.fromEntries(Object.entries((e.payload?.detalhes ?? {}) as Record<string, unknown>).map(([k, v]) => [k, String(v)])),
+      proxima: typeof e.payload?.proxima === "string" ? e.payload.proxima : null, prazo: typeof e.payload?.prazo === "string" ? e.payload.prazo : null,
+    });
+  }
+  return por;
 }

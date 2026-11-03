@@ -192,12 +192,47 @@ export interface PrioridadeDoDia {
   /** Referência curta do item ([T-…]/[M-…]) ou null para prioridade manual. */
   ref: string | null;
   texto: string;
+  /** Campos da prioridade para o próximo dia útil (todos opcionais além do texto). */
+  paciente?: string | null;
+  data?: string | null;
+  prioridade?: "alta" | "normal" | null;
+  /** De onde veio: tarefa, contato, solicitação, impedimento, manual. */
+  origem?: string | null;
+  proxima?: string | null;
+  /** Prioridade manual resolvida no dia seguinte (as ligadas a tarefa seguem o estado da tarefa). */
+  resolvidaEm?: string | null;
+  resolvidaPor?: string | null;
+}
+
+/** Rascunho do fechamento, salvo no servidor (não depende do navegador). */
+export interface RascunhoFechamento {
+  observacao?: string;
+  /** Situações que exigem decisão da gestão. */
+  decisoes?: string;
+  /** A concierge revisou as prioridades do próximo dia útil (seção obrigatória do fechamento). */
+  prioridadesConfirmadas?: boolean;
+  salvoEm?: string;
 }
 
 export interface EstadoDoDia {
   prioridades: PrioridadeDoDia[];
   /** Seções revisadas e marcadas "sem ocorrências" (ausente = não revisada). */
   secoes: Partial<Record<Categoria, "sem_ocorrencias">>;
+  rascunho?: RascunhoFechamento;
+}
+
+/**
+ * Conferência de recebimentos do dia (totais conferidos no Simples Dental, fonte oficial). Sem
+ * linha = conferência ainda não feita; "sem_recebimentos" = conferido e não houve recebimento.
+ */
+export interface ConferenciaCaixa {
+  dia: string;
+  situacao: "conferido" | "sem_recebimentos";
+  previsto: number | null;
+  recebido: number | null;
+  justificativa: string | null;
+  conferidoPor: string;
+  conferidoEm: string;
 }
 
 export interface FilaStore {
@@ -210,6 +245,8 @@ export interface FilaStore {
   atendimento(id: string): Promise<AtendimentoRow | null>;
   atendimentosPendentes(): Promise<AtendimentoRow[]>;
   tarefaPorChave(chave: string): Promise<TarefaRow | null>;
+  /** Tarefas abertas (a fazer ou aguardando) de uma paciente — para reprogramar o retorno em vez de duplicar. */
+  tarefasAbertasDoPaciente(patientId: string): Promise<TarefaRow[]>;
   /** Abertos (previsto/contatado) + encerrados atualizados a partir de `desde` (AAAA-MM-DD). */
   marcosAtivos(desde: string): Promise<MarcoRow[]>;
   marco(id: string): Promise<MarcoRow | null>;
@@ -223,6 +260,9 @@ export interface FilaStore {
   resolverRef(tipo: "tarefa" | "marco", prefixo: string): Promise<string[]>;
   perfis(): Promise<{ id: string; nome: string }[]>;
   eventosDoDia(dia: string): Promise<EventoRow[]>;
+  /** Registros de uma paciente a partir de uma data (contatos recentes, marco repetido). */
+  eventosRecentesDoPaciente(patientId: string, desde: string): Promise<EventoRow[]>;
+  conferenciaCaixa(dia: string): Promise<ConferenciaCaixa | null>;
   numerosDoDia(dia: string): Promise<NumerosDoDia | null>;
   estadoDoDia(dia: string): Promise<EstadoDoDia>;
   config(): Promise<FilaConfig>;
@@ -255,12 +295,16 @@ export interface FilaStore {
   criarTarefa(t: { patientId: string | null; assunto?: string | null; kind: TipoTarefa; title: string; chaveOrigem: string | null; due: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null; origem: string; origemData: string; assignedTo?: string | null; nextAction?: string | null; prioridade?: Prioridade | null; status?: StatusTarefaDb; aguardando?: "paciente" | "gestao" | null }): Promise<string>;
   atualizarTarefaEntrada(id: string, t: { title: string; aConferir: string[]; payload: Record<string, unknown>; financialImpact: number | null }): Promise<void>;
   registrarEvento(e: EventoRow): Promise<void>;
+  /** Marca um registro como anulado (payload.anulado = motivo, autor, horário). Nunca apaga. */
+  anularEvento(id: string, anulado: { motivo: string; por: string; em: string }): Promise<void>;
+  evento(id: string): Promise<EventoRow | null>;
   atualizarMarco(id: string, m: { status?: StatusMarcoDb; statusReason?: string | null; dueCurrent?: string }): Promise<void>;
   atualizarTarefa(id: string, t: { status?: StatusTarefaDb; due?: string; closedReason?: string | null; waiting?: boolean; title?: string; nextAction?: string | null; assignedTo?: string | null; payload?: Record<string, unknown>; financialImpact?: number | null; aguardando?: "paciente" | "gestao" | null; prioridade?: Prioridade | null; prazoOriginal?: string | null; adiamentos?: number }): Promise<void>;
   salvarNumeros(dia: string, n: NumerosDoDia, ator: string): Promise<void>;
   salvarEstadoDoDia(dia: string, e: Partial<EstadoDoDia>, ator: string): Promise<void>;
   salvarConfig(c: Partial<FilaConfig>, ator: string): Promise<void>;
   salvarItemRotina(r: RotinaItemRow): Promise<void>;
+  salvarConferenciaCaixa(c: ConferenciaCaixa): Promise<void>;
   /** Grava compromissos lidos do Simples Dental (motor idempotente de lib/sync), com a autoria de quem disparou. */
   sincronizarAgenda(itens: NormalizedAppointment[], ator: string): Promise<{ total: number; created: number; updated: number; unchanged: number; requiresReview: number }>;
   marcarLido(tarefaId: string, userId: string): Promise<void>;

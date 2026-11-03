@@ -23,7 +23,7 @@ describe("entrada", () => {
     await expect(confirmarEntrada(store, GABI, lote([atend()]))).rejects.toThrow(/gestão/);
     const r = await confirmarEntrada(store, GESTAO, lote([atend()]));
     expect(r).toMatchObject({ aplicados: 1, atendimentosConfirmados: 1 });
-    expect(_dados.marcos.map((m) => [m.kind, m.dueOriginal])).toEqual([["d30", "2026-11-14"], ["d90", "2027-01-13"], ["m6", "2027-04-15"]]);
+    expect(_dados.marcos.map((m) => [m.kind, m.dueOriginal])).toEqual([["d30", "2026-11-14"], ["d90", "2027-01-13"], ["m6", "2027-04-13"]]);
     expect(_dados.pacientes).toHaveLength(1);
   });
 

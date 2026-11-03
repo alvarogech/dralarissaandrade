@@ -1,4 +1,4 @@
-import type { RotinaItemRow } from "./store";
+import type { Categoria, RotinaItemRow } from "./store";
 
 /**
  * Catálogo e resumo da rotina diária da concierge (puro, sem acesso a dados — usado também na
@@ -9,10 +9,17 @@ import type { RotinaItemRow } from "./store";
  * 15/30/90 dias, resgate, pré-confirmação) NUNCA viram tarefa por paciente: registram só estado
  * e quantidades — os dados das pacientes continuam no Simples Dental e nos fluxos próprios.
  */
+/**
+ * Grupos da rotina, na ordem da tela. "Prioridades de hoje" e "Solicitações da gestão" não têm
+ * itens fixos: são preenchidos com o que veio do dia anterior e com as tarefas atribuídas.
+ */
 export const GRUPOS_ROTINA = [
+  { id: "prioridades", titulo: "Prioridades de hoje" },
   { id: "inicio", titulo: "Início do dia" },
-  { id: "durante", titulo: "Durante o dia" },
-  { id: "fechamento", titulo: "Fechamento" },
+  { id: "relacionamento", titulo: "Relacionamento com pacientes" },
+  { id: "financeiro", titulo: "Financeiro" },
+  { id: "gestao", titulo: "Solicitações da gestão" },
+  { id: "finais", titulo: "Conferências finais" },
 ] as const;
 export type GrupoRotina = (typeof GRUPOS_ROTINA)[number]["id"];
 
@@ -35,6 +42,39 @@ export interface AgendaItem {
   rotulo: string;
 }
 
+/** Resultado rápido de um contato com paciente (cada atividade oferece os que fazem sentido). */
+export type ResultadoContato =
+  // situação do contato
+  | "nao_realizado" | "aguardando_resposta" | "nao_respondeu" | "respondeu"
+  // desfecho quando a paciente respondeu
+  | "orientacao" | "agendou" | "encaminhado_comercial" | "encaminhado_profissional" | "resolvido" | "nova_acao"
+  | "pagamento_confirmado" | "promessa_pagamento" | "negociacao" | "encaminhado_gestao"
+  // sem tentativa (aniversário) e valor antigo, mantido para registros já gravados
+  | "mensagem_enviada" | "contato_realizado";
+
+/**
+ * Atividade com pacientes (tipo B): "Feito" só vale com ao menos uma paciente registrada; cada
+ * paciente vira um registro do dia (histórico, próxima ação e feedback, sem redigitar).
+ */
+export interface PacientesDoItem {
+  categoria: Categoria;
+  /** Ação realizada, já definida pelo contexto da atividade. */
+  acao: string;
+  /** Desfechos oferecidos quando a paciente responde (ou, com `semTentativa`, as opções diretas). */
+  resultados: readonly ResultadoContato[];
+  /** Sem camada de tentativa (ex.: mensagem de aniversário não pede retorno se não houver resposta). */
+  semTentativa?: boolean;
+  /** Quando a paciente responde, o relato dela é obrigatório (ex.: pós-procedimento). */
+  relato?: { rotulo: string; ajuda: string };
+  /** Permite marcar "necessita atenção do profissional" (encaminhamento, sem avaliação da concierge). */
+  atencaoProfissional?: boolean;
+  /** Marco de acompanhamento (evita repetir o mesmo marco para a mesma paciente sem motivo). */
+  marco?: "15 dias" | "30 dias" | "90 dias" | "180 dias";
+  cobranca?: boolean;
+  /** Meta de pacientes do dia (só exibição). */
+  meta?: number;
+}
+
 export interface ItemRotina {
   key: string;
   grupo: GrupoRotina;
@@ -47,6 +87,16 @@ export interface ItemRotina {
   metricas?: readonly MetricaRotina[];
   /** Link configurável no servidor (sem link configurado, nada é exibido — nunca se inventa URL). */
   link?: { config: ChaveLinkRotina; rotulo: string };
+  /** Atividade com pacientes (tipo B). Sem isto, é conferência operacional simples (tipo A). */
+  pacientes?: PacientesDoItem;
+  /** Roteiro do que conferir (lista discreta, expansível) — não são campos a preencher. */
+  roteiro?: readonly string[];
+  /** Permite registrar ocorrências da conferência (paciente opcional, tipo, profissional, providência). */
+  ocorrencias?: boolean;
+  /** Conferência comercial da Mel: registro nominal próprio (conferencia-comercial.ts) e opção "sem movimentação". */
+  conferenciaComercial?: boolean;
+  /** Conferência nominal do planejamento anual nos atendimentos presenciais. */
+  planejamentoAnual?: boolean;
 }
 
 export const CHAVES_LINK_ROTINA = ["script_aniversario"] as const;
@@ -67,77 +117,147 @@ export function linkSeguro(v: unknown): string | null {
 
 const PRECISA_CONFERIR: MetricaRotina = { key: "precisa_conferir", rotulo: "Precisa conferir (dados insuficientes)", tipo: "numero" };
 
+/** Resultados rápidos de contato com paciente, por tipo de atividade (ver contato-rotina.ts). */
+const CONTATO: readonly ResultadoContato[] = ["orientacao", "agendou", "encaminhado_comercial", "resolvido", "nova_acao"];
+
+/*
+ * Reorganização de 27/10 (prestação de contas): grupos por assunto em vez de horário; itens que
+ * repetiam outro lugar saíram do checklist — follow-ups do dia (agora em "Prioridades de hoje"),
+ * informar a gestão (é o "Pedir orientação" da pendência), retornos agendados e encaminhamentos
+ * feitos (viram registros de paciente) e as três conferências de pagamento (uma só + conferência de
+ * recebimentos). As chaves que continuam são as mesmas: o histórico gravado não muda de sentido.
+ */
 export const ITENS_ROTINA: readonly ItemRotina[] = [
-  { key: "agenda_hoje_amanha", grupo: "inicio", texto: "Conferir a agenda de hoje e de amanhã", dica: "No Simples Dental; o STIMMA OS só mostra a agenda sincronizada." },
-  { key: "novos_atendimentos", grupo: "inicio", texto: "Conferir novos atendimentos, retornos e procedimentos do dia" },
-  { key: "cadastro_documentos", grupo: "inicio", texto: "Verificar pendências de cadastro e documentos", dica: "Registre só a conferência ou a pendência; documentos ficam no Simples Dental." },
-  { key: "recebimentos_lancamentos", grupo: "inicio", texto: "Conferir recebimentos e lançamentos a registrar no Simples Dental", dica: "Sem valores nem dados bancários aqui." },
-  { key: "condicoes_pagamento", grupo: "inicio", texto: "Consultar condições de pagamento autorizadas pela gestão", dica: "Só use condições explicitamente autorizadas." },
-  { key: "preparacao_equipe", grupo: "inicio", texto: "Confirmar a preparação da equipe e dos ambientes" },
-  { key: "followups_dia", grupo: "inicio", texto: "Identificar follow-ups, retornos e próximas etapas do dia", dica: "Estão em “Meu trabalho” (hoje e atrasadas)." },
   {
-    key: "aniversariantes", grupo: "inicio", texto: "Verificar as aniversariantes do dia e enviar a mensagem pelo script aprovado.",
-    dica: "Consulta e envio feitos fora do sistema (Simples Dental e WhatsApp). Registre só as quantidades — sem nomes.",
-    metricas: [{ key: "mensagens_enviadas", rotulo: "Mensagens enviadas", tipo: "numero" }, PRECISA_CONFERIR],
+    // 29/10: substitui "agenda de hoje e amanhã", "novos atendimentos" e "preparação da recepção" (mesma chave
+    // da primeira, para o histórico seguir com sentido).
+    key: "agenda_hoje_amanha", grupo: "inicio", curto: "Agenda e alinhamento", texto: "Conferir agenda, confirmações e alinhamento com os profissionais",
+    dica: "No Simples Dental, para hoje e amanhã. Sem ocorrências, basta marcar “Feito”. Houve algo relevante? Registre a ocorrência.",
+    roteiro: [
+      "Verificar no Simples Dental todos os pacientes agendados para hoje e amanhã.",
+      "Identificar quem está confirmado.",
+      "Ver quem ainda não confirmou.",
+      "Fazer ou acompanhar as confirmações pendentes.",
+      "Conferir quais procedimentos serão feitos em cada atendimento.",
+      "Identificar retornos, avaliações iniciais e atendimentos com particularidades.",
+      "Ver necessidades de preparação: materiais, equipamentos, tempo e orientações dos profissionais.",
+      "Comunicar a cada profissional os procedimentos previstos e o que for relevante.",
+      "Avisar alterações importantes: encaixes, cancelamentos e remarcações.",
+      "Garantir que a agenda esteja alinhada entre recepção e equipe clínica.",
+    ],
+    ocorrencias: true,
+  },
+  { key: "cadastro_documentos", grupo: "inicio", texto: "Verificar pendências de cadastro e documentos", dica: "Registre só a conferência ou a pendência; documentos ficam no Simples Dental." },
+  {
+    key: "aniversariantes", grupo: "inicio", curto: "Aniversariantes", texto: "Verificar as aniversariantes do dia e enviar a mensagem pelo script aprovado.",
+    dica: "Consulta e envio no Simples Dental e no WhatsApp da clínica. Registre aqui quem recebeu a mensagem.",
+    pacientes: { categoria: "relacionamento", acao: "Mensagem de aniversário", resultados: ["mensagem_enviada", "contato_realizado"], semTentativa: true },
+    metricas: [PRECISA_CONFERIR],
     link: { config: "script_aniversario", rotulo: "Abrir script aprovado" },
   },
 
-  { key: "acolhimento_recepcao", grupo: "durante", texto: "Acolhimento presencial das pacientes e apoio à Dra. na recepção" },
-  { key: "acompanhar_agenda", grupo: "durante", texto: "Acompanhar pacientes, atrasos, encaixes, cancelamentos e remarcações" },
-  { key: "pagamentos_registrados", grupo: "durante", texto: "Registrar pagamentos conferidos ou lançados no Simples Dental" },
   {
-    key: "cobrancas_simples_dental", grupo: "durante", curto: "Cobranças no Simples Dental", texto: "Conferir parcelas vencidas no Simples Dental e realizar as cobranças autorizadas.",
-    dica: "“Feito” = conferência realizada; “Com impedimento” = não realizada (informe o motivo). Só quantidades: nada de nomes, telefones ou valores.",
-    agenda: { diasDaSemana: [1, 5], rotulo: "Segundas e sextas" },
-    metricas: [
-      { key: "pendencias_revisadas", rotulo: "Pendências revisadas", tipo: "numero" },
-      { key: "cobrancas_efetuadas", rotulo: "Cobranças efetuadas", tipo: "numero" },
-      { key: "respostas_aguardadas", rotulo: "Respostas aguardadas", tipo: "numero" },
-      { key: "orientacao_gestao", rotulo: "Precisa de orientação da gestão", tipo: "sim_nao" },
-    ],
+    key: "pos_procedimento_ontem", grupo: "relacionamento", curto: "Pós-procedimento", texto: "Pós-procedimento — pacientes de ontem",
+    dica: "Confira no Simples Dental as pacientes que realizaram procedimentos no dia anterior. Realize os acompanhamentos necessários e registre os contatos.",
+    pacientes: {
+      categoria: "pos_atendimento", acao: "Contato de pós-procedimento", resultados: ["orientacao", "resolvido", "agendou", "nova_acao"], atencaoProfissional: true,
+      relato: { rotulo: "Como a paciente se encontra?", ajuda: "Descreva como a paciente relatou estar, sua evolução, eventuais desconfortos ou queixas e qualquer informação relevante para o acompanhamento." },
+    },
   },
   {
-    key: "contatos_15_dias", grupo: "durante", curto: "Contatos de 15 dias", texto: "Contatos de 15 dias após o retorno",
-    dica: "Pacientes cujo retorno registrado foi há 15 dias (conte a partir da data do retorno). Sem informação suficiente: some em “precisa conferir”.",
+    key: "contatos_15_dias", grupo: "relacionamento", curto: "Contatos de 15 dias", texto: "Contatos de 15 dias após o retorno",
+    dica: "Confira no Simples Dental as pacientes cujo retorno foi há 15 dias (conte a partir da data do retorno) e registre os contatos.",
     agenda: { diasDaSemana: [1], rotulo: "Segunda-feira" },
-    metricas: [{ key: "contatos_realizados", rotulo: "Contatos realizados", tipo: "numero" }, PRECISA_CONFERIR],
+    pacientes: { categoria: "recorrencia", acao: "Contato de 15 dias", resultados: CONTATO, marco: "15 dias" },
+    metricas: [PRECISA_CONFERIR],
   },
   {
-    key: "contatos_30_dias", grupo: "durante", curto: "Contatos de 30 dias", texto: "Contatos de 30 dias após o retorno",
-    dica: "Pacientes cujo retorno registrado foi há 30 dias (conte a partir da data do retorno). Sem informação suficiente: some em “precisa conferir”.",
+    key: "contatos_30_dias", grupo: "relacionamento", curto: "Acompanhamento de 30 dias", texto: "Acompanhamentos de 30 dias",
+    dica: "Pacientes com 30 dias do atendimento/procedimento de referência (confira no Simples Dental). Objetivo: evolução e satisfação, dúvidas, continuidade do plano e necessidades de acompanhamento.",
     agenda: { diasDaSemana: [2], rotulo: "Terça-feira" },
-    metricas: [{ key: "contatos_realizados", rotulo: "Contatos realizados", tipo: "numero" }, PRECISA_CONFERIR],
+    pacientes: { categoria: "recorrencia", acao: "Acompanhamento de 30 dias", resultados: CONTATO, marco: "30 dias" },
+    metricas: [PRECISA_CONFERIR],
   },
   {
-    key: "contatos_90_dias", grupo: "durante", curto: "Contatos de 90 dias", texto: "Contatos de 90 dias após o retorno",
-    dica: "Pacientes cujo retorno registrado foi há 90 dias (conte a partir da data do retorno). Sem informação suficiente: some em “precisa conferir”.",
+    key: "contatos_90_dias", grupo: "relacionamento", curto: "Acompanhamento de 90 dias", texto: "Acompanhamentos de 90 dias",
+    dica: "Pacientes com 90 dias do atendimento/procedimento de referência (confira no Simples Dental). Objetivo: retomar o relacionamento, satisfação e necessidades atuais, manutenção e nova consulta.",
     agenda: { diasDaSemana: [3], rotulo: "Quarta-feira" },
-    metricas: [{ key: "contatos_realizados", rotulo: "Contatos realizados", tipo: "numero" }, PRECISA_CONFERIR],
+    pacientes: { categoria: "recorrencia", acao: "Acompanhamento de 90 dias", resultados: CONTATO, marco: "90 dias" },
+    metricas: [PRECISA_CONFERIR],
   },
   {
-    key: "resgate_10_meses", grupo: "durante", curto: "Resgate de pacientes (meta 10)", texto: "Resgate de pacientes sem atendimento há mais de 10 meses — meta: 10 pacientes",
-    dica: "Lista no Simples Dental. Elegibilidade incerta: some em “precisa conferir”, não conte como trabalhada.",
+    // Régua definida pela gestão em 29/10: 30 · 90 · 180 dias (o 60 dias saiu da rotina).
+    key: "contatos_180_dias", grupo: "relacionamento", curto: "Acompanhamento de 180 dias", texto: "Acompanhamentos de 180 dias",
+    dica: "Pacientes com 180 dias do atendimento/procedimento de referência (confira no Simples Dental). Objetivo: relacionamento de longo prazo, nova avaliação, manutenção ou continuidade do planejamento.",
     agenda: { diasDaSemana: [4], rotulo: "Quinta-feira" },
-    metricas: [{ key: "pacientes_trabalhadas", rotulo: "Pacientes trabalhadas", tipo: "numero", meta: 10 }, PRECISA_CONFERIR],
+    pacientes: { categoria: "recorrencia", acao: "Acompanhamento de 180 dias", resultados: CONTATO, marco: "180 dias" },
+    metricas: [PRECISA_CONFERIR],
   },
   {
-    key: "pre_confirmacao_mes_seguinte", grupo: "durante", curto: "Pré-confirmação do mês seguinte", texto: "Pré-confirmação da agenda do mês seguinte",
+    key: "resgate_10_meses", grupo: "relacionamento", curto: "Resgate de pacientes (meta 10)", texto: "Resgate de pacientes sem atendimento há mais de 10 meses — meta: 10 pacientes",
+    dica: "Lista no Simples Dental. Registre cada paciente trabalhada; elegibilidade incerta vai em “precisa conferir”.",
+    agenda: { diasDaSemana: [4], rotulo: "Quinta-feira" },
+    pacientes: { categoria: "recorrencia", acao: "Resgate de paciente", resultados: CONTATO, meta: 10 },
+    metricas: [PRECISA_CONFERIR],
+  },
+  {
+    key: "acompanhar_agenda", grupo: "relacionamento", curto: "Remarcações e faltas", texto: "Acompanhar atrasos, encaixes, cancelamentos, remarcações e faltas",
+    dica: "Registre cada paciente com quem falou sobre remarcação, falta ou cancelamento.",
+    pacientes: { categoria: "agenda", acao: "Remarcação / falta", resultados: ["agendou", "orientacao", "resolvido", "nova_acao"] },
+  },
+  {
+    key: "pos_procedimento", grupo: "relacionamento", curto: "Continuidade de tratamentos", texto: "Acompanhar a continuidade dos planos de tratamento",
+    pacientes: { categoria: "continuidade", acao: "Continuidade de tratamento", resultados: CONTATO },
+  },
+  {
+    key: "encaminhar_comercial", grupo: "relacionamento", curto: "Encaminhamentos à comercial", texto: "Encaminhar à comercial externa as primeiras avaliações a recuperar",
+    pacientes: { categoria: "encaminhamento", acao: "Encaminhamento à comercial externa", resultados: ["encaminhado_comercial"] },
+  },
+  {
+    key: "pre_confirmacao_mes_seguinte", grupo: "relacionamento", curto: "Pré-confirmação do mês seguinte", texto: "Pré-confirmação da agenda do mês seguinte",
     dica: "Pré-confirme no Simples Dental; nada é confirmado ou remarcado pelo STIMMA OS.",
     agenda: { diaDoMes: 20, rotulo: "Dia 20" },
     metricas: [{ key: "pre_confirmadas", rotulo: "Pacientes pré-confirmadas", tipo: "numero" }, PRECISA_CONFERIR],
   },
-  { key: "retornos_agendados", grupo: "durante", texto: "Registrar agendamentos de retorno e próximas etapas", dica: "Na tarefa da paciente: “Registrar andamento” → Agendado." },
-  { key: "pos_procedimento", grupo: "durante", texto: "Acompanhar o pós-procedimento e a continuidade dos planos" },
-  { key: "encaminhar_comercial", grupo: "durante", texto: "Encaminhar à comercial externa as primeiras avaliações a recuperar" },
-  { key: "informar_gestao", grupo: "durante", texto: "Informar à gestão dúvidas, impedimentos e ocorrências", dica: "Na tarefa: “Pedir orientação”." },
 
-  { key: "destino_atendimentos", grupo: "fechamento", texto: "Cada atendimento do dia teve um destino definido" },
-  { key: "pagamentos_verificados", grupo: "fechamento", texto: "Pagamentos e lançamentos verificados" },
-  { key: "registros_crm", grupo: "fechamento", texto: "Registros administrativos e CRM atualizados" },
-  { key: "faltas_registradas", grupo: "fechamento", texto: "Faltas e cancelamentos registrados" },
-  { key: "encaminhamentos_feitos", grupo: "fechamento", texto: "Encaminhamentos à comercial externa feitos" },
-  { key: "agenda_amanha", grupo: "fechamento", texto: "Agenda do dia seguinte preparada" },
-  { key: "pendencias_continuam", grupo: "fechamento", texto: "Pendências que continuam abertas conferidas", dica: "Seguem automaticamente para o próximo dia em “Meu trabalho”." },
+  { key: "recebimentos_lancamentos", grupo: "financeiro", texto: "Conferir recebimentos e lançamentos do dia no Simples Dental", dica: "Registre os totais na conferência de recebimentos logo abaixo. Nada de dados bancários ou de cartão." },
+  { key: "condicoes_pagamento", grupo: "financeiro", texto: "Consultar condições de pagamento autorizadas pela gestão", dica: "Só use condições explicitamente autorizadas." },
+  {
+    key: "cobrancas_simples_dental", grupo: "financeiro", curto: "Cobranças de inadimplentes", texto: "Conferir inadimplentes no Simples Dental e realizar as cobranças autorizadas.",
+    dica: "Registre cada paciente cobrada e o resultado. Promessa de pagamento não é recebimento. Nada é cobrado automaticamente.",
+    agenda: { diasDaSemana: [1, 5], rotulo: "Segundas e sextas" },
+    pacientes: { categoria: "pendencia", acao: "Cobrança", resultados: ["pagamento_confirmado", "promessa_pagamento", "negociacao", "encaminhado_gestao", "nova_acao"], cobranca: true },
+    metricas: [{ key: "pendencias_revisadas", rotulo: "Pendências revisadas", tipo: "numero" }, { key: "orientacao_gestao", rotulo: "Precisa de orientação da gestão", tipo: "sim_nao" }],
+  },
+
+  {
+    key: "destino_atendimentos", grupo: "finais", texto: "Cada atendimento do dia teve um destino definido",
+    dica: "Para cada paciente atendida, confira com o profissional (ou nos registros) se foi apresentado um planejamento anual e registre abaixo. Não marque por presunção.",
+    planejamentoAnual: true,
+  },
+  { key: "registros_crm", grupo: "finais", texto: "Registros administrativos e CRM atualizados" },
+  { key: "faltas_registradas", grupo: "finais", texto: "Faltas e cancelamentos registrados" },
+  { key: "pendencias_continuam", grupo: "finais", texto: "Atividades que exigem continuidade conferidas", dica: "O que continua aberto volta sozinho na data combinada." },
+  { key: "agenda_amanha", grupo: "finais", texto: "Agenda do dia seguinte preparada" },
+  {
+    // 29/10: auditoria diária do comercial (a Mel executa; a Gabi confere e registra por nome; a gestão acompanha).
+    key: "conferencia_mel", grupo: "finais", curto: "Conferência comercial — Mel", texto: "Conferir atendimentos comerciais da Mel",
+    dica: "Confira as conversas comerciais realizadas pela Mel, identifique os novos leads, os follow-ups realizados, os agendamentos e as oportunidades que continuam abertas. Registre os nomes das pacientes, os resultados dos contatos e qualquer divergência identificada.",
+    agenda: { diasDaSemana: [1, 2, 3, 4, 5], rotulo: "Segunda a sexta" },
+    roteiro: [
+      "Conferir os novos leads recebidos.",
+      "Verificar se receberam atendimento.",
+      "Conferir os follow-ups comerciais realizados.",
+      "Identificar pacientes aguardando resposta.",
+      "Verificar se as conversas têm uma próxima ação.",
+      "Conferir os agendamentos no Simples Dental.",
+      "Registrar divergências e pendências.",
+      "O resultado vai para a gestão no fechamento do dia.",
+    ],
+    conferenciaComercial: true,
+    pacientes: { categoria: "oportunidade", acao: "Conferência comercial — Mel", resultados: [] },
+    metricas: [{ key: "sem_movimentacao", rotulo: "Sem movimentação comercial identificada", tipo: "sim_nao" }],
+  },
 ];
 
 /** Dia da semana (0 = domingo) de uma data AAAA-MM-DD — sem fuso (a data já é a local da clínica). */

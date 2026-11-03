@@ -47,6 +47,14 @@ export interface PropsTrabalho {
    * avançados — a lista vem agrupada pelo que fazer primeiro, e a URL da etapa é preservada.
    */
   guiado?: boolean;
+  /** Guiado: mostra só estes itens (ex.: prioridades de hoje, solicitações da gestão). */
+  somenteIds?: string[];
+  /** Guiado: esconde itens já mostrados em outra seção da rotina (sem duplicar). */
+  excluirIds?: string[];
+  /** Guiado compacto: só os cartões, com o detalhe aberto no próprio cartão (dentro da rotina). */
+  compacto?: boolean;
+  /** Texto quando a lista compacta está vazia. */
+  vazio?: string;
 }
 
 const ROTULO_PRIORIDADE = { alta: "Prioridade alta", normal: "Prioridade normal", baixa: "Prioridade baixa" } as const;
@@ -181,8 +189,23 @@ export function TrabalhoView(p: PropsTrabalho) {
   );
 
   if (p.guiado) {
-    const abertas = filtrarTrabalho(p.itens, { ...f, situacoes: [], responsavel: "eu", dependeDeMim: false, tipo: "", origem: "", prioridade: "", ate: "" }, pessoas, p.hoje)
-      .filter((i) => situacaoTrabalho(i, p.hoje) !== "concluida");
+    const excluir = new Set(p.excluirIds ?? []);
+    const somente = p.somenteIds ? new Set(p.somenteIds) : null;
+    const abertas = somente
+      ? p.itens.filter((i) => somente.has(i.id))
+      : filtrarTrabalho(p.itens, { ...f, situacoes: [], responsavel: "eu", dependeDeMim: false, tipo: "", origem: "", prioridade: "", ate: "" }, pessoas, p.hoje)
+        .filter((i) => situacaoTrabalho(i, p.hoje) !== "concluida" && !excluir.has(i.id));
+    if (p.compacto) {
+      return (
+        <ProvedorFila valor={valorFila}>
+          {abertas.length ? (
+            <ul className="flex flex-col gap-2">
+              {abertas.map((i) => <CartaoTrabalho key={i.id} item={i} {...p} pessoas={pessoas} aberto={aberto === i.id} inline onToggle={() => abrir(i.id)} />)}
+            </ul>
+          ) : <p className="text-[13.5px] text-text-muted">{p.vazio ?? "Nada por aqui."}</p>}
+        </ProvedorFila>
+      );
+    }
     const por = (s: SituacaoTrabalho) => abertas.filter((i) => situacaoTrabalho(i, p.hoje) === s);
     return (
       <ProvedorFila valor={valorFila}>
@@ -228,6 +251,8 @@ export function TrabalhoView(p: PropsTrabalho) {
           Configuração pendente: a conta da concierge não está identificada de forma inequívoca. Tarefas importadas ficam sem responsável até a configuração.
         </p>
       )}
+
+      {p.gestao && <SolicitacoesGestao itens={p.itens} hoje={p.hoje} cartao={cartao} />}
 
       {/* Indicadores: cada um abre exatamente a lista que contou (mesmos filtros). */}
       <section aria-label="Indicadores" className="mb-6">
@@ -359,6 +384,41 @@ export function TrabalhoView(p: PropsTrabalho) {
   );
 }
 
+/**
+ * Gestão: solicitações extraordinárias (pedidas por Álvaro ou pela Dra. Larissa) num relance —
+ * entregues, abertas, atrasadas e aguardando decisão — com o mesmo cartão/detalhe das tarefas.
+ */
+function SolicitacoesGestao({ itens, hoje, cartao }: { itens: ItemFila[]; hoje: string; cartao: (i: ItemFila) => React.ReactNode }) {
+  const sol = itens.filter((i) => i.extraordinaria);
+  if (!sol.length) return null;
+  const abertas = sol.filter((i) => i.status !== "concluida");
+  const atrasadas = abertas.filter((i) => i.due < hoje);
+  const decisao = abertas.filter((i) => i.aguardando === "gestao");
+  const entregues = sol.filter((i) => i.status === "concluida");
+  return (
+    <details className="mb-6 rounded-card border border-border bg-surface">
+      <summary className="cursor-pointer px-4 py-3">
+        <span className="text-[15px] font-semibold text-text-primary">Solicitações extraordinárias</span>
+        <span className="ml-2 text-[13px] text-text-secondary">
+          {abertas.length} aberta{abertas.length === 1 ? "" : "s"}
+          {atrasadas.length ? <span className="font-medium text-critical"> · {atrasadas.length} atrasada{atrasadas.length === 1 ? "" : "s"}</span> : null}
+          {decisao.length ? <span className="font-medium text-important"> · {decisao.length} aguardando sua decisão</span> : null}
+          {` · ${entregues.length} entregue${entregues.length === 1 ? "" : "s"}`}
+        </span>
+      </summary>
+      <div className="flex flex-col gap-3 border-t border-border p-3">
+        {abertas.length > 0 && <ul className="flex flex-col gap-2">{abertas.map(cartao)}</ul>}
+        {entregues.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-[12.5px] font-medium text-text-secondary">Entregues (com o resultado registrado pela concierge)</p>
+            <ul className="flex flex-col gap-2">{entregues.map(cartao)}</ul>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
 const SECOES_GUIADAS: { s: SituacaoTrabalho; titulo: string; ajuda: string; recolhida?: boolean }[] = [
   { s: "atrasada", titulo: "Atrasadas", ajuda: "Passaram do prazo: comece por aqui." },
   { s: "hoje", titulo: "Para hoje", ajuda: "Vencem hoje." },
@@ -374,7 +434,7 @@ function PendenciasGuiadas({ por, busca, onBusca, cartao, vazio }: { por: (s: Si
   const total = SECOES_GUIADAS.reduce((n, x) => n + por(x.s).length, 0);
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-[14px] text-text-secondary">Abra uma pendência e toque em <strong className="text-text-primary">Registrar andamento</strong> para dizer o que aconteceu. O que continuar pendente volta sozinho na data escolhida.</p>
+      <p className="text-[14px] text-text-secondary">Casos que continuam em acompanhamento. Abra um e toque em <strong className="text-text-primary">Registrar andamento</strong> para dizer o que aconteceu; o que continuar pendente volta sozinho na data escolhida.</p>
       <nav aria-label="Resumo das pendências" className="flex flex-wrap gap-2">
         {SECOES_GUIADAS.filter((x) => !x.recolhida).map((x) => (
           <a key={x.s} href={`#sec-${x.s}`} className={clsx("inline-flex min-h-10 items-center gap-2 rounded-control border px-3 text-[13.5px]",
@@ -401,7 +461,7 @@ function PendenciasGuiadas({ por, busca, onBusca, cartao, vazio }: { por: (s: Si
       {total === 0 && (
         <div className="rounded-card border border-dashed border-border-strong px-5 py-6 text-sm text-text-secondary">
           <p className="font-medium text-text-primary">{busca ? "Nada encontrado nessa busca." : vazio ? "Nenhuma pendência cadastrada ainda." : "Nenhuma pendência aberta para você agora."}</p>
-          <p className="mt-1">Quando terminar, siga para <strong>Revisar meu feedback</strong>.</p>
+          <p className="mt-1">As que vencem hoje ou estão atrasadas aparecem em “Prioridades de hoje”.</p>
         </div>
       )}
       {SECOES_GUIADAS.map((x) => {
@@ -474,7 +534,7 @@ function CartaoTrabalho({ item: i, aberto, inline, onToggle, pessoas, ...p }: Pr
           {/* Nível 4 — metadados */}
           <p className="mt-1 text-[12.5px] text-text-muted">
             {nomeResp ? `Responsável: ${nomeResp}` : <span className="font-medium text-important">Sem responsável</span>}
-            {" · "}{i.subtipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[i.tipo] ?? i.tipo}
+            {" · "}{i.extraordinaria ? `Solicitação da gestão${i.solicitadoPor ? ` · pedida por ${i.solicitadoPor}` : ""}` : i.subtipo === "comparecimento" ? "Comparecimento" : ROTULO_TIPO[i.tipo] ?? i.tipo}
             {i.origem ? ` · ${i.origem}` : ""}
           </p>
         </div>
@@ -528,6 +588,7 @@ function DetalheItem({ item: i, pessoas, nomeResp, ...p }: PropsTrabalho & { ite
           <Linha k="Ação" v={i.titulo} />
           <Linha k={i.semPaciente ? "Assunto" : "Paciente"} v={i.pacienteNome} />
           <Linha k="Contexto" v={i.contexto} />
+          <Linha k="Solicitado por" v={i.extraordinaria ? `${i.solicitadoPor ?? "gestão"}${i.criadaEm ? ` em ${dataBr(i.criadaEm.slice(0, 10))}` : ""}` : undefined} />
           <Linha k="Orientação da gestão" v={i.orientacao} />
           <Linha k="Resultado esperado" v={i.resultadoEsperado} />
           <Linha k="Ocorrência" v={i.tipo === "recuperacao_falta" ? (i.ocorrencia ? `${i.ocorrencia === "falta" ? "Falta" : "Cancelamento"}${i.dataOcorrencia ? ` em ${dataBr(i.dataOcorrencia)}` : ""}` : <span className="text-important">Não informada — confira antes de agir</span>) : undefined} />

@@ -27,7 +27,7 @@ function Lista({ itens, vazio }: { itens: CompromissoAgenda[]; vazio: string }) 
           <span className="w-12 shrink-0 tabular-nums text-text-secondary">{hora(c.inicio)}</span>
           <span className="min-w-0 flex-1 font-medium text-text-primary">{c.paciente}</span>
           <span className={clsx("text-[12.5px]", exigeAtencao(c) ? "font-medium text-important" : "text-text-secondary")}>
-            {c.revisar ? "Conferir no Simples Dental · " : ""}{ROTULO_STATUS_AGENDA[c.status]}
+            {c.revisar ? "Conferir cadastro · " : ""}{ROTULO_STATUS_AGENDA[c.status]}
           </span>
           {(c.profissional || c.motivo) && <span className="basis-full pl-[60px] text-[12.5px] text-text-muted">{[c.profissional, c.motivo].filter(Boolean).join(" · ")}</span>}
         </li>

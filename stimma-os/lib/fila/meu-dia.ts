@@ -1,7 +1,10 @@
 import type { FeedbackRow } from "./store";
 
 /**
- * "Meu dia" da concierge — percurso guiado em três etapas (rotina → pendências → finalizar).
+ * "Meu dia" da concierge — percurso guiado em duas etapas: Minha rotina (checklist, prioridades,
+ * relacionamento com pacientes, financeiro, solicitações da gestão) e Fechamento do dia (prestação
+ * de contas). As pendências não são mais uma etapa: entram na rotina por data, prioridade e
+ * responsável, sem sair do banco nem do histórico.
  * Puro: o estado do expediente e a próxima ação saem só do que está gravado (rotina, registros do
  * dia, versões do feedback). Navegar entre etapas nunca é bloqueado; só o envio do feedback é uma
  * ação de verdade, e ele não depende de expediente configurado (a configuração serve apenas para
@@ -9,12 +12,14 @@ import type { FeedbackRow } from "./store";
  */
 export const ETAPAS_MEU_DIA = [
   { id: "rotina", titulo: "Minha rotina", curto: "Rotina" },
-  { id: "pendencias", titulo: "Pendências e acompanhamentos", curto: "Pendências" },
-  { id: "finalizar", titulo: "Finalizar meu dia", curto: "Finalizar" },
+  { id: "fechamento", titulo: "Fechamento do dia", curto: "Fechamento" },
 ] as const;
 export type EtapaMeuDia = (typeof ETAPAS_MEU_DIA)[number]["id"];
 
+/** Links antigos continuam funcionando: ?etapa=pendencias → rotina; ?etapa=finalizar → fechamento. */
 export function etapaDaQuery(v: string | undefined | null): EtapaMeuDia | null {
+  if (v === "pendencias") return "rotina";
+  if (v === "finalizar") return "fechamento";
   return ETAPAS_MEU_DIA.some((e) => e.id === v) ? (v as EtapaMeuDia) : null;
 }
 
@@ -33,6 +38,8 @@ export interface EntradaMeuDia {
   eventosHoje: string[];
   /** Assinatura atual da rotina (mesma do feedback). */
   rotinaAssinatura: string;
+  /** Assinatura da conferência de recebimentos (mesma do feedback). */
+  caixaAssinatura?: string;
   versoes: FeedbackRow[];
   atrasadas: number;
   paraHoje: number;
@@ -45,7 +52,8 @@ export function estadoExpediente(e: EntradaMeuDia): EstadoExpediente {
   if (entregue && maisNova?.id === entregue.id) {
     if (entregue.ajusteSolicitadoEm) return { tipo: "ajuste_solicitado", em: entregue.entregueEm!, versao: entregue.versao, observacao: entregue.observacaoGestao };
     const mudouDepois = [...entregue.eventos].sort().join(",") !== [...e.eventosHoje].sort().join(",")
-      || String(entregue.contadores.rotina_assinatura ?? "") !== e.rotinaAssinatura;
+      || String(entregue.contadores.rotina_assinatura ?? "") !== e.rotinaAssinatura
+      || (e.caixaAssinatura !== undefined && String(entregue.contadores.caixa_assinatura ?? "") !== e.caixaAssinatura);
     return { tipo: "enviado", em: entregue.entregueEm!, versao: entregue.versao, mudouDepois };
   }
   if (e.rotinaRespondidos > 0 || e.eventosHoje.length > 0 || e.versoes.length > 0) return { tipo: "em_andamento" };
@@ -77,26 +85,26 @@ const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um :
 /** O que fazer agora — uma recomendação só, pela situação real; a concierge pode ir a qualquer etapa. */
 export function proximaAcao(e: EntradaMeuDia, s: EstadoExpediente = estadoExpediente(e)): ProximaAcao {
   if (s.tipo === "ajuste_solicitado") {
-    return { etapa: "finalizar", titulo: "A gestão pediu um ajuste no seu feedback", texto: s.observacao ? `“${s.observacao}”` : "Confira o pedido, ajuste o que for preciso e envie a versão corrigida.", botao: "Ver o pedido da gestão" };
+    return { etapa: "fechamento", titulo: "A gestão pediu um ajuste no seu feedback", texto: s.observacao ? `“${s.observacao}”` : "Confira o pedido, ajuste o que for preciso e envie a versão corrigida.", botao: "Ver o pedido da gestão" };
   }
   if (s.tipo === "enviado") {
-    if (s.mudouDepois) return { etapa: "finalizar", titulo: "Você registrou algo depois de enviar o feedback", texto: "Se quiser que a gestão veja, envie a versão atualizada. A anterior fica guardada.", botao: "Ver feedback enviado" };
+    if (s.mudouDepois) return { etapa: "fechamento", titulo: "Você registrou algo depois de enviar o feedback", texto: "Se quiser que a gestão veja, envie a versão atualizada. A anterior fica guardada.", botao: "Ver feedback enviado" };
     const resto = e.atrasadas ? ` Ainda há ${plural(e.atrasadas, "pendência atrasada", "pendências atrasadas")}: elas continuam na sua lista amanhã.` : "";
-    return { etapa: "finalizar", titulo: "Seu feedback de hoje foi enviado", texto: `A gestão já pode ver o resumo do seu dia.${resto}`, botao: "Ver feedback enviado" };
+    return { etapa: "fechamento", titulo: "Seu feedback de hoje foi enviado", texto: `A gestão já pode ver o resumo do seu dia.${resto}`, botao: "Ver feedback enviado" };
   }
   const botao = s.tipo === "nao_iniciado" ? "Começar meu dia" : "Continuar meu trabalho";
   if (e.rotinaRespondidos === 0) {
     return { etapa: "rotina", titulo: "Comece pela sua rotina", texto: "Marque o que já fez do início do dia. Cada marcação é salva na hora.", botao };
   }
   if (e.atrasadas > 0) {
-    return { etapa: "pendencias", titulo: `Você tem ${plural(e.atrasadas, "pendência atrasada", "pendências atrasadas")}`, texto: "Comece por elas: abra a pendência e registre o que aconteceu.", botao };
+    return { etapa: "rotina", titulo: `Você tem ${plural(e.atrasadas, "pendência atrasada", "pendências atrasadas")}`, texto: "Estão em “Prioridades de hoje”, no topo da rotina: abra cada uma e registre o que aconteceu.", botao };
   }
   if (e.paraHoje > 0) {
-    return { etapa: "pendencias", titulo: `${plural(e.paraHoje, "acompanhamento vence", "acompanhamentos vencem")} hoje`, texto: "Abra cada um e registre o resultado do contato.", botao };
+    return { etapa: "rotina", titulo: `${plural(e.paraHoje, "acompanhamento vence", "acompanhamentos vencem")} hoje`, texto: "Estão em “Prioridades de hoje”: abra cada um e registre o resultado do contato.", botao };
   }
   const faltam = e.rotinaTotal - e.rotinaRespondidos;
   if (faltam > 0) {
     return { etapa: "rotina", titulo: `Faltam ${plural(faltam, "atividade", "atividades")} da rotina`, texto: "Marque como feito, não se aplica ou com impedimento.", botao };
   }
-  return { etapa: "finalizar", titulo: "Tudo registrado por hoje", texto: "Revise o resumo do seu dia e envie o feedback para a gestão.", botao };
+  return { etapa: "fechamento", titulo: "Tudo registrado por hoje", texto: "Revise o resumo do seu dia e envie o feedback para a gestão.", botao };
 }

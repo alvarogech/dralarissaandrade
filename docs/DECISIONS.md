@@ -585,3 +585,187 @@ Decisões:
   O store em memória passou a espelhar a restrição do banco, para os testes pegarem o caso.
 - Sem migration, sem mudança de permissão: tudo continua conferido no servidor (testado: concierge recebe 403 ao
   criar, editar/cancelar tarefa ou comentar feedback).
+
+## 2026-10-27 — Agenda: consulta do Simples Dental aparece mesmo sem vínculo confirmado com a paciente
+
+Sintoma: a agenda mostrava uma consulta por dia. A sincronização de 27/10 leu as 5 consultas de hoje e amanhã,
+mas gravou só 1: as outras caíram em `requires_review` porque o nome batia com uma paciente já cadastrada e a
+tela da agenda não expõe código nem telefone (só nome e data de nascimento, em `fcSeg.eventRange.def.extendedProps`;
+a chamada `/consultas?minimal` não traz o id da paciente). Como `appointments.patient_id` era obrigatório, a
+consulta simplesmente não era gravada. Segundo defeito: uma consulta já gravada (mesmo `sd_appointment_id`)
+passava de novo pelo casamento de paciente e, ao bater o nome com a paciente criada na leitura anterior, sumia.
+
+Decisões:
+- Migration 0017 (aditiva): `patient_id` passa a aceitar nulo **só** para origem `simples_dental_browser`, com
+  `sd_patient_name` e `requires_review` (constraint). Nenhuma linha existente muda; reversível.
+- Sync: consulta já gravada mantém o vínculo que tem; consulta nova sem vínculo seguro é gravada sem paciente,
+  com o nome do SD, e aparece na agenda como "Conferir cadastro". Nunca se vincula por nome sozinho
+  (CRM_RULES §9). Nome **e** data de nascimento iguais a um único cadastro = vínculo (dois identificadores);
+  uma consulta sem vínculo passa a ser vinculada quando isso se confirma numa leitura seguinte.
+- Erro ao gravar vira "revisar", nunca "criado" (antes o erro do insert era ignorado).
+- O favorito passa a ler nome, data de nascimento e status dos dados do evento (fallback no texto da tela). A
+  data de nascimento só é usada para vincular (e gravada ao criar paciente nova); não é exibida.
+- O pipeline (`clinic-snapshot`) ignora compromissos ainda sem paciente.
+- A 0017 precisa ser aplicada **antes** do deploy: a agenda passa a ler `sd_patient_name`.
+
+## 2026-10-27 — Agenda: consulta do Simples Dental aparece mesmo sem vínculo confirmado com a paciente
+
+Sintoma: a agenda mostrava uma consulta por dia. A sincronização de 27/10 leu as 5 consultas de hoje e amanhã,
+mas gravou só 1: as outras caíram em `requires_review` porque o nome batia com uma paciente já cadastrada e a
+tela da agenda não expõe código nem telefone (só nome e data de nascimento, em `fcSeg.eventRange.def.extendedProps`;
+a chamada `/consultas?minimal` não traz o id da paciente). Como `appointments.patient_id` era obrigatório, a
+consulta simplesmente não era gravada. Segundo defeito: uma consulta já gravada (mesmo `sd_appointment_id`)
+passava de novo pelo casamento de paciente e, ao bater o nome com a paciente criada na leitura anterior, sumia.
+
+Decisões:
+- Migration 0017 (aditiva): `patient_id` passa a aceitar nulo **só** para origem `simples_dental_browser`, com
+  `sd_patient_name` e `requires_review` (constraint). Nenhuma linha existente muda; reversível.
+- Sync: consulta já gravada mantém o vínculo que tem; consulta nova sem vínculo seguro é gravada sem paciente,
+  com o nome do SD, e aparece na agenda como "Conferir cadastro". Nunca se vincula por nome sozinho
+  (CRM_RULES §9). Nome **e** data de nascimento iguais a um único cadastro = vínculo (dois identificadores);
+  uma consulta sem vínculo passa a ser vinculada quando isso se confirma numa leitura seguinte.
+- Erro ao gravar vira "revisar", nunca "criado" (antes o erro do insert era ignorado).
+- O favorito passa a ler nome, data de nascimento e status dos dados do evento (fallback no texto da tela). A
+  data de nascimento só é usada para vincular (e gravada ao criar paciente nova); não é exibida.
+- O pipeline (`clinic-snapshot`) ignora compromissos ainda sem paciente.
+- A 0017 precisa ser aplicada **antes** do deploy: a agenda passa a ler `sd_patient_name`.
+
+## 2026-10-27 — Rotina da Gabi em duas etapas e prestação de contas consolidada
+
+- **Duas etapas** (`MeuDiaView`, `lib/fila/meu-dia.ts`): Minha rotina → Fechamento do dia. "Pendências e
+  acompanhamentos" deixou de ser etapa: as tarefas continuam no banco e no histórico e entram na rotina —
+  atrasadas e de hoje em "Prioridades de hoje", solicitações em "Solicitações da gestão", o resto recolhido em
+  "Acompanhamentos em aberto" (cada pendência aparece uma vez; mesmo cartão com Registrar andamento, Pedir
+  orientação e histórico). Links antigos `?etapa=pendencias|finalizar` levam a rotina|fechamento.
+- **Grupos da rotina**: Prioridades de hoje · Início do dia · Relacionamento com pacientes · Financeiro ·
+  Solicitações da gestão · Conferências finais. Saíram do checklist os itens que duplicavam outro lugar
+  (follow-ups do dia, informar a gestão, retornos agendados, encaminhamentos feitos, três conferências de
+  pagamento → uma). As chaves que ficaram são as mesmas; registros antigos não mudam de sentido.
+- **Atividades com pacientes (tipo B)** (`PacientesDoItem` no catálogo, `lib/fila/contato-rotina.ts`): cada
+  paciente vira um **registro do dia** (o mesmo de sempre: histórico, próxima ação, tarefa de retorno quando o
+  caso continua, feedback). Resultados rápidos por atividade, mapeados para contato/resposta/situação existentes —
+  nenhuma enumeração nova no banco; vínculo com a atividade em `payload.detalhes.rotina_item`. "Feito" numa
+  atividade tipo B exige ao menos uma paciente registrada nela no dia (servidor); clicar "Feito" antes abre o
+  formulário e conclui depois da primeira paciente. Paciente do cadastro ou nome digitado (cadastro novo
+  explícito, sem inventar código do SD). Contatos recentes da paciente aparecem antes de registrar.
+- **Marcos 15/30/60/90 dias**: mesmo marco para a mesma paciente em 25 dias só se repete com motivo (409 +
+  campo de justificativa). Contagem a partir do retorno/atendimento de referência, como já era. Distribuição
+  semanal preservada (15 seg, 30 ter, 90 qua); **60 dias entrou na quinta-feira** (não havia configuração) —
+  ajustar no catálogo se a Dra. preferir outro dia.
+- **Pós-procedimento de ontem**: item diário + lembrete com as consultas sincronizadas do último dia útil até
+  ontem (na segunda inclui sexta e fim de semana), sempre mandando conferir no SD; nunca afirma procedimento.
+- **Cobranças de inadimplentes** (seg/sex): por paciente, sem valores; "promessa de pagamento" fica aguardando
+  com data e não é recebimento; "pagamento confirmado" só com confirmação no SD.
+- **Recebimentos do dia** (`lib/fila/caixa.ts`, migration 0018 `daily_cash_reviews`): totais previsto ×
+  recebido, diferença = previsto − recebido, justificativa, "sem recebimentos" e "não conferido" distintos.
+  Tabela sem leitura pelo navegador; API confere que é a concierge configurada (grava) ou a gestão (consulta).
+  Auditoria sem os valores. Diferença nunca é chamada de inadimplência.
+- **Solicitações da gestão**: tarefas existentes com `payload.extraordinaria` + `solicitado_por` (Álvaro ou
+  Dra. Larissa, registrado pela gestão). Gestão vê abertas/atrasadas/aguardando decisão/entregues no
+  "Trabalho da Gabi".
+- **Prioridades do próximo dia útil** (`lib/fila/prioridades.ts`): até 8, com paciente, data, prioridade,
+  origem e próxima ação; sugestões de pendências, solicitações e impedimentos (sem repetir a mesma origem);
+  revisão **obrigatória** para enviar (pode ser "não há"). No dia seguinte aparecem no topo; a ligada a tarefa
+  segue a tarefa, a manual é marcada resolvida no dia de origem.
+- **Fechamento** (`lib/fila/prestacao.ts`): um único montador para prévia, envio e gestão. Acrescenta contatos
+  da rotina por atividade e resultado, recebimentos, solicitações, decisões necessárias e observação ao
+  fechamento por áreas. Rascunho (observação, decisões, prioridades revisadas) no servidor
+  (`daily_manual_figures.rascunho`, 0018). Mudança na conferência de recebimentos depois do envio também
+  pede versão atualizada.
+- 0018 precisa ser aplicada **antes** do deploy (a rotina lê `daily_cash_reviews` e `rascunho`).
+
+## 2026-10-29 — Agenda com roteiro, pós-procedimento com relato, retorno obrigatório e régua 30 · 90 · 180
+
+- **Conferência da agenda**: "agenda de hoje e amanhã", "novos atendimentos" e "preparação da recepção"
+  viraram uma atividade só — "Conferir agenda, confirmações e alinhamento com os profissionais" (mesma chave
+  `agenda_hoje_amanha`) — com um roteiro de 10 pontos expansível (não são campos). Sem ocorrência, basta
+  "Feito". Ocorrência (`FormOcorrenciaAgenda`): tipo, paciente opcional (nome digitado só vira cadastro se a
+  concierge escolher "não está no cadastro"), profissional comunicado, providência obrigatória e pendência
+  opcional — inclusive "depende do profissional" — que vira acompanhamento com data. Nenhum disparo de
+  WhatsApp.
+- **Registro de contato em duas camadas** (`contato-rotina.ts`): (A) situação — paciente respondeu ·
+  realizado, aguardando resposta · realizado, sem resposta · não realizado; (B) desfecho só quando respondeu —
+  orientação, agendamento, comercial, profissional, resolvido, nova ação (e os de cobrança). Valores antigos
+  (`contato_realizado`, `mensagem_enviada`…) continuam com rótulo. Aniversário fica sem camada de tentativa
+  (mensagem que não pede resposta não gera retorno).
+- **Pós-procedimento**: quando a paciente responde, "Como a paciente se encontra?" é obrigatório (tela e
+  servidor; só espaços não vale). "Necessita atenção do profissional?" registra profissional, motivo, data/hora
+  e estado; com "aguardando retorno do profissional" o caso fica em acompanhamento (situação `encaminhado`).
+  Aviso fixo para acionar o protocolo de urgência da clínica; a concierge registra o relato, não avalia.
+- **Regra global de retorno** (`lib/fila/followup.ts`, aplicada em `registrarAtividade`, servidor):
+  contato sem resposta (contato = não, ou contato = sim e resposta = não) só é aceito com próxima tentativa
+  (aguardando/pendente) ou encerramento com motivo. Sem data, o servidor usa o prazo padrão; sem próxima ação,
+  a tentativa óbvia. Prazos (parâmetros, num só lugar): pós-procedimento 1 dia útil, continuidade 2,
+  recorrência 3, reativação 3, cobrança no próximo ciclo (seg/sex, sem passar do prazo da pendência),
+  confirmação nunca depois da consulta. Nenhum prazo anterior configurado no sistema conflitava.
+- **Sem duplicar**: registro espontâneo com pendência procura retorno aberto da mesma paciente e do mesmo
+  assunto (`payload.followup`, por atividade da rotina ou área) e o reprograma — a tentativa entra no histórico
+  da mesma tarefa. Reenvio do mesmo registro já era idempotente (id do evento). Responder não encerra sozinho:
+  só "resolvido" (ou agendamento/compareceu) fecha. Nova tentativa depois de uma sem resposta não conta como
+  "marco repetido".
+- **Régua 30 · 90 · 180 dias corridos**: o terceiro marco (código interno `m6`, mantido) passa a 180 dias em
+  vez de 6 meses de calendário — função do banco (migration 0019), espelho em TS, nome "Acompanhamento de 180
+  dias" em toda a tela. A 0019 recalcula só marcos m6 futuros, intocados, nunca adiados e com data da regra
+  antiga; o gatilho de histórico guarda a data original. O 60 dias (só existia na rotina) saiu; "Acompanhamentos
+  de 180 dias" ficou na quinta. Os contatos de 15 dias (segunda), que não fazem parte da régua, continuam.
+- **Fechamento**: "Indicadores do dia" no texto e na tela — tentativas × pacientes, com/sem resposta, não
+  realizados, retornos programados/concluídos/vencidos, pós-procedimento acompanhado/sem resposta, encaminhadas
+  ao profissional, pendências da gestão — tudo derivado dos registros.
+- A 0019 precisa ser aplicada **antes** do deploy para que novos atendimentos já gerem 180 dias no banco (sem
+  ela, nada quebra: o banco continua gerando 6 meses até ser aplicada).
+
+## 2026-10-29 — Conferência comercial da Mel dentro da rotina da Gabi
+
+- **Uma atividade, não um sistema comercial paralelo**: "Conferir atendimentos comerciais da Mel" (chave
+  `conferencia_mel`, conferências finais, segunda a sexta) com roteiro de 8 pontos. Cada paciente conferida é um
+  registro do dia comum (`interaction_events`, categoria `oportunidade`, `detalhes.rotina_item = conferencia_mel`)
+  com tipo (novo lead / follow-up / agendamento / oportunidade / divergência / outra), situação do contato (8
+  opções), forma de conferência (conversa, Simples Dental, só informado pela Mel, divergência, não foi possível +
+  motivo), resultado e, se houver, próxima ação com responsável e prazo. Sem migration.
+- **Não conta como contato da Gabi**: `contato`/`resposta` ficam nulos; os eventos saem dos blocos do fechamento
+  dela, dos "contatos por atividade" e dos indicadores. Têm seção própria "Conferência comercial — Mel" (números,
+  relatório nominal por grupo, pendências em aberto) no mesmo montador de prestação — tela, texto enviado e
+  visão da gestão são o mesmo conteúdo.
+- **A Mel não tem perfil no sistema**: ela é o responsável externo já existente `comercial_externa` (rótulo
+  "Mel (comercial)"). A pendência comercial nasce sem `assigned_to`, e pela regra de retorno (`followup =
+  rotina:conferencia_mel`) a mesma paciente com o mesmo assunto **atualiza** o acompanhamento aberto em vez de
+  criar outro. Pendência da Mel não aparece como pendência nem prioridade sugerida da Gabi.
+- **Sem movimentação**: concluir a atividade sem pacientes exige marcar a confirmação explícita (métrica
+  `sem_movimentacao`); o servidor recusa se houver registro do dia. Nada de paciente fictícia.
+- **Remover registro incorreto = anular, nunca apagar**: `POST /api/fila/registro/anular` marca
+  `payload.anulado {motivo, por, em}` e audita `fila_registro_anulado`. Só quem registrou, só no mesmo dia, motivo
+  obrigatório; se o registro abriu/atualizou um acompanhamento, a correção é pela própria pendência. Anulados
+  saem de listas, contagens e fechamento. Edição in-place não foi feita: anular + registrar de novo preserva a
+  trilha sem mexer em pendências já criadas.
+- **Privacidade**: o histórico nominal (`/api/fila/contatos-recentes`) passou a exigir concierge configurada ou
+  gestão (mesma regra de `podeVerCaixa`). Nada é lido automaticamente do WhatsApp nem enviado sozinho.
+
+## 2026-10-29 — Planejamento anual: apresentação, aceitação e fechamento (presencial e WhatsApp)
+
+- **Dimensão do acompanhamento, não módulo à parte**: o presencial entra na atividade "Cada atendimento do dia
+  teve um destino definido" (registro nominal por paciente atendida); o WhatsApp entra no registro da conferência
+  comercial da Mel (pergunta opcional por paciente). Ambos são registros do dia comuns (`interaction_events`,
+  categoria `oportunidade`) com campos `planejamento_*` em `detalhes`. Sem migration.
+- **Oportunidade única por paciente + planejamento**: o servidor resolve `oportunidade_id` a partir do histórico
+  da paciente (400 dias): continua a oportunidade aberta (mesmo tipo, quando informado; senão a mais recente),
+  ou a já fechada quando o fechamento é informado de novo; senão nasce uma nova com o id do próprio registro.
+  "É outra proposta" força uma nova. O registro guarda `planejamento_novo` (primeira apresentação),
+  `planejamento_origem` (canal da primeira) e `planejamento_fechou` (primeiro fechamento conferido) — por isso
+  apresentação de ontem fechada hoje conta só como fechamento de hoje, e presencial → WhatsApp é uma oportunidade.
+- **Estados separados**: avaliando / interesse / aceito exigem próxima ação + responsável + prazo (o acompanhamento
+  usa a chave `planejamento:<oportunidade>` na regra de retorno — nunca duplica entre canais). Aceito não é
+  fechamento. Fechado só conta conferido (presencial: com o profissional ou nos registros; WhatsApp: na conversa
+  ou no Simples Dental); informado fica "pendente de conferência" com próxima ação. Fechamento conferido conclui
+  o acompanhamento; recusa o cancela (motivo opcional; "pediu para não receber contatos" registrado).
+- **Sem presunção, sem justificativa inventada**: "Sim" presencial exige profissional e forma de confirmação;
+  "Não" aceita motivo opcional ("motivo ainda não informado"); "Ainda não foi possível confirmar" vira pendência
+  de esclarecimento (sugestão: Gabi).
+- **Responsabilidade**: próxima ação comercial sugerida para a Mel (`comercial_externa`); conferências para a
+  Gabi. Propostas sem responsável interno não aparecem como pendência/prioridade da Gabi nem nos indicadores dela.
+- **Fechamento do dia**: seção "Planejamentos anuais — Apresentações e fechamentos" (tela + texto enviado, mesmo
+  montador): números do dia separados da carteira acumulada (acompanhamentos `planejamento:*` em aberto) e grupos
+  nominais (apresentados presencialmente / pelo WhatsApp com a situação atual, fechamentos do dia com origem e
+  valor confirmado, em avaliação, não fechados, informações pendentes). Valor contratado nunca entra nos
+  recebimentos. "Atendimentos do dia" vem da agenda sincronizada (cancelados, faltas e remarcados fora).
+- **Correção**: registro errado se corrige com novo registro da mesma oportunidade (o último manda, trilha
+  preservada) ou, se não abriu acompanhamento, anulando com motivo.

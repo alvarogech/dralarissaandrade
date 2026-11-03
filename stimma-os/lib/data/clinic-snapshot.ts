@@ -32,7 +32,9 @@ export async function getClinicSnapshot(): Promise<{
         .from("appointments")
         .select(
           "id, patient_id, professional_id, starts_at, ends_at, status, reason, requires_payment, completed_at, professionals ( full_name )"
-        ),
+        )
+        // Compromisso do SD ainda sem paciente vinculada (0017) não entra nas regras do pipeline.
+        .not("patient_id", "is", null),
       supabase.from("receivables").select("id, patient_id, amount, due_at, paid_at"),
     ]);
 

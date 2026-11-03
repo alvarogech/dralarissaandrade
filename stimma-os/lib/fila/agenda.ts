@@ -43,3 +43,31 @@ export const ROTULO_STATUS_AGENDA: Record<CompromissoAgenda["status"], string> =
 export function exigeAtencao(c: CompromissoAgenda): boolean {
   return c.revisar || c.status === "scheduled" || c.status === "no_show" || c.status === "cancelled" || c.status === "rescheduled";
 }
+
+/**
+ * Pós-procedimento: dias desde o último dia útil até ontem (na segunda, sexta + fim de semana, para
+ * nada feito antes do fim de semana ser esquecido). Mostra as consultas sincronizadas desses dias
+ * que não foram canceladas, remarcadas nem faltadas, com o status da última leitura — nunca afirma
+ * que houve procedimento nem que o contato está pendente: a conferência é no Simples Dental.
+ */
+export function diasDoPosProcedimento(hoje: string): string[] {
+  const dias: string[] = [];
+  for (let d = somarDias(hoje, -1); ; d = somarDias(d, -1)) {
+    dias.unshift(d);
+    const [y, m, dd] = d.split("-").map(Number) as [number, number, number];
+    const dow = new Date(y, m - 1, dd).getDay();
+    if (dow !== 0 && dow !== 6) return dias;
+    if (dias.length > 4) return dias;
+  }
+}
+
+export async function posProcedimento(store: FilaStore, hoje = hojeSaoPaulo()) {
+  const dias = diasDoPosProcedimento(hoje);
+  const { itens } = await store.agenda(dias[0]!, dias[dias.length - 1]!);
+  return {
+    dias,
+    itens: itens
+      .filter((c) => c.status === "completed" || c.status === "confirmed" || c.status === "scheduled")
+      .map((c) => ({ paciente: c.paciente, inicio: c.inicio, status: ROTULO_STATUS_AGENDA[c.status] })),
+  };
+}

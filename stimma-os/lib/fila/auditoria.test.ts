@@ -162,7 +162,7 @@ describe("11–12. marcos obrigatórios e registro agrupado", () => {
     const m = criarStoreMemoria();
     const item = (chave: string, extra = {}) => ({ tipo: "atendimento_realizado", chave_origem: chave, paciente: { nome: "TESTE Ana", sd_codigo: "9" }, data_atendimento: "2026-08-31", status_no_sd: "Finalizado", ...extra });
     await confirmarEntrada(m.store, GESTAO, lote([item("a-1", { marcos: ["d30"] })])); // escolha antiga é ignorada
-    expect(m._dados.marcos.map((x) => [x.kind, x.dueOriginal])).toEqual([["d30", "2026-09-30"], ["d90", "2026-11-29"], ["m6", "2027-02-28"]]);
+    expect(m._dados.marcos.map((x) => [x.kind, x.dueOriginal])).toEqual([["d30", "2026-09-30"], ["d90", "2026-11-29"], ["m6", "2027-02-27"]]);
     const at = m._dados.atendimentos[0]!;
     await Promise.all([m.store.confirmarAtendimento(at.id, "2026-08-31", GESTAO.id), m.store.confirmarAtendimento(at.id, "2026-08-31", GESTAO.id)]);
     expect(m._dados.marcos).toHaveLength(3);

@@ -1,0 +1,3 @@
+create table if not exists daily_cash_reviews (organization_id uuid not null references organizations(id) on delete cascade, day date not null, situacao text not null check (situacao in ('conferido', 'sem_recebimentos')), previsto numeric(12,2) check (previsto is null or previsto >= 0), recebido numeric(12,2) check (recebido is null or recebido >= 0), justificativa text, conferido_por uuid references profiles(id), conferido_em timestamptz not null default now(), primary key (organization_id, day), check (situacao = 'sem_recebimentos' or (previsto is not null and recebido is not null)));
+alter table daily_cash_reviews enable row level security;
+alter table daily_manual_figures add column if not exists rascunho jsonb;

@@ -26,9 +26,12 @@ async function comPaciente() {
 describe("registro do dia", () => {
   it("registro espontâneo com a fila vazia, sem pendência, não cria tarefa artificial", async () => {
     const { store, _dados, pid } = await comPaciente();
-    await registrarAtividade(store, GABI, reg({ categoria: "relacionamento", pacienteId: pid, contato: "sim", canal: "whatsapp", resposta: "nao", feito: "parabéns pelo aniversário", situacao: "informativo" }));
+    // Mensagem que não pede resposta (aniversário): resposta "não se aplica", sem retorno a fazer.
+    await registrarAtividade(store, GABI, reg({ categoria: "relacionamento", pacienteId: pid, contato: "sim", canal: "whatsapp", resposta: "na", feito: "parabéns pelo aniversário", situacao: "informativo" }));
     expect(_dados.tarefas).toHaveLength(0);
-    expect(_dados.eventos[0]).toMatchObject({ kind: "contato", contato: "sim", resposta: "nao", categoria: "relacionamento" });
+    expect(_dados.eventos[0]).toMatchObject({ kind: "contato", contato: "sim", resposta: "na", categoria: "relacionamento" });
+    // Contato sem resposta, porém, nunca fica só registrado: exige a próxima tentativa (regra global de 29/10).
+    await expect(registrarAtividade(store, GABI, reg({ categoria: "relacionamento", pacienteId: pid, contato: "sim", resposta: "nao", feito: "x", situacao: "informativo" }))).rejects.toThrow(/próxima tentativa/);
   });
 
   it("pendência exige próxima ação, responsável e prazo; não-preenchido ≠ não", async () => {
@@ -109,9 +112,9 @@ describe("registro do dia", () => {
     expect(f.fila.atrasadas[0]!.itens[0]).toMatchObject({ due: "2026-10-20", etapa: { data: "2026-12-10" } });
   });
 
-  it("prioridades: até 5, persistidas e refletidas; sem ocorrências refletida no feedback", async () => {
+  it("prioridades: até 8, persistidas e refletidas; sem ocorrências refletida no feedback", async () => {
     const { store } = criarStoreMemoria();
-    await expect(salvarEstadoDoDia(store, GABI, "2026-10-20", { prioridades: Array.from({ length: 6 }, (_, i) => ({ ref: null, texto: `p${i}` })) })).rejects.toThrow(/cinco/);
+    await expect(salvarEstadoDoDia(store, GABI, "2026-10-20", { prioridades: Array.from({ length: 9 }, (_, i) => ({ ref: null, texto: `p${i}` })) })).rejects.toThrow(/até 8/);
     await salvarEstadoDoDia(store, GABI, "2026-10-20", { prioridades: [{ ref: null, texto: "Confirmar agenda de quinta" }], secoes: { recorrencia: "sem_ocorrencias" } });
     const { texto } = await carregarFechamento(store, "2026-10-20");
     expect(texto).toContain("• Confirmar agenda de quinta");
