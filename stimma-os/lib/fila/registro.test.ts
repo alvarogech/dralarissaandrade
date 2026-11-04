@@ -118,6 +118,6 @@ describe("registro do dia", () => {
     await salvarEstadoDoDia(store, GABI, "2026-10-20", { prioridades: [{ ref: null, texto: "Confirmar agenda de quinta" }], secoes: { recorrencia: "sem_ocorrencias" } });
     const { texto } = await carregarFechamento(store, "2026-10-20");
     expect(texto).toContain("• Confirmar agenda de quinta");
-    expect(texto).toContain("*Recorrência e follow-up*\n• Sem ocorrências.");
+    expect(texto).toContain("*Acompanhamentos (30/90/180 dias) e resgate*\n• Sem ocorrências.");
   });
 });

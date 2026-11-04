@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { criarStoreMemoria } from "./store-memoria";
+import { refDoItem } from "./fechamento";
 import { analisarFeedback, carregarFechamento, carregarFila, confirmarAtendimentoPendente, confirmarEntrada, criarTarefaManual, editarTarefa, historico, registrarAcao, type Ator } from "./servico";
 
 // Fluxo completo da auditoria: gestão alimenta → concierge executa → sistema registra →
@@ -93,9 +94,9 @@ describe("ação executada ≠ objetivo resolvido; virada de dia", () => {
     expect(_dados.marcos).toHaveLength(0); // e não gera marcos
 
     const { texto } = await carregarFechamento(store, "2026-10-20");
-    expect(texto).toContain("cobrança enviada, sem resposta"); // ação realizada…
+    expect(texto).toContain("Cobrança enviada, sem resposta. Próximo passo: ligar."); // ação realizada…
     expect(texto).not.toMatch(/recebimento confirmado|Recebimentos confirmados/); // …sem presumir recebimento
-    expect(texto).toContain("agendou consulta para 27/10/2026");
+    expect(texto).toContain("Agendou para 27/10");
   });
 
   it("virada de dia: pendências continuam e tarefas futuras entram na data certa (fuso de Brasília)", async () => {
@@ -126,10 +127,11 @@ describe("auditoria do fluxo completo", () => {
         { tipo: "atendimento_realizado", chave_origem: "sd-a1", paciente: { nome: "Nina Demo", sd_codigo: "879" }, data_atendimento: "2026-10-15", status_no_sd: "Finalizado" },
       ],
     });
-    const r = await confirmarEntrada(store, GESTAO, lote);
+    // a cobrança é publicada como exceção — rotineira não vira item da fila (cobrancas.ts)
+    const r = await confirmarEntrada(store, GESTAO, lote, {}, undefined, [0]);
     expect(r).toMatchObject({ tarefas: 2, atendimentosConfirmados: 1 });
     // 10. marcos exatos, mesmo reenviando o lançamento (com outra hora de consulta)
-    await confirmarEntrada(store, GESTAO, lote.replace("09:00:00", "11:00:00"));
+    await confirmarEntrada(store, GESTAO, lote.replace("09:00:00", "11:00:00"), {}, undefined, [0]);
     expect(_dados.marcos).toHaveLength(3);
     expect(_dados.tarefas).toHaveLength(2);
 
@@ -145,19 +147,22 @@ describe("auditoria do fluxo completo", () => {
 
     // 5. feedback reflete as ações
     const { texto } = await carregarFechamento(store, "2026-10-20");
-    expect(texto).toContain("Lia E. · Remarcar falta: contato por WhatsApp: sem resposta — próxima ação: tentar ligação");
-    expect(texto).toMatch(/Joana T\. · Cobrar parcela 3\/6: .*recebimento registrado R\$\s?450,00/);
-    expect(texto).not.toMatch(/Recebimentos confirmados|Cobranças em aberto/); // sem totais financeiros
+    expect(texto).toContain("• Lia E. — Sem resposta. Próximo passo: tentar ligação.");
+    expect(texto).toMatch(/• Joana T\. — Recebimento registrado: R\$\s?450,00 \(parcela\)\./);
+    expect(texto).not.toMatch(/Recebimentos confirmados|Cobranças em aberto|\[[TM]-/); // sem totais financeiros nem códigos internos
 
-    // 6–7. colado de volta: consulta o registrado, não recria a concluída nem duplica a aberta
+    // 6–7. colado de volta (feedback no formato anterior, com referências): consulta o registrado,
+    // não recria a concluída nem duplica a aberta. O formato novo não leva códigos no texto — a versão
+    // entregue no sistema guarda os registros de origem.
     const antes = _dados.tarefas.length;
-    const analise = await analisarFeedback(store, GESTAO, texto);
+    const antigo = `*Fechamento — 20/10/2026 (terça)*\n*Agenda e comparecimento*\n• Lia E. · Remarcar falta: sem resposta [${refDoItem({ tipo: "tarefa", id: falta.id })}]\n*Pendências e alertas*\n• Joana T. · Cobrar parcela 3/6: recebimento registrado [${refDoItem({ tipo: "tarefa", id: cobranca.id })}]`;
+    const analise = await analisarFeedback(store, GESTAO, antigo);
     expect(analise.dia).toBe("2026-10-20");
     const porId = Object.fromEntries(analise.linhas.filter((l) => l.alvo).map((l) => [l.alvo!.id, l.situacao]));
     expect(porId[cobranca.id]).toBe("concluido");
     expect(porId[falta.id]).toBe("na_fila");
     expect(_dados.tarefas.length).toBe(antes);
-    await expect(analisarFeedback(store, GABI, texto)).rejects.toThrow(/gestão/);
+    await expect(analisarFeedback(store, GABI, antigo)).rejects.toThrow(/gestão/);
   });
 
   it("feedback antigo sem referência fica para revisão, com a data do próprio feedback", async () => {

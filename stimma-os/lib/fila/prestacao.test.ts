@@ -42,7 +42,7 @@ describe("rotina: atividades simples × atividades com pacientes", () => {
     const { store } = criarStoreMemoria();
     await expect(salvarItemRotina(store, GABI, { itemKey: "contatos_30_dias", estado: "feito" })).rejects.toThrow(/Registre ao menos uma paciente/);
     expect(validarContato({ resultado: "contato_realizado", responsavel: `perfil:${GABI.id}` }, TER)).toEqual([["paciente", expect.stringMatching(/Informe a paciente/)]]);
-    await contato(store, "contatos_30_dias", "respondeu", "TESTE Ana Exemplo", { observacao: "orientei sobre a escovação" }, "orientacao");
+    await contato(store, "contatos_30_dias", "respondeu", "TESTE Ana Exemplo", { orientacao: "orientei sobre a escovação", resposta: "vai seguir a orientação" }, "orientacao");
     await expect(salvarItemRotina(store, GABI, { itemKey: "contatos_30_dias", estado: "feito" })).resolves.toMatchObject({ estado: "feito" });
   });
 
@@ -61,11 +61,15 @@ describe("rotina: atividades simples × atividades com pacientes", () => {
     expect(p.contatos[0]!.porResultado.map((x) => x.resultado).sort()).toEqual(["Agendamento realizado", "Realizado, aguardando resposta", "Realizado, sem resposta"]);
     expect(p.fechamento.rotina?.feitos).toContain("Acompanhamentos de 30 dias");
     expect(p.fechamento.rotina?.naoSeAplica).toContain("Verificar pendências de cadastro e documentos");
-    expect(p.texto).toMatch(/\*Contatos da rotina\*\n• Acompanhamento de 30 dias: 3 pacientes/);
-    // Cada paciente entra no fechamento com o resultado (nome abreviado no texto), sem redigitar.
+    // Cada paciente entra no fechamento com o resultado (nome abreviado no texto), sem redigitar e sem
+    // repetir a contagem por atividade (que segue nos dados da prestação, para a tela).
     const linhas = p.fechamento.blocos.flatMap((b) => b.linhas).filter((l) => l.item === "Acompanhamento de 30 dias");
     expect(linhas).toHaveLength(3);
-    expect(p.texto.match(/TESTE E\. · Acompanhamento de 30 dias/g)).toHaveLength(3);
+    expect(p.texto.match(/• TESTE E\. — /g)).toHaveLength(3);
+    expect(p.texto).toContain("Agendou para 03/11");
+    expect(p.texto).toContain("Mensagem enviada, aguardando resposta. Próximo passo: verificar se respondeu até 29/10");
+    expect(p.texto).toContain("Contato feito, sem resposta. Próximo passo: tentar contato de novo até 29/10");
+    expect(p.texto).not.toContain("*Contatos da rotina*");
   });
 
   it("cenário 4: contato sem resposta fica registrado como realizado e a próxima ação continua aberta", async () => {
@@ -80,10 +84,10 @@ describe("rotina: atividades simples × atividades com pacientes", () => {
 
   it("cenário 5: o mesmo marco para a mesma paciente não se repete sem motivo", async () => {
     const m = criarStoreMemoria();
-    await contato(m.store, "contatos_30_dias", "contato_realizado", "TESTE Eva Exemplo");
+    await contato(m.store, "contatos_30_dias", "respondeu", "TESTE Eva Exemplo", { resposta: "está tudo bem" });
     const pacienteId = m._dados.eventos.at(-1)!.patientId!;
     const item = itemDaRotina("contatos_30_dias")!;
-    const de_novo = (j?: string) => registrarAtividade(m.store, GABI, registroDoContato({ eventoId: randomUUID(), item, resultado: "contato_realizado", pacienteId, responsavel: `perfil:${GABI.id}`, justificativaRepeticao: j }));
+    const de_novo = (j?: string) => registrarAtividade(m.store, GABI, registroDoContato({ eventoId: randomUUID(), item, resultado: "respondeu", resposta: "pediu para falar de novo", pacienteId, responsavel: `perfil:${GABI.id}`, justificativaRepeticao: j }));
     await expect(de_novo()).rejects.toThrow(/já teve o acompanhamento de 30 dias registrado em 27\/10\/2026/);
     await expect(de_novo("paciente pediu para falar de novo amanhã")).resolves.toMatchObject({ duplicado: false });
   });
@@ -115,12 +119,12 @@ describe("rotina: atividades simples × atividades com pacientes", () => {
 });
 
 describe("recebimentos previstos e realizados", () => {
-  it("cenário 8: diferença = previsto − recebido, sem chamar de inadimplência; gestão consulta, não registra", async () => {
+  it("cenário 8: diferença = recebido − previsto, dita em palavras, sem chamar de inadimplência; gestão consulta, não registra", async () => {
     const { store } = criarStoreMemoria();
-    expect(diferencaCaixa(1500.5, 1200.25)).toBe(300.25);
+    expect(diferencaCaixa(1500.5, 1200.25)).toBe(-300.25);
     const e = await salvarCaixa(store, GABI, { previsto: 1500.5, recebido: 1200.25, justificativa: "uma paciente remarcou" });
-    expect(e).toMatchObject({ tipo: "conferido", diferenca: 300.25 });
-    expect(textoCaixa(e)).toMatch(/Previsto R\$\s?1\.500,50 · recebido R\$\s?1\.200,25 · diferença de R\$\s?300,25 — uma paciente remarcou/);
+    expect(e).toMatchObject({ tipo: "conferido", diferenca: -300.25 });
+    expect(textoCaixa(e)).toMatch(/Previsto: R\$\s?1\.500,50 · Recebido: R\$\s?1\.200,25 · Diferença: R\$\s?300,25 abaixo do previsto\. Justificativa: uma paciente remarcou\./);
     expect(textoCaixa(e)).not.toMatch(/inadimpl/i);
     await expect(carregarCaixa(store, GESTAO)).resolves.toMatchObject({ tipo: "conferido" });
     await expect(salvarCaixa(store, GESTAO, { previsto: 1, recebido: 1 })).rejects.toThrow(/concierge/);
@@ -179,7 +183,7 @@ describe("prioridades para o próximo dia útil", () => {
     await expect(finalizarFeedback(store, GABI, { id: randomUUID() })).rejects.toMatchObject({ status: 422 });
     await salvarRascunho(store, GABI, { prioridadesConfirmadas: true, decisoes: "Precisamos decidir o parcelamento da Ana" });
     const f = (await finalizarFeedback(store, GABI, { id: randomUUID(), decisoes: "Precisamos decidir o parcelamento da Ana" })).feedback;
-    expect(f.texto).toMatch(/\*Decisões necessárias da gestão\*\nPrecisamos decidir o parcelamento da Ana/);
+    expect(f.texto).toMatch(/\*Atenção da gestão\*\n• Decisões pedidas pela Gabi: Precisamos decidir o parcelamento da Ana/);
   });
 });
 

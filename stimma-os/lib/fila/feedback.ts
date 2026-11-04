@@ -63,5 +63,5 @@ export function lerFeedback(texto: string): FeedbackLido {
 
 /** Linhas sem informação acionável (contagens e mensagens de "nada"). */
 export function linhaSemConteudo(texto: string): boolean {
-  return /^(nenhuma ação|ninguém aguardando|nada vencendo|recebimentos confirmados:|cobranças em aberto|para hoje ainda sem ação|atendimentos a conferir|registros: \d|agenda: |sem ocorrências|nenhuma até o próximo dia útil|nenhuma definida)/i.test(texto);
+  return /^(nenhuma ação|ninguém aguardando|nada vencendo|recebimentos confirmados:|cobranças em aberto|para hoje ainda sem ação|atendimentos a conferir|registros: \d|agenda: |sem ocorrências|nenhuma até o próximo dia útil|nenhuma definida|nenhum registro de paciente|pacientes contatadas:|responderam:|agendamentos: \d|pendências em aberto:|rotina: \d|previsto:|diferença:|recebimentos não conferidos|conferido: sem recebimentos)/i.test(texto);
 }

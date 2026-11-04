@@ -90,9 +90,10 @@ describe("entrada", () => {
 });
 
 describe("ações na fila", () => {
+  // Cobrança rotineira não vira item da fila (cobrancas.ts); estes testes usam uma publicada como exceção.
   async function comCobranca() {
     const m = criarStoreMemoria();
-    await confirmarEntrada(m.store, GESTAO, lote([atend(), { tipo: "cobranca", chave_origem: "sd-c1", paciente: { sd_codigo: "1042" }, valor: 450, vencimento: "2026-10-18" }]));
+    await confirmarEntrada(m.store, GESTAO, lote([atend(), { tipo: "cobranca", chave_origem: "sd-c1", paciente: { sd_codigo: "1042" }, valor: 450, vencimento: "2026-10-18" }]), {}, undefined, [1]);
     return m;
   }
 

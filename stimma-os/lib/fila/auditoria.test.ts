@@ -221,7 +221,7 @@ describe("15–18. feedback, entrega e expediente", () => {
     await registrarAtividade(store, GABI, reg({ alvos: [{ tipo: "tarefa", id }], categoria: "continuidade", contato: "sim", canal: "whatsapp", resposta: "nao", situacao: "aguardando", proximaAcao: "Rever", responsavel: `perfil:${GABI.id}`, prazo: "2026-10-21", feito: "mensagem da Gabi" }));
     await registrarAtividade(store, GESTAO, reg({ categoria: "pendencia", assunto: "Ar-condicionado", situacao: "informativo", feito: "registro do Álvaro" }));
     const { texto } = await carregarFechamento(store, HOJE, GABI.id);
-    expect(texto).toContain("mensagem da Gabi");
+    expect(texto).toContain("Mensagem da Gabi, aguardando resposta");
     expect(texto).not.toContain("registro do Álvaro");
   });
 

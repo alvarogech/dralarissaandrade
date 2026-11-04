@@ -162,7 +162,7 @@ describe("H. fechamento", () => {
     await registrar(m.store, contato({ resultado: "nao_respondeu", pacienteId: dora, proximaAcao: "Tentar contato de novo", prazo: "2026-10-30" }));
     const p = await montarPrestacao(m.store, GABI.id, QUI);
     expect(p.indicadores).toMatchObject({ tentativas: 3, pacientesContatadas: 2, comResposta: 1, semResposta: 2, followupsProgramados: 1, posAcompanhados: 2, posSemResposta: 1 });
-    expect(p.texto).toMatch(/\*Indicadores do dia\*\n• Contatos realizados: 3 tentativas \(2 pacientes\) · com resposta: 1 · sem resposta: 2/);
+    expect(p.texto).toMatch(/\*Resumo do dia\*\n• Pacientes contatadas: 2 \(3 tentativas\)\n• Responderam: 1 · sem resposta: 2/);
   });
 });
 

@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
-import { ROTULO_RESULTADO, SITUACOES_CONTATO, camposDoResultado, escolhaEfetiva, registroDoContato, validarContato, type EntradaContato } from "@/lib/fila/contato-rotina";
+import { ROTULO_RESULTADO, SITUACOES_CONTATO, camposDoResultado, escolhaEfetiva, pedeResposta, registroDoContato, rotuloResultado, validarContato, type EntradaContato } from "@/lib/fila/contato-rotina";
 import type { ItemRotina, ResultadoContato } from "@/lib/fila/rotina-itens";
 import { Campo, ErroAcao, chamarApi, classeInput, dataBr } from "./comum";
 
@@ -14,6 +14,8 @@ import { Campo, ErroAcao, chamarApi, classeInput, dataBr } from "./comum";
  * servidor garante e reaproveita o retorno que já estiver aberto). No pós-procedimento, quando a
  * paciente responde, o relato dela é obrigatório; "necessita atenção do profissional" registra o
  * encaminhamento — a concierge não avalia sintomas. Depois de salvar, fica pronto para a próxima.
+ * Desde 03/11 cada texto tem seu campo: o que a PACIENTE respondeu, a ORIENTAÇÃO dada e, quando
+ * pedidos, a conclusão ou o motivo — "contato realizado" ou "." não valem como resposta.
  */
 interface Props {
   item: ItemRotina;
@@ -50,6 +52,9 @@ export function FormContatoRotina({ item, pacientes, usuarioId, hoje, proximoDia
   const [comAtencao, setComAtencao] = useState(false);
   const [atencao, setAtencao] = useState({ profissional: "", motivo: "", em: agoraLocal(), estado: "aguardando_profissional" as "aguardando_profissional" | "profissional_orientou" });
   const [observacao, setObservacao] = useState("");
+  const [resposta, setResposta] = useState("");
+  const [orientacao, setOrientacao] = useState("");
+  const [profissional, setProfissional] = useState("");
   const [proxima, setProxima] = useState("");
   const [prazo, setPrazo] = useState(prazoSugerido ?? proximoDiaUtil);
   const [agendadoPara, setAgendadoPara] = useState("");
@@ -83,13 +88,13 @@ export function FormContatoRotina({ item, pacientes, usuarioId, hoje, proximoDia
   // A próxima ação sugerida acompanha a escolha (sem apagar o que a concierge escreveu).
   useEffect(() => {
     if (!c) return;
-    setProxima((p) => (p && !Object.values(ROTULO_RESULTADO).includes(p) && !["Verificar se respondeu", "Tentar contato de novo", "Fazer o contato", "Acompanhar o retorno do profissional", "Contato da comercial externa", "Confirmar o pagamento no Simples Dental"].includes(p) ? p : c.proximaPadrao));
+    setProxima((p) => (p && !Object.values(ROTULO_RESULTADO).includes(p) && !["Verificar se respondeu", "Tentar contato de novo", "Fazer o contato", "Acompanhar o retorno do profissional", "Contato da comercial externa", "Confirmar o pagamento no Simples Dental", "Retomar o contato", "Retomar o contato para definir"].includes(p) ? p : c.proximaPadrao));
   }, [efetiva]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function limparParaProxima(nome: string) {
     setUltimo(nome);
     setBusca(""); setPacienteId(null); setNomeNovo(""); setModoNovo(false);
-    setObservacao(""); setRelato(""); setAgendadoPara(""); setPergunta(""); setJustificativa(""); setPedeJustificativa(false);
+    setObservacao(""); setRelato(""); setResposta(""); setOrientacao(""); setProfissional(""); setAgendadoPara(""); setPergunta(""); setJustificativa(""); setPedeJustificativa(false);
     setComAtencao(false); setAtencao({ profissional: "", motivo: "", em: agoraLocal(), estado: "aguardando_profissional" });
     if (!(cfg.semTentativa && cfg.resultados.length === 1)) setSituacao(null);
     setDesfecho(null);
@@ -102,6 +107,7 @@ export function FormContatoRotina({ item, pacientes, usuarioId, hoje, proximoDia
     setFalha(null);
     const entrada: Omit<EntradaContato, "eventoId" | "item"> = {
       resultado: situacao ?? "respondeu", desfecho: respondeu ? desfecho : null, pacienteId, nomeNovo: modoNovo ? nomeNovo : "", observacao, relato,
+      resposta: respondeu ? resposta : "", orientacao: respondeu ? orientacao : "", profissional,
       atencao: respondeu && comAtencao ? atencao : null, proximaAcao: proxima, prazo, agendadoPara, pergunta,
       responsavel: `perfil:${usuarioId}`, justificativaRepeticao: pedeJustificativa ? justificativa : undefined,
     };
@@ -135,7 +141,7 @@ export function FormContatoRotina({ item, pacientes, usuarioId, hoje, proximoDia
       {opcoes.map((r) => (
         <button key={r} type="button" role="radio" aria-checked={valor === r} onClick={() => { escolher(r); setErros({}); }}
           className={clsx("min-h-9 rounded-control border px-3 text-[13px] transition-colors", valor === r ? "border-accent bg-accent-soft font-semibold text-accent" : "border-border-strong bg-surface text-text-secondary hover:bg-surface-hover")}>
-          {valor === r && <span aria-hidden>✓ </span>}{ROTULO_RESULTADO[r]}
+          {valor === r && <span aria-hidden>✓ </span>}{rotuloResultado(r, item)}
         </button>
       ))}
     </div>
@@ -194,6 +200,11 @@ export function FormContatoRotina({ item, pacientes, usuarioId, hoje, proximoDia
         <Campo label={`${cfg.relato.rotulo} *`}>
           <span className="font-normal text-text-muted">{cfg.relato.ajuda}</span>
           <textarea id={idc("relato")} rows={3} value={relato} onChange={(e) => { setRelato(e.target.value); if (erros.relato && e.target.value.trim()) setErros(({ relato: _r, ...resto }) => resto); }} {...inv("relato")} />
+          {!relato.trim() && (
+            <button type="button" className="self-start text-[12.5px] text-text-secondary underline underline-offset-4" onClick={() => { setRelato("Está bem, sem queixas"); setErros(({ relato: _r, ...resto }) => resto); }}>
+              Paciente está bem, sem queixas
+            </button>
+          )}
           {erro("relato")}
         </Campo>
       )}
@@ -232,6 +243,26 @@ export function FormContatoRotina({ item, pacientes, usuarioId, hoje, proximoDia
         </fieldset>
       )}
 
+      {respondeu && situacao && pedeResposta({ resultado: situacao, desfecho, atencao: comAtencao ? atencao : null }, item) && (
+        <Campo label="O que a paciente respondeu? *">
+          <input id={idc("resposta")} value={resposta} onChange={(e) => setResposta(e.target.value)} {...inv("resposta")}
+            placeholder={cfg.categoria === "continuidade" ? "ex.: prefere fazer em dezembro" : cfg.cobranca ? "ex.: vai pagar na sexta" : "ex.: está tudo bem, vai pensar"} />
+          {erro("resposta")}
+        </Campo>
+      )}
+      {respondeu && (c?.orientacao || (cfg.categoria === "continuidade" && desfecho)) && (
+        <Campo label={c?.orientacao ? "Qual orientação foi dada? *" : "O que foi explicado ou oferecido (opcional)"}>
+          <input id={idc("orientacao")} value={orientacao} onChange={(e) => setOrientacao(e.target.value)} {...inv("orientacao")} placeholder="ex.: expliquei a próxima etapa e o valor" />
+          {erro("orientacao")}
+        </Campo>
+      )}
+      {c?.profissional && !comAtencao && (
+        <Campo label="Encaminhada a qual profissional? *">
+          <input id={idc("profissional")} list={idc("profissionais-enc")} value={profissional} onChange={(e) => setProfissional(e.target.value)} {...inv("profissional")} />
+          <datalist id={idc("profissionais-enc")}><option value="Dra. Larissa" /></datalist>
+          {erro("profissional")}
+        </Campo>
+      )}
       {c?.agendamento && (
         <Campo label="Data da consulta *"><input id={idc("agendadoPara")} type="date" value={agendadoPara} onChange={(e) => setAgendadoPara(e.target.value)} {...inv("agendadoPara")} />{erro("agendadoPara")}</Campo>
       )}
@@ -245,7 +276,7 @@ export function FormContatoRotina({ item, pacientes, usuarioId, hoje, proximoDia
         </div>
       )}
       {situacao && (
-        <Campo label={c?.observacaoObrigatoria && !(respondeu && cfg.relato) ? (efetiva === "nao_realizado" ? "Por que não foi feito? *" : efetiva === "orientacao" ? "Qual orientação foi dada? *" : "O que ficou resolvido? *") : "Observação (opcional)"}>
+        <Campo label={c?.observacaoObrigatoria ? (efetiva === "nao_realizado" ? "Por que não foi feito? *" : "O que ficou resolvido? *") : "Observação (opcional)"}>
           <input id={idc("observacao")} value={observacao} onChange={(e) => setObservacao(e.target.value)} {...inv("observacao")} placeholder={cfg.cobranca ? "ex.: vai pagar na sexta" : "curta, sem dados clínicos"} />
           {erro("observacao")}
         </Campo>

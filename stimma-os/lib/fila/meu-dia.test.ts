@@ -158,7 +158,7 @@ describe("Finalizar e enviar feedback", () => {
     expect(fechamento.rotina?.impedimentos[0]).toMatchObject({ motivo: "Simples Dental fora do ar" });
     await revisarPrioridades(store);
     const r = await finalizarFeedback(store, GABI, { id: randomUUID() });
-    expect(r.feedback.texto).toMatch(/Impedimento — Conferir agenda, confirmações e alinhamento com os profissionais: Simples Dental fora do ar; próxima ação: Conferir às 14h/);
+    expect(r.feedback.texto).toMatch(/\*Atenção da gestão\*\n• Impedimento na rotina — Conferir agenda, confirmações e alinhamento com os profissionais: Simples Dental fora do ar; próximo passo: Conferir às 14h/);
   });
 
   it("cenário B: rotina salva no servidor continua lá ao voltar (nada depende do navegador)", async () => {

@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
-import { diferencaCaixa, type EstadoCaixa } from "@/lib/fila/caixa";
+import { diferencaCaixa, textoCaixa, textoDiferenca, type EstadoCaixa } from "@/lib/fila/caixa";
 import type { PrioridadesHerdadas } from "@/lib/fila/prioridades";
-import { Campo, ErroAcao, brl, chamarApi, classeInput, dataBr, numeroBr, soHora } from "./comum";
+import { Campo, ErroAcao, chamarApi, classeInput, dataBr, numeroBr, soHora } from "./comum";
 
 /**
  * Painéis da rotina que não são itens do checklist: conferência de recebimentos (Financeiro),
@@ -60,8 +60,8 @@ export function CaixaDoDia({ inicial, editavel }: { inicial: EstadoCaixa; editav
           <Campo label="Previsto para receber (R$)"><input inputMode="decimal" value={previsto} onChange={(e) => setPrevisto(e.target.value)} className={classeInput} placeholder="0,00" /></Campo>
           <Campo label="Efetivamente recebido (R$)"><input inputMode="decimal" value={recebido} onChange={(e) => setRecebido(e.target.value)} className={classeInput} placeholder="0,00" /></Campo>
           <div className="flex flex-col justify-end text-[13px]">
-            <span className="text-text-muted">Diferença (previsto − recebido)</span>
-            <span className={clsx("text-[18px] font-semibold tabular-nums", dif && dif !== 0 ? "text-important" : "text-text-primary")}>{dif === null ? "—" : brl(dif)}</span>
+            <span className="text-text-muted">Diferença (recebido − previsto)</span>
+            <span className="text-[16px] font-semibold tabular-nums text-text-primary">{dif === null ? "—" : textoDiferenca(dif)}</span>
           </div>
           {dif !== null && dif !== 0 && (
             <Campo label="O que explica a diferença? (remarcação, cancelamento, antecipação…)" largo>
@@ -77,7 +77,7 @@ export function CaixaDoDia({ inicial, editavel }: { inicial: EstadoCaixa; editav
         </div>
       ) : (
         <p className="mt-2 text-[14px] text-text-primary">
-          {conferido ? `Previsto ${brl(conferido.previsto)} · recebido ${brl(conferido.recebido)} · diferença ${brl(conferido.diferenca)}${conferido.justificativa ? ` — ${conferido.justificativa}` : ""}` : estado.tipo === "sem_recebimentos" ? "Sem recebimentos no dia." : "Ainda não conferido."}
+          {conferido ? textoCaixa(conferido) : estado.tipo === "sem_recebimentos" ? "Sem recebimentos no dia." : "Ainda não conferido."}
         </p>
       )}
     </section>
