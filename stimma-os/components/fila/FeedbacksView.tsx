@@ -36,7 +36,7 @@ function secoesDoTexto(texto: string): { titulo: string; linhas: string[] }[] {
   const out: { titulo: string; linhas: string[] }[] = [];
   for (const bruta of texto.split("\n")) {
     const l = bruta.trim();
-    if (!l || /^\*Fechamento/.test(l) || /^Registros: \d/.test(l)) continue;
+    if (!l || /^\*(STIMMA \| )?Fechamento/.test(l) || /^Registros: \d/.test(l)) continue;
     const t = /^\*([^*]+)\*(.*)$/.exec(l);
     if (t) out.push({ titulo: `${t[1]!.trim()}${t[2] ? t[2] : ""}`, linhas: [] });
     else if (out.length) out[out.length - 1]!.linhas.push(l.replace(/^•\s*/, ""));
@@ -104,7 +104,8 @@ function CartaoFeedback({ f }: { f: FeedbackComRegistros }) {
 
   const [copiado, setCopiado] = useState<string | null>(null);
   const secoes = secoesDoTexto(f.texto);
-  const segue = (t: string) => /permanecem abertas|prioridades/i.test(t);
+  // Formato anterior ("Pendências que permanecem abertas") e atual ("Atenção da gestão", "Prioridades").
+  const segue = (t: string) => /permanecem abertas|prioridades|atenção da gestão/i.test(t);
   const pendentes = secoes.filter((s) => segue(s.titulo));
   const realizados = secoes.filter((s) => !segue(s.titulo));
   const marcas = [

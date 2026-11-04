@@ -769,3 +769,52 @@ Decisões:
   recebimentos. "Atendimentos do dia" vem da agenda sincronizada (cancelados, faltas e remarcados fora).
 - **Correção**: registro errado se corrige com novo registro da mesma oportunidade (o último manda, trilha
   preservada) ou, se não abriu acompanhamento, anulando com motivo.
+
+## 2026-11-03 — Feedback diário: paciente → ação → resposta → desfecho → próximo passo
+
+Auditoria a partir do fechamento real de 03/11 (casos de regressão com nomes fictícios em
+`stimma-os/lib/fila/feedback-diario.test.ts`).
+
+- **Causa raiz (modelagem)**: no contato da rotina, um único campo "observação" virava ao mesmo tempo a
+  orientação e a resposta da paciente (`contato-rotina.ts`) — daí `orientação: .; resposta: .`. A validação só
+  exigia "não vazio" (`limpo`), então "." e "Contato realizado" passavam. Agora cada texto tem seu campo
+  (`detalhes.orientacao`, `resultado` = o que a paciente disse, `detalhes.conclusao`, `detalhes.motivo_nao_realizado`,
+  `detalhes.observacao`). Sem migration: tudo dentro do `payload` JSON que já existe.
+- **Validação contextual, não semântica**: `textoSignificativo` (leitura-registro.ts) recusa vazio, só pontuação,
+  menos de duas letras/números, uma lista curta e explícita de expressões que só repetem o nome do campo ou da
+  ação ("Contato realizado", "Acompanhamento", "Orientação prestada", "Resolvido"…) e o próprio rótulo da atividade.
+  Respostas curtas legítimas ("Tudo bem", "Sem dor", "Ok", "Não tenho interesse") passam. Vale no formulário e,
+  de novo, no servidor (`registro.ts`). Resposta é obrigatória quando a paciente respondeu, exceto nos desfechos
+  objetivos (agendou com data, pagamento confirmado, promessa, negociação). Sem resposta nunca exige resposta.
+- **Continuidade**: desfechos novos sem enum no banco — interessada (aguardando, com retomada), adiou (pendente, com
+  retomada), sem interesse (encerrado com o motivo nas palavras da paciente; a paciente continua existindo),
+  encaminhada à profissional, precisa da gestão, "Continuidade concluída" (rótulo próprio do resolvido). Orientação
+  é obrigatória só no desfecho "orientação"; nos demais é opcional. Nenhum deles vira resolução ou agendamento.
+- **Aniversário**: "Contato realizado" de aniversário passa a ser registro simples sem resposta esperada (antes
+  gravava resposta = "Paciente respondeu" sem a paciente ter dito nada).
+- **Resposta fecha o retorno do mesmo assunto**: quando a paciente responde (registro sem pendência), o "verificar
+  se respondeu" aberto da mesma paciente e da mesma atividade é ligado ao registro e encerrado ("paciente
+  respondeu: …") ou segue o desfecho. Antes ele ficava "aguardando resposta" para sempre. Retornos de atividades
+  diferentes continuam sendo obrigações diferentes e o título passa a mostrar a origem ("Verificar se respondeu
+  (pós-procedimento)").
+- **Indicadores com uma fórmula só** (`contarRegistros`, documentada em leitura-registro.ts) para fechamento,
+  prestação de contas, tela e texto: tentativa = contato feito, exceto mensagem sem retorno esperado; resposta =
+  resposta descrita (vazia/genérica vai para "resposta não descrita"); métricas por evento × por paciente
+  separadas; invariante `tentativas = respondeu + resposta não descrita + sem resposta`. O envio é bloqueado (422)
+  só se a invariante quebrar — nunca se ajusta total. Registro incompleto e "aguardando resposta" não bloqueiam:
+  aparecem marcados. Em 03/11 os 7 "contatos" eram 5 tentativas + 2 mensagens de aniversário, e 2 das 4
+  "respostas" eram ".".
+- **Registros antigos**: nada é migrado nem reescrito. `lerRegistro` lê o formato antigo (inclusive ações da fila
+  com tudo em `notes`) e marca como incompleto o que falta; um registro antigo de orientação mostra a orientação e
+  não trata o mesmo texto como resposta da paciente.
+- **WhatsApp executivo**: cabeçalho "STIMMA | Fechamento", resumo, áreas (uma linha por paciente, registros do dia
+  juntos), aniversário agregado, comercial/planejamento só quando há algo, financeiro, "Atenção da gestão"
+  (decisões, impedimentos, registros incompletos), prioridades. Saíram: códigos [T-…]/[M-…] do texto (continuam nos
+  dados e a versão entregue guarda os registros de origem), "Indicadores do dia" e "Contatos da rotina" (repetiam o
+  resumo e as linhas), checklist concluído por extenso. Frases sem gênero presumido pelo nome. Consequência: colar
+  de volta um feedback do formato novo não liga linhas a tarefas (o colar continua funcionando para os antigos);
+  a ligação agora é a entrega no sistema.
+- **Financeiro**: diferença = recebido − previsto, dita em palavras ("R$ 2.596,00 acima do previsto"). Antes era
+  previsto − recebido e "-R$ 2.596,00" parecia prejuízo. Não conferido continua sem valor (≠ zero).
+- **Versões entregues não mudam**: o texto entregue é gravado na versão; o gerador novo só afeta prévias e versões
+  novas (correção cria versão nova, a anterior fica byte a byte).

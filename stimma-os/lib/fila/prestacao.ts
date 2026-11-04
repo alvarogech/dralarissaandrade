@@ -1,8 +1,9 @@
-import { estadoCaixa, textoCaixa, type EstadoCaixa } from "./caixa";
+import { estadoCaixa, linhasCaixa, type EstadoCaixa } from "./caixa";
 import { itemDoEvento, resultadoDoEvento, ROTULO_RESULTADO } from "./contato-rotina";
 import { itemDaRotina, itemValeNoDia, type ResultadoContato } from "./rotina-itens";
 import { ITEM_CONFERENCIA, resumirComercial, rotuloResponsavel, textoComercial, type RegistroComercial, type ResumoComercial } from "./conferencia-comercial";
-import { nomeCurto } from "./fechamento";
+import { nomeCurto, textoWhatsapp } from "./fechamento";
+import { contarRegistros } from "./leitura-registro";
 import { carteiraPlanejamento, ehPlanejamento, gruposPlanejamento, registroAuxiliar, resumirPlanejamento, textoPlanejamento, type CarteiraPlanejamento, type RegistroPlanejamento, type ResumoPlanejamento } from "./planejamento";
 import { carregarFechamento, carregarFila } from "./servico";
 import type { ItemFila } from "./agrupamento";
@@ -23,15 +24,24 @@ export interface ContatosPorAtividade {
 }
 
 /**
- * Indicadores do dia, só a partir dos registros (nada digitado de novo). Tentativas ≠ pacientes:
- * a mesma paciente com duas tentativas conta 2 tentativas e 1 paciente.
+ * Indicadores do dia, só a partir dos registros (nada digitado de novo) e pela MESMA contagem do
+ * fechamento (leitura-registro.ts — fórmulas documentadas lá). Tentativas ≠ pacientes: a mesma
+ * paciente com duas tentativas conta 2 tentativas e 1 paciente. Resposta vazia ou genérica não conta
+ * como resposta (vai em respostasIncompletas); mensagem de aniversário não é tentativa.
  */
 export interface IndicadoresDia {
   tentativas: number;
   pacientesContatadas: number;
+  /** Respostas reais descritas. */
   comResposta: number;
+  pacientesResponderam: number;
+  respostasIncompletas: number;
   semResposta: number;
   naoRealizados: number;
+  mensagens: number;
+  agendamentos: number;
+  resolvidos: number;
+  registrosIncompletos: number;
   followupsProgramados: number;
   followupsConcluidos: number;
   followupsVencidos: number;
@@ -43,8 +53,7 @@ export interface IndicadoresDia {
 
 export function indicadoresDoDia(eventos: EventoRow[], itens: ItemFila[], dia: string, responsavel: string): IndicadoresDia {
   const det = (e: EventoRow) => (e.payload?.detalhes ?? {}) as Record<string, unknown>;
-  const feitos = eventos.filter((e) => e.contato === "sim");
-  const semResp = eventos.filter((e) => e.contato === "sim" && e.resposta === "nao");
+  const c = contarRegistros(eventos);
   const pos = eventos.filter((e) => det(e).rotina_item === "pos_procedimento_ontem");
   const distintas = (lista: EventoRow[]) => new Set(lista.map((e) => e.patientId ?? `assunto:${e.assunto ?? e.id}`)).size;
   const programados = new Set(
@@ -52,28 +61,25 @@ export function indicadoresDoDia(eventos: EventoRow[], itens: ItemFila[], dia: s
   );
   const meus = itens.filter((i) => i.responsavelId === responsavel);
   return {
-    tentativas: feitos.length,
-    pacientesContatadas: distintas(feitos),
-    comResposta: eventos.filter((e) => e.resposta === "sim").length,
-    semResposta: semResp.length,
-    naoRealizados: eventos.filter((e) => e.contato === "nao").length,
+    tentativas: c.tentativas,
+    pacientesContatadas: c.pacientesContatadas,
+    comResposta: c.respostas,
+    pacientesResponderam: c.pacientesResponderam,
+    respostasIncompletas: c.respostasIncompletas,
+    semResposta: c.semResposta,
+    naoRealizados: c.naoRealizados,
+    mensagens: c.mensagens,
+    agendamentos: c.agendamentos,
+    resolvidos: c.resolvidos,
+    registrosIncompletos: c.registrosIncompletos,
     followupsProgramados: programados.size,
     followupsConcluidos: meus.filter((i) => i.followup && i.status === "concluida" && i.concluidaEm === dia).length,
     followupsVencidos: meus.filter((i) => i.followup && i.status !== "concluida" && i.due < dia).length,
     posAcompanhados: distintas(pos),
     posSemResposta: distintas(pos.filter((e) => e.contato === "nao" || e.resposta === "nao")),
-    encaminhadosProfissional: eventos.filter((e) => det(e).atencao_profissional === "sim").length,
+    encaminhadosProfissional: c.encaminhadosProfissional,
     pendenciasGestao: itens.filter((i) => i.status !== "concluida" && i.aguardando === "gestao").length,
   };
-}
-
-export function textoIndicadores(i: IndicadoresDia): string[] {
-  return [
-    `• Contatos realizados: ${i.tentativas} tentativa${i.tentativas === 1 ? "" : "s"} (${i.pacientesContatadas} paciente${i.pacientesContatadas === 1 ? "" : "s"}) · com resposta: ${i.comResposta} · sem resposta: ${i.semResposta}${i.naoRealizados ? ` · não realizados: ${i.naoRealizados}` : ""}`,
-    `• Retornos (follow-ups): ${i.followupsProgramados} programado${i.followupsProgramados === 1 ? "" : "s"} hoje · ${i.followupsConcluidos} concluído${i.followupsConcluidos === 1 ? "" : "s"} · ${i.followupsVencidos} vencido${i.followupsVencidos === 1 ? "" : "s"}`,
-    `• Pós-procedimento: ${i.posAcompanhados} paciente${i.posAcompanhados === 1 ? "" : "s"} acompanhada${i.posAcompanhados === 1 ? "" : "s"} · ${i.posSemResposta} sem resposta · ${i.encaminhadosProfissional} encaminhada${i.encaminhadosProfissional === 1 ? "" : "s"} ao profissional`,
-    `• Aguardando ação da gestão: ${i.pendenciasGestao}`,
-  ];
 }
 
 export interface Prestacao {
@@ -127,7 +133,7 @@ export function situacaoSolicitacao(i: ItemFila, dia: string): string {
 }
 
 export async function montarPrestacao(store: FilaStore, responsavel: string, dia: string, opts: { observacao?: string | null; decisoes?: string | null } = {}): Promise<Prestacao> {
-  const [{ fechamento, texto, eventos }, caixaRow, fila] = await Promise.all([
+  const [{ fechamento, eventos }, caixaRow, fila] = await Promise.all([
     carregarFechamento(store, dia, responsavel), store.conferenciaCaixa(dia), carregarFila(store, dia),
   ]);
   const caixa = estadoCaixa(caixaRow);
@@ -165,29 +171,18 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   const carteira = carteiraPlanejamento(fila.itens);
   const atendimentosAgenda = agendaDia ? agendaDia.itens.filter((a) => a.inicio.slice(0, 10) === dia && !["cancelled", "no_show", "rescheduled"].includes(a.status)).length : null;
 
-  const extra: string[] = ["*Indicadores do dia*", ...textoIndicadores(indicadores), ""];
-  if (contatos.length) {
-    extra.push("*Contatos da rotina*");
-    for (const c of contatos) extra.push(`• ${c.rotulo}: ${c.total} paciente${c.total === 1 ? "" : "s"} — ${c.porResultado.map((r) => `${r.n} ${r.resultado.toLowerCase()}`).join(", ")}`);
-    extra.push("");
-  }
-  if (mostraComercial) extra.push(...textoComercial(registrosCom, semMovimentacao, pendentesCom, nomeCurto), "");
-  extra.push(...textoPlanejamento(registrosPlan, carteira, atendimentosAgenda, nomeCurto), "");
-  extra.push("*Recebimentos do dia*", `• ${textoCaixa(caixa)}`, "");
-  if (solicitacoes.length) {
-    extra.push("*Solicitações da gestão*");
-    for (const s of solicitacoes) extra.push(`• ${s.titulo}${s.semPaciente ? "" : ` (${s.pacienteNome})`}${s.solicitadoPor ? ` — pedida por ${s.solicitadoPor}` : ""}: ${situacaoSolicitacao(s, dia)}`);
-    extra.push("");
-  }
-  const decisoes = opts.decisoes?.trim();
-  if (decisoes) extra.push("*Decisões necessárias da gestão*", decisoes, "");
-
-  // Seções novas entram antes das prioridades (que fecham o texto).
-  const marca = "*Prioridades para o próximo dia útil";
-  const i = texto.indexOf(marca);
-  let final = i >= 0 ? `${texto.slice(0, i)}${extra.join("\n")}\n${texto.slice(i)}` : `${texto}\n\n${extra.join("\n")}`;
+  // Um texto só, montado pelo gerador do fechamento (fechamento.ts) com as seções da prestação.
+  const comercial: string[] = [];
+  if (mostraComercial) comercial.push(...textoComercial(registrosCom, semMovimentacao, pendentesCom, nomeCurto), "");
+  if (registrosPlan.length || carteira.length || (atendimentosAgenda ?? 0) > 0) comercial.push(...textoPlanejamento(registrosPlan, carteira, atendimentosAgenda, nomeCurto));
   const observacao = opts.observacao?.trim();
-  if (observacao) final += `\n\n*Observações do dia*\n${observacao}`;
+  const decisoes = opts.decisoes?.trim();
+  const final = textoWhatsapp(fechamento, {
+    comercial: comercial.length ? comercial : undefined,
+    financeiro: linhasCaixa(caixa),
+    solicitacoes: solicitacoes.map((s) => `${s.titulo}${s.semPaciente ? "" : ` (${nomeCurto(s.pacienteNome)})`}${s.solicitadoPor ? ` — pedida por ${s.solicitadoPor}` : ""}: ${situacaoSolicitacao(s, dia)}`),
+    decisoesTexto: decisoes, observacao,
+  });
 
   const contadores: Record<string, unknown> = {
     ...(fechamento.contadores as unknown as Record<string, unknown>),
@@ -197,7 +192,7 @@ export async function montarPrestacao(store: FilaStore, responsavel: string, dia
   };
   if (observacao) contadores.observacao_concierge = observacao;
   if (decisoes) contadores.decisoes_concierge = decisoes;
-  return { texto: final.replace(/\n{3,}/g, "\n\n"), contadores, eventos: eventos.map((e) => e.id).sort(), fechamento, eventosRows: eventos, caixa, contatos, solicitacoes, indicadores,
+  return { texto: final, contadores, eventos: eventos.map((e) => e.id).sort(), fechamento, eventosRows: eventos, caixa, contatos, solicitacoes, indicadores,
     comercial: { registros: registrosCom, resumo: resumirComercial(registrosCom, semMovimentacao), semMovimentacao, pendentes: pendentesCom },
     planejamento: { registros: registrosPlan, carteira, resumo: resumirPlanejamento(registrosPlan, carteira, atendimentosAgenda), grupos: gruposPlanejamento(registrosPlan, carteira) } };
 }

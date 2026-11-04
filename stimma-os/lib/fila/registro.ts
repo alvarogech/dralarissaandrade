@@ -3,6 +3,7 @@ import { hojeSaoPaulo, isDiaIso, somarDias } from "./datas";
 import { JANELA_MARCOS_DIAS } from "./trabalho";
 import { ErroRegra, type Ator } from "./servico";
 import { assuntoDoEvento } from "./assunto";
+import { textoSignificativo } from "./leitura-registro";
 import { chaveFollowup, followupAberto, prazoFollowup, semResposta, tipoFollowup } from "./followup";
 import { CONFERENCIAS, GRUPOS_COMERCIAIS, ITEM_CONFERENCIA, SITUACOES_COMERCIAIS } from "./conferencia-comercial";
 import { RESPOSTAS_PLANEJAMENTO, RESULTADOS_PLANEJAMENTO, conferido, escolherOportunidade, oportunidadesDoHistorico, precisaPendencia, type ResultadoPlanejamento, type RespostaPlanejamento } from "./planejamento";
@@ -125,7 +126,15 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   const hoje = hojeSaoPaulo();
   const data = e.data ?? hoje;
   if (!isDiaIso(data) || data > hoje) throw new ErroRegra("A data do registro precisa ser hoje ou um dia anterior.");
-  if (e.resposta === "sim" && !limpo(e.resultado)) throw new ErroRegra("Houve resposta: descreva o resultado em poucas palavras.");
+  // Resposta é o que a PACIENTE disse: vazio, só pontuação ou genérico ("Contato realizado",
+  // "Acompanhamento", "Orientação prestada") não vale — isso descreve a ação, não a resposta.
+  const rotulosAcao = [e.contexto, e.detalhes?.acao];
+  if (e.resposta === "sim" && !textoSignificativo(e.resultado, rotulosAcao)) {
+    throw new ErroRegra(limpo(e.resultado) ? "Houve resposta: escreva o que a paciente disse (“contato realizado” ou “acompanhamento” descrevem a ação, não a resposta)." : "Houve resposta: descreva o resultado em poucas palavras.");
+  }
+  if (e.detalhes?.resultado_rotina === "orientacao" && !textoSignificativo(e.detalhes.orientacao, rotulosAcao)) {
+    throw new ErroRegra("Orientação prestada: escreva qual orientação foi dada.");
+  }
 
   const perfis = await store.perfis();
   const config = await store.config();
@@ -198,11 +207,12 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     if (!e.prazo || !isDiaIso(e.prazo) || e.prazo < hoje) throw new ErroRegra("Caso pendente: informe o prazo (hoje ou depois).");
   }
   if (e.situacao === "agendado" && (!e.agendadoPara || !isDiaIso(e.agendadoPara))) throw new ErroRegra("Informe a data da consulta agendada.");
-  if (e.situacao === "dispensado" && !limpo(e.motivo)) throw new ErroRegra("Encerrar sem resolver exige motivo.");
+  if (e.situacao === "dispensado" && !textoSignificativo(e.motivo)) throw new ErroRegra("Encerrar sem resolver exige motivo.");
   if (e.situacao === "resolvido") {
     // Resolução exige resultado coerente: mensagem sem resposta não resolve nada.
     if (e.contato === "sim" && e.resposta === "nao") throw new ErroRegra("Mensagem sem resposta não resolve o caso: use “Aguardando paciente” com data de revisão.");
-    if (!limpo(e.resultado) && !limpo(e.feito)) throw new ErroRegra("Resolvido: descreva o resultado alcançado.");
+    if (!textoSignificativo(e.resultado, rotulosAcao) && !textoSignificativo(e.feito, rotulosAcao) && !textoSignificativo(e.detalhes?.conclusao, rotulosAcao)) throw new ErroRegra("Resolvido: descreva o resultado alcançado.");
+    if (e.detalhes?.resultado_rotina === "resolvido" && !textoSignificativo(e.detalhes.conclusao, rotulosAcao)) throw new ErroRegra("Resolvido: conte em poucas palavras o que ficou resolvido.");
   }
   if (e.etapa?.data && !isDiaIso(e.etapa.data)) throw new ErroRegra("Data da etapa clínica inválida.");
   if ((e.etapa?.situacao === "adiada" || e.etapa?.situacao === "encerrada") && !limpo(e.etapa.motivo)) throw new ErroRegra("Etapa adiada ou encerrada: informe o motivo.");
@@ -304,6 +314,14 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
   // entra no histórico dele) em vez de criar outro: nada de tarefas repetidas para o mesmo caso.
   let tarefaCriada: string | null = null;
   let reprogramada: string | null = null;
+  // A paciente respondeu (sem deixar o caso pendente): o retorno aberto do mesmo assunto — "verificar
+  // se respondeu" de uma tentativa anterior — fica ligado a este registro e é encerrado (ou segue o
+  // desfecho: agendado, resolvido, recusa). Sem isso ele continuava "aguardando resposta".
+  let respondido: TarefaRow | null = null;
+  if (!marcos.length && !tarefas.length && !pendente && e.resposta === "sim" && patientId && !plan) {
+    respondido = followupAberto(await store.tarefasAbertasDoPaciente(patientId), chaveFollowup(e.categoria, rotinaItem));
+    if (respondido) tarefas.push(respondido);
+  }
   if (!marcos.length && !tarefas.length && pendente) {
     // Proposta encerrada neste registro: outra pendência que vier junto não reabre o acompanhamento dela.
     const chaveRetorno = (!encerrarPlanejamento && chavePlanejamento) || chaveFollowup(e.categoria, rotinaItem);
@@ -363,6 +381,7 @@ export async function registrarAtividade(store: FilaStore, ator: Ator, e: Entrad
     else if (e.situacao === "resolvido") await store.atualizarTarefa(t.id, { status: "completed", closedReason: limpo(e.resultado) ?? limpo(e.feito) ?? "resolvido", payload });
     else if (e.situacao === "dispensado") await store.atualizarTarefa(t.id, { status: "cancelled", closedReason: limpo(e.motivo), payload });
     else if (e.situacao === "compareceu" || e.situacao === "faltou") await store.atualizarTarefa(t.id, { status: "completed", closedReason: e.situacao === "compareceu" ? "compareceu" : "faltou", payload });
+    else if (t === respondido) await store.atualizarTarefa(t.id, { status: "completed", closedReason: `paciente respondeu: ${limpo(e.resultado)}`, payload });
     else if (Object.keys(payloadExtra).length > 1) await store.atualizarTarefa(t.id, { payload }); // informativo: só contexto/etapa
   }
 

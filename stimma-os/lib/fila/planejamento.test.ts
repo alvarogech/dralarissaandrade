@@ -128,8 +128,8 @@ describe("planejamento anual", () => {
     expect(p.texto).toContain("*Planejamentos anuais — Apresentações e fechamentos*");
     expect(p.texto).toMatch(/APRESENTADOS PRESENCIALMENTE\n• TESTE I\. — Dra\. Larissa/);
     expect(p.texto).toMatch(/INFORMAÇÕES PENDENTES\n• TESTE I\. — conferir o fechamento/);
-    expect(p.texto).toContain("Conferência de recebimentos não realizada hoje.");
-    expect(p.texto).not.toMatch(/Recebimentos do dia\*\n• .*3\.000/);
+    expect(p.texto).toContain("*Financeiro*\n• Recebimentos não conferidos hoje (sem valores informados).");
+    expect(p.texto).not.toMatch(/Financeiro\*\n• .*3\.000/);
   });
 
   it("12. compatível: não conta como contato da Gabi, pendência da Mel fora da lista dela, proposta distinta separada", async () => {

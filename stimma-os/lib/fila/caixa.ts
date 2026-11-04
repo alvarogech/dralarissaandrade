@@ -5,9 +5,11 @@ import type { ConferenciaCaixa, FilaStore } from "./store";
 /**
  * Conferência de recebimentos do dia: totais previsto × recebido conferidos no Simples Dental (a
  * fonte oficial). O STIMMA OS só registra a conferência para a prestação de contas — sem valores por
- * paciente, dados bancários ou de cartão. Diferença = previsto − recebido, e diferença não é
- * inadimplência: pode ser remarcação, cancelamento, antecipação ou acerto de fechamento (por isso a
- * justificativa). Quem vê: a concierge identificada na configuração e a gestão (conferido aqui no
+ * paciente, dados bancários ou de cartão. Diferença = recebido − previsto (03/11; antes era
+ * previsto − recebido e "-R$ 2.596,00" parecia prejuízo quando entrou dinheiro a mais), sempre dita em
+ * palavras: "acima do previsto" / "abaixo do previsto". Diferença não é inadimplência nem erro: pode
+ * ser remarcação, cancelamento, antecipação ou acerto de fechamento (por isso a justificativa).
+ * Não conferido ≠ zero: sem conferência não sai valor nenhum. Quem vê: a concierge identificada na configuração e a gestão (conferido aqui no
  * servidor; a tabela não tem leitura pelo navegador).
  */
 export const MAX_VALOR_CAIXA = 10_000_000;
@@ -25,9 +27,19 @@ export function estadoCaixa(c: ConferenciaCaixa | null): EstadoCaixa {
   return { tipo: "conferido", previsto, recebido, diferenca: diferencaCaixa(previsto, recebido), justificativa: c.justificativa, conferidoEm: c.conferidoEm };
 }
 
-/** previsto − recebido, em centavos para não acumular erro de ponto flutuante. */
+/** recebido − previsto, em centavos para não acumular erro de ponto flutuante (positivo = acima do previsto). */
 export function diferencaCaixa(previsto: number, recebido: number): number {
-  return (Math.round(previsto * 100) - Math.round(recebido * 100)) / 100;
+  return (Math.round(recebido * 100) - Math.round(previsto * 100)) / 100;
+}
+
+/** "R$ 500,00 acima do previsto" / "R$ 200,00 abaixo do previsto" / "sem diferença". */
+export function textoDiferenca(diferenca: number): string {
+  if (diferenca === 0) return "sem diferença";
+  return `${brl(Math.abs(diferenca))} ${diferenca > 0 ? "acima" : "abaixo"} do previsto`;
+}
+
+function brl(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export async function podeVerCaixa(store: FilaStore, ator: Ator): Promise<boolean> {
@@ -70,16 +82,21 @@ export async function salvarCaixa(store: FilaStore, ator: Ator, e: EntradaCaixa)
   return est;
 }
 
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-/** Linha da prestação de contas (só vai no feedback, que é visto pela concierge e pela gestão). */
-export function textoCaixa(e: EstadoCaixa): string {
+/** Linhas da prestação de contas (só vão no feedback, que é visto pela concierge e pela gestão). */
+export function linhasCaixa(e: EstadoCaixa): string[] {
   switch (e.tipo) {
-    case "nao_conferido": return "Conferência de recebimentos não realizada hoje.";
-    case "sem_recebimentos": return "Conferido: sem recebimentos hoje.";
+    case "nao_conferido": return ["Recebimentos não conferidos hoje (sem valores informados)."];
+    case "sem_recebimentos": return ["Conferido: sem recebimentos hoje."];
     case "conferido": {
-      const dif = e.diferenca === 0 ? "sem diferença" : `diferença de ${brl(e.diferenca)}${e.justificativa ? ` — ${e.justificativa}` : " — sem justificativa registrada"}`;
-      return `Previsto ${brl(e.previsto)} · recebido ${brl(e.recebido)} · ${dif}.`;
+      const l = [`Previsto: ${brl(e.previsto)} · Recebido: ${brl(e.recebido)}`];
+      if (e.diferenca === 0) l.push("Diferença: nenhuma.");
+      else l.push(`Diferença: ${textoDiferenca(e.diferenca)}. ${e.justificativa ? `Justificativa: ${e.justificativa.replace(/[\s.]+$/, "")}.` : "Justificativa não registrada."}`);
+      return l;
     }
   }
+}
+
+/** Mesma informação em uma linha (tela). */
+export function textoCaixa(e: EstadoCaixa): string {
+  return linhasCaixa(e).join(" · ");
 }

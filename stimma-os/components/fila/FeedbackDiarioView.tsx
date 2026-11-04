@@ -245,7 +245,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
               <span className="text-[11.5px] text-text-muted">{dataBr(hoje)}</span>
             </div>
             <div className="grid grid-cols-4 gap-2 border-b border-border pb-3">
-              {([["Registros", f.contadores.registros], ["Contatos", f.contadores.tentativasContato], ["Respostas", f.contadores.respostas], ["Resolvidos", f.contadores.resolvidos]] as const).map(([k, v]) => (
+              {([["Registros", f.contadores.registros], ["Tentativas", f.contadores.tentativasContato], ["Respostas", f.contadores.respostas], ["Resolvidos", f.contadores.resolvidos]] as const).map(([k, v]) => (
                 <div key={k}><p className="text-[11.5px] text-text-muted">{k}</p><p className="font-serif text-[30px] font-medium leading-none tabular-nums text-text-primary">{v}</p></div>
               ))}
             </div>
@@ -257,6 +257,7 @@ export function FeedbackDiarioView({ dados, fechamento, estado, usuario, usuario
                 ["Faltas", String(f.contadores.faltas)],
                 ["Marcos trabalhados", String(f.contadores.marcosTrabalhados)],
                 ["Atrasadas", String(meus.atrasada)],
+                ["Resposta não descrita", String(f.contadores.respostasIncompletas)],
               ] as const).map(([k, v]) => (
                 <div key={k} className="flex items-baseline justify-between border-b border-border/60 pb-1"><dt className="text-text-secondary">{k}</dt><dd className="font-medium text-text-primary">{v}</dd></div>
               ))}

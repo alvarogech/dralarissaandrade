@@ -209,7 +209,10 @@ export function FinalizarDiaView(p: Props) {
   const r = f.rotina;
   const semRegistro = r?.pendentes ?? [];
   const pacientes = f.blocos.flatMap((b) => b.linhas.map((l) => `${l.paciente} · ${l.item}: ${l.texto}`));
+  const incompletos = f.blocos.flatMap((b) => b.linhas.filter((l) => l.incompleto.length).map((l) => `${l.paciente} (${l.item}): ${l.incompleto.join("; ")}`));
   const avisos = [
+    // Não bloqueia o envio: o registro vai marcado como incompleto (nada é preenchido por suposição).
+    incompletos.length ? `${incompletos.length} registro${incompletos.length === 1 ? "" : "s"} sem a informação essencial — ${incompletos.join(" · ")}. Se for de hoje e sem pendência ligada, remova e registre de novo; senão ele vai marcado como incompleto.` : null,
     semRegistro.length ? `${semRegistro.length} atividade${semRegistro.length === 1 ? "" : "s"} da rotina ainda sem registro.` : null,
     r?.impedimentos.length ? `${r.impedimentos.length} atividade${r.impedimentos.length === 1 ? "" : "s"} com impedimento: a gestão vai ver o motivo.` : null,
     p.caixa.tipo === "nao_conferido" ? "A conferência de recebimentos não foi feita hoje." : null,
@@ -311,8 +314,10 @@ export function FinalizarDiaView(p: Props) {
           <div>
             <h4 className="fb-eyebrow mb-1">Contatos e retornos</h4>
             <dl>
-              <Linha k="Contatos realizados" v={`${p.indicadores.tentativas} (${p.indicadores.pacientesContatadas} paciente${p.indicadores.pacientesContatadas === 1 ? "" : "s"})`} />
-              <Linha k="Com resposta / sem resposta" v={`${p.indicadores.comResposta} / ${p.indicadores.semResposta}`} />
+              <Linha k="Tentativas de contato" v={`${p.indicadores.tentativas} (${p.indicadores.pacientesContatadas} paciente${p.indicadores.pacientesContatadas === 1 ? "" : "s"})`} />
+              <Linha k="Responderam / sem resposta" v={`${p.indicadores.comResposta} / ${p.indicadores.semResposta}`} />
+              {p.indicadores.respostasIncompletas > 0 && <Linha k="Resposta não descrita" v={p.indicadores.respostasIncompletas} tom="atencao" />}
+              {p.indicadores.mensagens > 0 && <Linha k="Mensagens sem retorno esperado (aniversário)" v={p.indicadores.mensagens} />}
               <Linha k="Retornos programados hoje" v={p.indicadores.followupsProgramados} />
               <Linha k="Retornos concluídos hoje" v={p.indicadores.followupsConcluidos} />
               <Linha k="Retornos vencidos" v={p.indicadores.followupsVencidos} tom={p.indicadores.followupsVencidos ? "critico" : undefined} />

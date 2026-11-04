@@ -48,6 +48,8 @@ export type ResultadoContato =
   | "nao_realizado" | "aguardando_resposta" | "nao_respondeu" | "respondeu"
   // desfecho quando a paciente respondeu
   | "orientacao" | "agendou" | "encaminhado_comercial" | "encaminhado_profissional" | "resolvido" | "nova_acao"
+  // continuidade de tratamento (03/11): o que a paciente decidiu
+  | "interessada" | "adiou" | "sem_interesse"
   | "pagamento_confirmado" | "promessa_pagamento" | "negociacao" | "encaminhado_gestao"
   // sem tentativa (aniversário) e valor antigo, mantido para registros já gravados
   | "mensagem_enviada" | "contato_realizado";
@@ -62,6 +64,8 @@ export interface PacientesDoItem {
   acao: string;
   /** Desfechos oferecidos quando a paciente responde (ou, com `semTentativa`, as opções diretas). */
   resultados: readonly ResultadoContato[];
+  /** Rótulo próprio de um desfecho nesta atividade (ex.: "Continuidade concluída" em vez de "Resolvido"). */
+  rotulos?: Partial<Record<ResultadoContato, string>>;
   /** Sem camada de tentativa (ex.: mensagem de aniversário não pede retorno se não houver resposta). */
   semTentativa?: boolean;
   /** Quando a paciente responde, o relato dela é obrigatório (ex.: pós-procedimento). */
@@ -207,7 +211,12 @@ export const ITENS_ROTINA: readonly ItemRotina[] = [
   },
   {
     key: "pos_procedimento", grupo: "relacionamento", curto: "Continuidade de tratamentos", texto: "Acompanhar a continuidade dos planos de tratamento",
-    pacientes: { categoria: "continuidade", acao: "Continuidade de tratamento", resultados: CONTATO },
+    // 03/11: desfechos próprios da continuidade — avançou, adiou, recusou ou precisa de outra pessoa.
+    pacientes: {
+      categoria: "continuidade", acao: "Continuidade de tratamento",
+      resultados: ["agendou", "interessada", "adiou", "sem_interesse", "orientacao", "encaminhado_profissional", "encaminhado_gestao", "resolvido", "nova_acao"],
+      rotulos: { resolvido: "Continuidade concluída", encaminhado_profissional: "Encaminhada à profissional", encaminhado_gestao: "Precisa de orientação da gestão" },
+    },
   },
   {
     key: "encaminhar_comercial", grupo: "relacionamento", curto: "Encaminhamentos à comercial", texto: "Encaminhar à comercial externa as primeiras avaliações a recuperar",

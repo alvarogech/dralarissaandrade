@@ -117,6 +117,11 @@ export async function finalizarFeedback(store: FilaStore, ator: Ator, p: { id: s
     throw new ErroRegra("Antes de enviar, revise as prioridades para o próximo dia útil (confirme as sugeridas, ajuste ou marque que não há).", 422);
   }
   const m = await montar(store, ator.id, dia, { observacao, decisoes });
+  // Erro que torna o fechamento incorreto bloqueia o envio (nunca se ajusta total para fechar a conta).
+  // Registro incompleto e "aguardando resposta" não bloqueiam: aparecem marcados no texto.
+  if (m.contadores.consistente === false) {
+    throw new ErroRegra("Os totais de contato não fecham com os registros do dia. Avise a gestão antes de enviar.", 422);
+  }
   const agora = new Date().toISOString();
 
   if (entregue && ultima?.id === entregue.id) {

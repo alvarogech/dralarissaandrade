@@ -1,7 +1,8 @@
 import { somarDias } from "./datas";
 import type { Fila, ItemFila } from "./agrupamento";
 import type { Categoria, EstadoDoDia, EventoRow, NumerosDoDia, PrioridadeDoDia } from "./store";
-import type { ResumoRotina } from "./rotina-itens";
+import { itemDaRotina, type ResumoRotina } from "./rotina-itens";
+import { contagemConsistente, contarRegistros, fraseDoRegistro, lerRegistro, normalizarTexto } from "./leitura-registro";
 
 /**
  * Feedback do dia, montado SÓ dos eventos persistidos daquela data (ações em tarefas e registros
@@ -10,26 +11,34 @@ import type { ResumoRotina } from "./rotina-itens";
  * resposta hoje entra como resultado, sem inventar contato. Dias anteriores não são reescritos
  * pela situação atual: para eles só aparecem os eventos daquele dia e o que foi gravado nele.
  *
- * Referências curtas ([T-1a2b3c] tarefa, [M-1a2b3c] marco) permitem colar o feedback de volta na
- * gestão sem depender de nomes. Nomes saem abreviados. Sem totais financeiros nesta versão.
+ * Cada linha segue a regra paciente → ação → resposta → desfecho → próximo passo, lida por
+ * leitura-registro.ts (a mesma leitura que alimenta os contadores). Referências curtas ([T-1a2b3c]
+ * tarefa, [M-1a2b3c] marco) ficam nos dados do fechamento e na versão entregue — não no texto do
+ * WhatsApp (03/11). Nomes saem abreviados.
  */
 export interface LinhaFeedback {
   ref: string;
   paciente: string;
   item: string;
   texto: string;
+  /** Agrupa os registros da mesma paciente numa linha só por área. */
+  pacienteChave: string;
   /** resultado de hoje (resposta, resolvido, agendado, compareceu/faltou) x ação de hoje */
   resultado: boolean;
   atencao: boolean;
+  /** O que falta para o registro ser compreensível (vazio = completo). */
+  incompleto: string[];
+  /** Mensagem sem retorno esperado (aniversário): entra agregada. */
+  mensagem: boolean;
 }
 
 export const BLOCOS = [
   { id: "agenda", titulo: "Agenda e comparecimento", categorias: ["agenda"] },
   { id: "oportunidade", titulo: "Oportunidades internas", categorias: ["oportunidade"] },
-  { id: "recorrencia", titulo: "Recorrência e follow-up", categorias: ["recorrencia"] },
-  { id: "continuidade", titulo: "Continuidade", categorias: ["continuidade"] },
+  { id: "continuidade", titulo: "Continuidade de tratamentos", categorias: ["continuidade"] },
+  { id: "recorrencia", titulo: "Acompanhamentos (30/90/180 dias) e resgate", categorias: ["recorrencia"] },
   { id: "pos", titulo: "Pós-atendimento e relacionamento", categorias: ["pos_atendimento", "relacionamento"] },
-  { id: "pendencia", titulo: "Pendências e alertas", categorias: ["pendencia", "encaminhamento"] },
+  { id: "pendencia", titulo: "Cobranças, encaminhamentos e alertas", categorias: ["pendencia", "encaminhamento"] },
 ] as const satisfies readonly { id: string; titulo: string; categorias: readonly Categoria[] }[];
 
 export interface Bloco {
@@ -40,15 +49,26 @@ export interface Bloco {
   semOcorrencias: boolean;
 }
 
+/** Fórmulas em leitura-registro.ts (contarRegistros) — as mesmas da prestação de contas e da tela. */
 export interface Contadores {
   /** Eventos da concierge no dia (ajustes da gestão não contam). */
   registros: number;
-  /** Contato realizado = sim (cada registro conta uma tentativa). */
+  /** Tentativas efetivas de contato (cada registro conta uma; mensagem de aniversário não conta). */
   tentativasContato: number;
-  /** Pacientes distintas com contato realizado. */
+  /** Pacientes distintas com tentativa. */
   pacientesContatadas: number;
-  /** Houve resposta = sim (não somam como contato). */
+  /** Respostas reais descritas (resposta vazia ou genérica não conta). */
   respostas: number;
+  pacientesResponderam: number;
+  /** Marcadas como "respondeu" sem a resposta descrita (aparecem como incompletas). */
+  respostasIncompletas: number;
+  semResposta: number;
+  naoRealizados: number;
+  /** Mensagens sem retorno esperado (aniversário). */
+  mensagens: number;
+  registrosIncompletos: number;
+  /** tentativas = respondeu + resposta incompleta + sem resposta (falso = classificação a conferir). */
+  consistente: boolean;
   agendamentos: number;
   comparecimentos: number;
   faltas: number;
@@ -65,7 +85,9 @@ export interface Fechamento {
   blocos: Bloco[];
   contadores: Contadores;
   agenda: { prevista: number | null; realizada: number | null };
-  pendentesAbertas: { ref: string; paciente: string; item: string; quando: string; aguardando: boolean }[];
+  pendentesAbertas: { ref: string; paciente: string; item: string; quando: string; aguardando: boolean; vencida: boolean; gestao: boolean; due: string | null }[];
+  /** Situação atual das pendências (só no dia de hoje; null em dias anteriores). */
+  situacaoPendencias: { abertas: number; vencidas: number; aguardandoPaciente: number; aguardandoGestao: number } | null;
   prioridades: PrioridadeDoDia[];
   prioridadesEscolhidas: boolean;
   sugestoes: { ref: string; texto: string; motivo: string }[];
@@ -115,36 +137,6 @@ const ROTULO_CATEGORIA: Record<string, string> = {
 
 const CAT_DO_ITEM = (i: ItemFila | undefined): Categoria => (i?.categoria as Categoria | undefined) ?? (i?.tipo === "marco" ? "recorrencia" : "pendencia");
 
-const contatoSim = (e: EventoRow) => e.contato === "sim" || (e.contato == null && e.kind === "contato");
-const respostaSim = (e: EventoRow) => e.resposta === "sim" || (e.resposta == null && e.kind === "resposta");
-
-function descrever(e: EventoRow): { texto: string; resultado: boolean } {
-  const p = (e.payload ?? {}) as Record<string, unknown>;
-  const partes: string[] = [];
-  // Eventos antigos (antes do registro do dia) guardavam a descrição só em `notes`.
-  const feito = typeof p.feito === "string" ? p.feito : e.situacao ? null : e.notes;
-  if (contatoSim(e)) partes.push(`contato${CANAL[e.channel ?? ""] ?? (e.channel ? ` por ${e.channel}` : "")}${feito ? `: ${feito}` : ""}`);
-  else if (feito) partes.push(feito);
-  if (e.contato === "nao") partes.push("contato não realizado");
-  if (respostaSim(e)) partes.push(`resposta: ${e.resultado ?? "registrada"}`);
-  else if (e.resposta === "nao") partes.push("sem resposta");
-  let resultado = respostaSim(e);
-  switch (e.situacao ?? (e.kind === "agendamento_obtido" ? "agendado" : e.kind === "atendimento_realizado" ? "compareceu" : e.kind === "cancelamento" ? "faltou" : e.kind === "encerramento" ? "resolvido" : null)) {
-    case "agendado": partes.push(`agendou consulta para ${dataBr(e.scheduledFor ?? "")}`); resultado = true; break;
-    case "compareceu": partes.push("compareceu à consulta (conferir no Simples Dental)"); resultado = true; break;
-    case "faltou": partes.push("faltou à consulta"); resultado = true; break;
-    case "resolvido": partes.push(`resolvido${e.resultado && !respostaSim(e) ? `: ${e.resultado}` : ""}`); resultado = true; break;
-    case "dispensado": partes.push("encerrado sem resolver"); break;
-    case "aguardando": partes.push("aguardando resposta"); break;
-    case "aguardando_gestao": partes.push(`aguardando gestão${typeof p.pergunta === "string" ? ` (${p.pergunta})` : ""}`); break;
-    case "encaminhado": partes.push("encaminhado"); break;
-  }
-  if (typeof p.proxima === "string" && p.proxima) partes.push(`próxima: ${p.proxima}${p.responsavel ? ` (${p.responsavel})` : ""}${typeof p.prazo === "string" ? ` até ${dataBr(p.prazo)}` : ""}`);
-  if (!partes.length && e.notes) partes.push(e.notes);
-  if (e.kind === "recebimento_confirmado" && e.amount) partes.push(`recebimento registrado ${brl(e.amount)}${e.amountOrigin ? ` (${e.amountOrigin.replace(/_/g, " ")})` : ""}`);
-  return { texto: partes.join("; ") || e.kind, resultado };
-}
-
 export interface EntradaFechamento {
   dia: string;
   hoje: string;
@@ -168,46 +160,74 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
     const alvos = e.alvos.map((a) => porAlvo.get(a.marcoId ?? a.tarefaId ?? "")).filter((x): x is ItemFila => !!x);
     const cat: Categoria = (e.categoria as Categoria | null) ?? CAT_DO_ITEM(alvos[0]);
     const bloco = blocos[BLOCOS.findIndex((b) => (b.categorias as readonly string[]).includes(cat))] ?? blocos[blocos.length - 1]!;
-    const { texto, resultado } = descrever(e);
+    const r = lerRegistro(e);
     const p = (e.payload ?? {}) as Record<string, unknown>;
+    let texto = fraseDoRegistro(r);
+    // Recebimento registrado numa ação da fila (formato anterior): valor e origem, sem presumir mais nada.
+    if (e.kind === "recebimento_confirmado" && e.amount) texto = `${texto === "Registro sem descrição." ? "" : `${texto} `}Recebimento registrado: ${brl(e.amount)}${e.amountOrigin ? ` (${e.amountOrigin.replace(/_/g, " ")})` : ""}.`.trim();
     bloco.linhas.push({
       ref: alvos.map((a) => refDoItem(a.alvo!)).join(" "),
       paciente: nomeDe(e),
+      pacienteChave: e.patientId ?? `assunto:${e.assunto ?? e.id}`,
       // Contato feito numa atividade da rotina: o rótulo é a atividade (não a tarefa de retorno que ele criou).
       item: ((p.detalhes as Record<string, unknown> | undefined)?.rotina_item && typeof p.contexto === "string" ? p.contexto : null)
         ?? (alvos.map((a) => a.titulo).join(" + ") || (typeof p.contexto === "string" ? p.contexto : ROTULO_CATEGORIA[cat] ?? "registro")),
-      texto, resultado, atencao: p.atencao === true,
+      texto,
+      resultado: r.estado === "respondeu" || ["agendou", "resolvido", "compareceu", "faltou"].includes(r.desfecho ?? ""),
+      atencao: r.atencao || r.desfecho === "encaminhado_profissional",
+      incompleto: r.incompleto,
+      mensagem: r.estado === "mensagem",
     });
   }
   for (const [i, b] of BLOCOS.entries()) {
     blocos[i]!.semOcorrencias = !blocos[i]!.linhas.length && b.categorias.some((c) => estado.secoes[c] === "sem_ocorrencias");
   }
 
-  const comContato = daConcierge.filter(contatoSim);
+  const c = contarRegistros(daConcierge);
   const contadores: Contadores = {
-    registros: daConcierge.length,
-    tentativasContato: comContato.length,
-    pacientesContatadas: new Set(comContato.map((e) => e.patientId ?? `assunto:${e.assunto}`)).size,
-    respostas: daConcierge.filter(respostaSim).length,
-    agendamentos: daConcierge.filter((e) => e.situacao === "agendado" || (!e.situacao && e.kind === "agendamento_obtido")).length,
+    registros: c.registros,
+    tentativasContato: c.tentativas,
+    pacientesContatadas: c.pacientesContatadas,
+    respostas: c.respostas,
+    pacientesResponderam: c.pacientesResponderam,
+    respostasIncompletas: c.respostasIncompletas,
+    semResposta: c.semResposta,
+    naoRealizados: c.naoRealizados,
+    mensagens: c.mensagens,
+    agendamentos: c.agendamentos,
     comparecimentos: daConcierge.filter((e) => e.situacao === "compareceu" || (!e.situacao && e.kind === "atendimento_realizado")).length,
     faltas: daConcierge.filter((e) => e.situacao === "faltou" || (!e.situacao && e.kind === "cancelamento")).length,
-    resolvidos: daConcierge.filter((e) => e.situacao === "resolvido" || (!e.situacao && e.kind === "encerramento")).length,
+    resolvidos: c.resolvidos,
+    registrosIncompletos: c.registrosIncompletos,
     marcosTrabalhados: new Set(daConcierge.flatMap((e) => e.alvos.map((a) => a.marcoId).filter(Boolean))).size,
+    consistente: contagemConsistente(c),
   };
 
   const proximoDia = proximoDiaUtil(dia);
   // Pendência comercial que ficou com a Mel (ou a gestão) sai daqui: tem seção própria na prestação.
   const daGabi = (i: ItemFila) => !((i.retornoDe === "rotina:conferencia_mel" || i.retornoDe?.startsWith("planejamento:")) && !i.responsavelId);
   const aguardando = fila.aguardando.flatMap((c) => c.itens.map((i) => ({ i, nome: c.pacienteNome }))).filter(({ i }) => daGabi(i));
-  const abertasProximas = [...fila.atrasadas, ...fila.hoje, ...fila.proximas]
+  const abertas = [...fila.atrasadas, ...fila.hoje, ...fila.proximas]
     .flatMap((c) => c.itens.map((i) => ({ i, nome: c.pacienteNome })))
-    .filter(({ i }) => i.status === "aberta" && i.due <= proximoDia && i.tipo !== "conferir_atendimento" && daGabi(i));
+    .filter(({ i }) => i.status === "aberta" && i.tipo !== "conferir_atendimento" && daGabi(i));
+  const abertasProximas = abertas.filter(({ i }) => i.due <= proximoDia);
   const nomeItem = (i: ItemFila, n: string) => (i.semPaciente ? n : nomeCurto(n));
   const pendentesAbertas = historico ? [] : [
-    ...abertasProximas.map(({ i, nome }) => ({ ref: refDoItem(i.alvo!), paciente: nomeItem(i, nome), item: i.titulo, quando: i.due < dia ? `vencida desde ${dataBr(i.due)}` : `prazo ${dataBr(i.due)}`, aguardando: false })),
-    ...aguardando.map(({ i, nome }) => ({ ref: refDoItem(i.alvo!), paciente: nomeItem(i, nome), item: i.titulo, quando: `${i.aguardando === "gestao" ? "aguardando gestão" : "aguardando resposta"}${i.due ? ` (rever em ${dataBr(i.due)})` : ""}`, aguardando: true })),
+    ...abertasProximas.map(({ i, nome }) => ({
+      ref: refDoItem(i.alvo!), paciente: nomeItem(i, nome), item: tituloComOrigem(i), quando: i.due < dia ? `vencida desde ${dataBr(i.due)}` : `prazo ${dataBr(i.due)}`,
+      aguardando: false, vencida: i.due < dia, gestao: false, due: i.due,
+    })),
+    ...aguardando.map(({ i, nome }) => ({
+      ref: refDoItem(i.alvo!), paciente: nomeItem(i, nome), item: tituloComOrigem(i), quando: `${i.aguardando === "gestao" ? "aguardando gestão" : "aguardando resposta"}${i.due ? ` (rever em ${dataBr(i.due)})` : ""}`,
+      aguardando: true, vencida: !!i.due && i.due < dia, gestao: i.aguardando === "gestao", due: i.due,
+    })),
   ];
+  const situacaoPendencias = historico ? null : {
+    abertas: abertas.length + aguardando.length,
+    vencidas: abertas.filter(({ i }) => i.due < dia).length + aguardando.filter(({ i }) => i.due && i.due < dia).length,
+    aguardandoPaciente: aguardando.filter(({ i }) => i.aguardando !== "gestao").length,
+    aguardandoGestao: aguardando.filter(({ i }) => i.aguardando === "gestao").length,
+  };
 
   const sugestoes = historico ? [] : [
     ...itens.filter((i) => i.status !== "concluida" && i.atencao).map((i) => ({ i, motivo: "atenção (reclamação ou pedido de avaliação)" })),
@@ -217,14 +237,14 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
   ]
     .filter((s, idx, arr) => arr.findIndex((x) => x.i.id === s.i.id) === idx)
     .slice(0, 10)
-    .map(({ i, motivo }) => ({ ref: refDoItem(i.alvo!), texto: `${i.semPaciente ? i.pacienteNome : nomeCurto(i.pacienteNome)} — ${i.titulo}`, motivo }));
+    .map(({ i, motivo }) => ({ ref: refDoItem(i.alvo!), texto: `${i.semPaciente ? i.pacienteNome : nomeCurto(i.pacienteNome)} — ${tituloComOrigem(i)}`, motivo }));
 
   const prioridadesEscolhidas = estado.prioridades.length > 0;
   const itensHoje = [...fila.atrasadas, ...fila.hoje].flatMap((c) => c.itens);
   return {
     dia, historico, blocos, contadores,
     agenda: { prevista: numeros?.agendaPrevista ?? null, realizada: numeros?.agendaRealizada ?? null },
-    pendentesAbertas,
+    pendentesAbertas, situacaoPendencias,
     prioridades: prioridadesEscolhidas ? estado.prioridades : sugestoes.slice(0, 5).map((s) => ({ ref: s.ref, texto: s.texto })),
     prioridadesEscolhidas, sugestoes, proximoDia, numeros,
     atrasados: fila.atrasadas.flatMap((c) => c.itens).filter((i) => i.tipo !== "conferir_atendimento").length,
@@ -233,58 +253,143 @@ export function montarFechamento({ dia, hoje, eventos, fila, itens, nomes, numer
   };
 }
 
-export function textoWhatsapp(f: Fechamento): string {
-  const l: string[] = [`*Fechamento — ${dataBr(f.dia)} (${diaSemana(f.dia)})*`, ""];
+/**
+ * Título da pendência com a atividade de origem quando o título sozinho é genérico — duas pendências
+ * "Verificar se respondeu" da mesma paciente vindas de acompanhamentos diferentes ficam distinguíveis
+ * (são obrigações diferentes; a mesma obrigação já é reaproveitada no registro, ver followup.ts).
+ */
+export function tituloComOrigem(i: Pick<ItemFila, "titulo" | "retornoDe">): string {
+  const chave = i.retornoDe ?? "";
+  const origem = chave.startsWith("rotina:") ? itemDaRotina(chave.slice(7))?.curto ?? null : null;
+  return origem && !normalizarTexto(i.titulo).includes(normalizarTexto(origem)) ? `${i.titulo} (${origem.toLowerCase()})` : i.titulo;
+}
+
+/** Partes da prestação de contas que não saem do fechamento por áreas (montadas em prestacao.ts). */
+export interface ExtrasWhatsapp {
+  /** Conferência de recebimentos (linhas já prontas). */
+  financeiro?: string[];
+  /** Conferência comercial e planejamentos (linhas com os próprios títulos). */
+  comercial?: string[];
+  solicitacoes?: string[];
+  /** Pendências que aguardam a gestão (linhas prontas) — vão em "Atenção da gestão". */
+  decisoesGestao?: string[];
+  decisoesTexto?: string | null;
+  observacao?: string | null;
+  /** Quantidade de retornos vencidos/outros números de rotina já calculados. */
+}
+
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+
+/**
+ * Fechamento para o WhatsApp — relatório executivo, não transcrição do banco:
+ * resumo → agenda → continuidade → acompanhamentos → pós/relacionamento → oportunidades/cobranças →
+ * comercial → financeiro → atenção da gestão → prioridades. Sem códigos internos (as referências
+ * ficam no sistema, ligadas à versão entregue), sem campos vazios e sem seções vazias. Mensagens de
+ * aniversário entram agregadas; cada paciente com movimentação relevante aparece uma vez por área.
+ */
+export function textoWhatsapp(f: Fechamento, x: ExtrasWhatsapp = {}): string {
+  const l: string[] = [`*STIMMA | Fechamento — ${dataBr(f.dia)} (${diaSemana(f.dia)})*`, ""];
   const c = f.contadores;
-  l.push(`Registros: ${c.registros} · Tentativas de contato: ${c.tentativasContato} (${c.pacientesContatadas} pacientes) · Respostas: ${c.respostas} · Agendamentos: ${c.agendamentos} · Comparecimentos: ${c.comparecimentos} · Resolvidos: ${c.resolvidos}${c.marcosTrabalhados ? ` · Marcos trabalhados: ${c.marcosTrabalhados}` : ""}`);
+
+  // 1. Resumo do dia (só números confiáveis; nada conferido = não aparece como zero)
+  l.push("*Resumo do dia*");
+  if (!c.tentativasContato && !c.respostas && !c.respostasIncompletas && !c.mensagens && !c.registros) l.push("• Nenhum registro de paciente hoje.");
+  else {
+    if (c.tentativasContato) l.push(`• Pacientes contatadas: ${c.pacientesContatadas}${c.tentativasContato !== c.pacientesContatadas ? ` (${plural(c.tentativasContato, "tentativa", "tentativas")})` : ""}`);
+    const resp = [
+      `Responderam: ${c.pacientesResponderam}`,
+      c.semResposta ? `sem resposta: ${c.semResposta}` : "",
+      c.respostasIncompletas ? `resposta não descrita: ${c.respostasIncompletas}` : "",
+      c.naoRealizados ? `contatos não realizados: ${c.naoRealizados}` : "",
+    ].filter(Boolean);
+    if (c.tentativasContato || c.respostas) l.push(`• ${resp.join(" · ")}`);
+    l.push(`• Agendamentos: ${c.agendamentos} · Pendências resolvidas: ${c.resolvidos}`);
+    if (c.registrosIncompletos) l.push(`• ⚠️ Registros incompletos: ${c.registrosIncompletos} (identificados abaixo)`);
+  }
+  const atencaoN = f.blocos.reduce((n, b) => n + b.linhas.filter((y) => y.atencao).length, 0);
+  if (f.situacaoPendencias) {
+    const s = f.situacaoPendencias;
+    l.push(`• Pendências em aberto: ${s.abertas}${s.vencidas ? ` (${plural(s.vencidas, "vencida", "vencidas")})` : ""}${s.aguardandoGestao ? ` · aguardando a gestão: ${s.aguardandoGestao}` : ""}`);
+  }
+  if (atencaoN) l.push(`• ⚠️ Pacientes que precisam de atenção: ${atencaoN}`);
+  if (f.rotina?.registrada) {
+    const r = f.rotina;
+    const total = r.feitos.length + r.naoSeAplica.length + r.pendentes.length + r.impedimentos.length;
+    l.push(`• Rotina: ${r.feitos.length} de ${total} itens feitos${r.naoSeAplica.length ? ` · ${r.naoSeAplica.length} não se aplicam` : ""}${r.pendentes.length ? ` · ainda a fazer: ${r.pendentes.length}` : ""}`);
+    for (const q of r.quantidades) l.push(`• ${q.atencao ? "⚠️ " : ""}${q.item}: ${q.texto}`);
+  } else if (f.rotina) l.push("• Rotina não registrada.");
   l.push("");
 
+  // 2–4. Áreas com pacientes: uma linha por paciente (registros do dia juntos, na ordem)
   for (const b of f.blocos) {
     const temAgenda = b.id === "agenda" && (f.agenda.prevista !== null || f.agenda.realizada !== null);
-    if (!b.linhas.length && !b.semOcorrencias && !temAgenda) continue;
+    const linhas = b.linhas.filter((y) => !y.mensagem);
+    const mensagens = b.linhas.filter((y) => y.mensagem);
+    if (!linhas.length && !mensagens.length && !b.semOcorrencias && !temAgenda) continue;
     l.push(`*${b.titulo}*`);
     if (temAgenda) {
       const dif = f.agenda.prevista !== null && f.agenda.realizada !== null ? f.agenda.prevista - f.agenda.realizada : null;
-      l.push(`• Agenda: ${f.agenda.prevista ?? "—"} previstos · ${f.agenda.realizada ?? "—"} realizados${dif ? ` (diferença de ${dif} para conferir — não é necessariamente falta)` : ""}`);
+      l.push(`• Agenda: ${f.agenda.prevista ?? "não conferida"} previstos · ${f.agenda.realizada ?? "não conferida"} realizados${dif ? ` (diferença de ${dif} para conferir — não é necessariamente falta)` : ""}`);
     }
     if (b.semOcorrencias) l.push("• Sem ocorrências.");
-    const acoes = b.linhas.filter((x) => !x.resultado);
-    const resultados = b.linhas.filter((x) => x.resultado);
-    const ref = (x: LinhaFeedback) => (x.ref ? ` [${x.ref}]` : "");
-    for (const x of resultados) l.push(`• ${x.atencao ? "⚠️ " : ""}Resultado — ${x.paciente} · ${x.item}: ${x.texto}${ref(x)}`);
-    for (const x of acoes) l.push(`• ${x.atencao ? "⚠️ " : ""}${x.paciente} · ${x.item}: ${x.texto}${ref(x)}`);
-    l.push("");
-  }
-
-  // Rotina do dia: estados do checklist, sem valores nem dados de paciente.
-  if (f.rotina) {
-    const r = f.rotina;
-    l.push("*Rotina do dia*");
-    if (!r.registrada) l.push("• Rotina não registrada.");
-    else {
-      if (r.feitos.length) l.push(`• Concluídos (${r.feitos.length}): ${r.feitos.join("; ")}`);
-      if (r.naoSeAplica.length) l.push(`• Não se aplica (${r.naoSeAplica.length}): ${r.naoSeAplica.join("; ")}`);
-      // Quantidades da rotina (cobranças, aniversários, contatos, resgate): só números, sem pacientes.
-      for (const q of r.quantidades) l.push(`• ${q.atencao ? "⚠️ " : ""}${q.item} — ${q.texto}`);
-      for (const i of r.impedimentos) l.push(`• ⚠️ Impedimento — ${i.item}: ${i.motivo}; próxima ação: ${i.proxima}${i.responsavel ? ` (${i.responsavel})` : ""}${i.prazo ? ` até ${dataBr(i.prazo)}` : ""}`);
-      if (r.pendentes.length) l.push(`• Ainda a fazer (${r.pendentes.length}): ${r.pendentes.join("; ")}`);
+    const porPaciente = new Map<string, LinhaFeedback[]>();
+    for (const y of linhas) porPaciente.set(y.pacienteChave, [...(porPaciente.get(y.pacienteChave) ?? []), y]);
+    const variosItens = new Set(linhas.map((y) => y.item)).size > 1;
+    const grupos = [...porPaciente.values()].sort((a, z) => Number(z.some((y) => y.atencao || y.incompleto.length)) - Number(a.some((y) => y.atencao || y.incompleto.length)));
+    for (const g of grupos) {
+      const rotulo = variosItens ? ` · ${[...new Set(g.map((y) => y.item))].join(" + ")}` : "";
+      const texto = g.map((y, i) => (i ? `Depois: ${y.texto}` : y.texto)).join(" ");
+      l.push(`• ${g.some((y) => y.atencao) ? "⚠️ " : ""}${g[0]!.paciente}${rotulo} — ${texto}`);
+    }
+    if (mensagens.length) {
+      const porItem = new Map<string, number>();
+      for (const y of mensagens) porItem.set(y.item, (porItem.get(y.item) ?? 0) + 1);
+      for (const [item, n] of porItem) l.push(`• ${item}: ${plural(n, "mensagem enviada", "mensagens enviadas")}.`);
     }
     l.push("");
   }
 
-  if (!f.historico) {
-    l.push(`*Pendências que permanecem abertas* (${f.pendentesAbertas.length})`);
-    if (!f.pendentesAbertas.length) l.push("• Nenhuma até o próximo dia útil.");
-    for (const p of f.pendentesAbertas) l.push(`• ${p.paciente} — ${p.item} (${p.quando}) [${p.ref}]`);
-    if (f.aConferir) l.push(`• Atendimentos a conferir no Simples Dental: ${f.aConferir}`);
+  // 5. Comercial e planejamentos (seções próprias, já com título)
+  if (x.comercial?.length) l.push(...x.comercial, "");
+
+  // 6. Financeiro
+  if (x.financeiro?.length) l.push("*Financeiro*", ...x.financeiro.map((y) => `• ${y}`), "");
+
+  if (x.solicitacoes?.length) l.push("*Solicitações da gestão*", ...x.solicitacoes.map((y) => `• ${y}`), "");
+
+  // 7. Atenção da gestão — só o que precisa de decisão, autorização ou ciência
+  const atencao: string[] = [];
+  for (const p of f.pendentesAbertas.filter((y) => y.gestao)) atencao.push(`${p.paciente} — ${p.item}${p.due ? ` (resposta até ${dataBr(p.due)})` : ""}`);
+  for (const d of x.decisoesGestao ?? []) atencao.push(d);
+  for (const i of f.rotina?.impedimentos ?? []) atencao.push(`Impedimento na rotina — ${i.item}: ${i.motivo}${i.proxima ? `; próximo passo: ${i.proxima}` : ""}${i.responsavel ? ` (${i.responsavel})` : ""}${i.prazo ? ` até ${dataBr(i.prazo)}` : ""}`);
+  const incompletos = f.blocos.flatMap((b) => b.linhas.filter((y) => y.incompleto.length).map((y) => `${y.paciente} (${y.item.toLowerCase()})`));
+  if (incompletos.length) atencao.push(`Registros sem a informação essencial (orientação, resposta ou resultado): ${incompletos.join(", ")}`);
+  if (!f.contadores.consistente) atencao.push("Os totais de contato não fecham com os registros — conferir antes de usar os números.");
+  const decisoes = x.decisoesTexto?.trim();
+  if (atencao.length || decisoes) {
+    l.push("*Atenção da gestão*", ...atencao.map((y) => `• ${y}`));
+    if (decisoes) l.push(`• Decisões pedidas pela Gabi: ${decisoes}`);
     l.push("");
   }
 
-  l.push(`*Prioridades para o próximo dia útil (${diaSemana(f.proximoDia)}, ${dataBr(f.proximoDia)})*${f.prioridadesEscolhidas ? "" : f.prioridades.length ? " — sugeridas" : ""}`);
+  // 8. Prioridades do próximo dia útil (escolhidas ou sugeridas; sem listar todas as tarefas abertas)
+  l.push(`*Prioridades — ${diaSemana(f.proximoDia)}, ${dataBr(f.proximoDia)}*${f.prioridadesEscolhidas ? "" : f.prioridades.length ? " (sugeridas)" : ""}`);
   if (!f.prioridades.length) l.push("• Nenhuma definida.");
   for (const p of f.prioridades) {
     const extra = [p.prioridade === "alta" ? "prioridade alta" : "", p.paciente ? `paciente: ${p.paciente}` : "", p.data ? `até ${dataBr(p.data)}` : "", p.proxima ? `próxima ação: ${p.proxima}` : "", p.origem ? `origem: ${p.origem}` : ""].filter(Boolean);
-    l.push(`• ${p.texto}${extra.length ? ` (${extra.join("; ")})` : ""}${p.ref ? ` [${p.ref}]` : ""}`);
+    l.push(`• ${p.texto}${extra.length ? ` (${extra.join("; ")})` : ""}`);
   }
-  return l.join("\n").replace(/\n{3,}/g, "\n\n");
+  if (!f.historico) {
+    const vencidas = f.pendentesAbertas.filter((y) => y.vencida && !y.gestao && !f.prioridades.some((p) => p.ref === y.ref));
+    if (vencidas.length) {
+      l.push(`Vencidas fora das prioridades (${vencidas.length}):`);
+      for (const p of vencidas.slice(0, 5)) l.push(`• ${p.paciente} — ${p.item} (${p.quando})`);
+      if (vencidas.length > 5) l.push(`• e mais ${vencidas.length - 5} no STIMMA OS.`);
+    }
+    if (f.aConferir) l.push(`• Atendimentos a conferir no Simples Dental: ${f.aConferir}`);
+  }
+
+  const obs = x.observacao?.trim();
+  if (obs) l.push("", "*Observações do dia*", obs);
+  return l.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
