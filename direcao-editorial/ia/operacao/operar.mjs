@@ -32,7 +32,7 @@ const ler = (f, padrao) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) 
 const gravar = (f, v) => { mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, typeof v === 'string' ? v : JSON.stringify(v, null, 2)); };
 const arg = (n, padrao) => (process.argv.includes(`--${n}`) ? process.argv[process.argv.indexOf(`--${n}`) + 1] : padrao);
 const sair = (msg, cod = 1) => { console.error(msg); process.exit(cod); };
-const VERSAO = 'operacao@4a.1';
+const VERSAO = 'operacao@4a.2';
 const PROTEGIDOS = ['Aprovado', 'Agendado', 'Publicado', 'Analisado', 'Arquivado'];
 const ABERTOS = ['Ideia', 'Planejado', 'Aguardando informação', 'Aguardando captação', 'Em produção', 'Aguardando aprovação'];
 const TESTE = 'teste4a:';
@@ -446,7 +446,8 @@ else if (cmd === 'conferir-depois') {
   for (const f of existsSync(P('paginas')) ? readdirSync(P('paginas')).filter((x) => x.endsWith('-depois.txt')) : []) {
     const r = lerPagina(P('paginas', f)); const id = f.replace('-depois.txt', ''); pos[id] = r; const c = limpar(r.Chave || ''); if (c) posPorChave[c] = r;
   }
-  const norm = (v) => String(limpar(v ?? '')).normalize('NFD').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+  // O Notion devolve **negrito** como <b>negrito</b> e escapa : [ ] \; compara só letras e números.
+  const norm = (v) => String(limpar(String(v ?? '').replace(/<\/?[a-z][^>]*>/gi, '').replace(/\*\*/g, ''))).normalize('NFD').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
   const falhas = []; const ok = [];
   for (const o of plano.ops) {
     if (o.cancelada) continue;
