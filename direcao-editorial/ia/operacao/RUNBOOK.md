@@ -76,7 +76,7 @@ node ia/operacao/operar.mjs resolver
 ```bash
 node ia/operacao/operar.mjs reler antes
 ```
-Para cada página listada, chame `notion-fetch` e grave o **texto completo** do resultado em `salvar_em`. Depois:
+Para cada página listada, chame `notion-fetch` e grave o **texto completo** do resultado em `salvar_em` (crie a pasta `ia/operacao/run/paginas/` antes). **Só depois que todos os arquivos existirem**, rode o comando abaixo, separado (não encadeie com a gravação). Se ele responder `FALTA_RELEITURA`, grave o que falta e rode de novo:
 ```bash
 node ia/operacao/operar.mjs conferir-antes
 ```

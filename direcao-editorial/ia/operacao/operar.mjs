@@ -172,7 +172,8 @@ else if (cmd === 'snapshot') {
   snapshot.conteudos = snapshot.conteudos.filter((c) => c.status !== 'Arquivado' && (!['Publicado', 'Analisado'].includes(c.status) || (c.publicado_em && c.publicado_em >= corte(90))));
   snapshot.dias = snapshot.dias.filter((d) => d.data && d.data >= corte(7));
   snapshot.semanas = snapshot.semanas.filter((w) => !w.fim || w.fim >= corte(21));
-  const ja = snapshot.execucoes.find((x) => x.idempotencia === e.idempotencia && ['Sucesso', 'Sucesso parcial'].includes(x.status));
+  // No piloto de teste a execução pode ser repetida; em produção, uma por dia (ou semana).
+  const ja = e.modo === 'producao' && snapshot.execucoes.find((x) => x.idempotencia === e.idempotencia && ['Sucesso', 'Sucesso parcial'].includes(x.status));
   gravar(P('snapshot.json'), snapshot); gravar(P('indice.json'), indice);
   const sim = Object.values(indice).filter((m) => m.origem === 'Simulação').length;
   console.log(JSON.stringify({ registros: Object.keys(indice).length, simulacao_lida: sim, ja_executado: Boolean(ja) }, null, 2));
@@ -397,14 +398,16 @@ else if (cmd === 'conferir-antes') {
   const canceladas = []; const faltam = [];
   for (const o of plano.ops.filter((x) => ['atualizar', 'secao'].includes(x.op) && x.atualizado_em_lido)) {
     const f = P('paginas', `${o.page_id}-antes.txt`);
-    if (!existsSync(f)) { faltam.push(o.page_id); o.cancelada = 'página não relida antes da escrita'; canceladas.push(o.id); continue; }
+    if (!existsSync(f)) { faltam.push(o.page_id); continue; }
     const agora = meta(o.base, lerPagina(f));
     if (agora.travado) { o.cancelada = 'página foi travada para o agente'; canceladas.push(o.id); continue; }
     if (agora.atualizado_em !== o.atualizado_em_lido) { o.cancelada = `página alterada desde a leitura (${o.atualizado_em_lido} → ${agora.atualizado_em})`; canceladas.push(o.id); }
   }
+  // Releitura faltando é falha de processo, não alteração humana: para aqui sem cancelar nada.
+  if (faltam.length) sair(`FALTA_RELEITURA: busque com notion-fetch e salve antes de continuar: ${[...new Set(faltam)].map((id) => `run/paginas/${id}-antes.txt`).join(', ')}`);
   gravar(P('plano.json'), plano);
   const executar = plano.ops.filter((o) => ['atualizar', 'secao'].includes(o.op) && !o.cancelada).map((o) => o.id);
-  console.log(JSON.stringify({ executar, canceladas, paginas_sem_releitura: [...new Set(faltam)] }, null, 2));
+  console.log(JSON.stringify({ executar, canceladas }, null, 2));
 }
 
 else if (cmd === 'secoes') {
@@ -481,7 +484,10 @@ else if (cmd === 'conferir-depois') {
   }
   if (preservacao.some((p) => !p.intacto)) falhas.push(`preservação: ${JSON.stringify(preservacao)}`);
   const canceladas = plano.ops.filter((o) => o.cancelada);
-  const status = falhas.length ? (ok.length ? 'Sucesso parcial' : 'Erro') : 'Sucesso';
+  // Cancelada por alteração humana ou trava = preservação (esperado). Qualquer outro motivo = falha de processo.
+  for (const o of canceladas) if (!/alterada desde a leitura|travada/.test(o.cancelada)) falhas.push(`${o.id}: cancelada por falha de processo (${o.cancelada})`);
+  const naoFeitas = plano.ops.filter((o) => ['atualizar', 'secao'].includes(o.op) && !o.cancelada && !ok.includes(o.id));
+  const status = falhas.length ? (ok.length ? 'Sucesso parcial' : 'Erro') : naoFeitas.length ? 'Sucesso parcial' : 'Sucesso';
   const fim = new Date().toISOString();
   const resultado = { status, ok, falhas, canceladas: canceladas.map((o) => ({ id: o.id, chave: o.chave, motivo: o.cancelada })), simulados: plano.simulados, preservados: plano.preservados, preservacao, avisos: plano.avisos };
   gravar(P('resultado.json'), resultado);
