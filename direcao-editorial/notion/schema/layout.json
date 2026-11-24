@@ -18,7 +18,7 @@
             "name": "Produzir hoje",
             "base": "conteudos",
             "type": "table",
-            "configure": "FILTER \"Prazo de produção\" = \"today\"; FILTER \"Status\" IN (\"Planejado\", \"Aguardando captação\", \"Em produção\"); SHOW \"Título\", \"Formato\", \"Etapa\", \"Publicação prevista\""
+            "configure": "FILTER \"Prazo de produção\" = \"today\"; FILTER \"Status\" IN (\"Planejado\", \"Aguardando captação\", \"Em produção\"); SHOW \"Título\", \"Formato\", \"Etapa\", \"Publicação prevista\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -28,7 +28,7 @@
             "name": "Publicar hoje",
             "base": "conteudos",
             "type": "table",
-            "configure": "FILTER \"Publicação prevista\" = \"today\"; FILTER \"Status\" IN (\"Aprovado\", \"Agendado\", \"Em produção\", \"Aguardando aprovação\"); SHOW \"Título\", \"Formato\", \"Status\", \"Validação da Larissa\""
+            "configure": "FILTER \"Publicação prevista\" = \"today\"; FILTER \"Status\" IN (\"Aprovado\", \"Agendado\", \"Em produção\", \"Aguardando aprovação\"); SHOW \"Título\", \"Formato\", \"Status\", \"Validação da Larissa\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -38,7 +38,7 @@
             "name": "Pedir à Larissa",
             "base": "captacao",
             "type": "table",
-            "configure": "FILTER \"Status\" = \"A solicitar\"; FILTER \"Quem capta\" != \"Social media\"; SORT BY \"Quando\" ASC; SHOW \"Pedido\", \"Tipo\", \"Como gravar\", \"Quando\""
+            "configure": "FILTER \"Status\" = \"A solicitar\"; FILTER \"Quem capta\" != \"Social media\"; SORT BY \"Quando\" ASC; SHOW \"Pedido\", \"Tipo\", \"Como gravar\", \"Quando\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -48,7 +48,7 @@
             "name": "Atrasados",
             "base": "conteudos",
             "type": "table",
-            "configure": "FILTER (\"Prazo de produção\" < \"today\" AND \"Status\" IN (\"Ideia\", \"Planejado\", \"Aguardando informação\", \"Aguardando captação\", \"Em produção\", \"Aguardando aprovação\")) OR (\"Publicação prevista\" < \"today\" AND \"Status\" IN (\"Planejado\", \"Aguardando informação\", \"Aguardando captação\", \"Em produção\", \"Aguardando aprovação\", \"Aprovado\", \"Agendado\")); SORT BY \"Prazo de produção\" ASC; SHOW \"Título\", \"Status\", \"Prazo de produção\", \"Publicação prevista\", \"Com quem está\""
+            "configure": "FILTER (\"Prazo de produção\" < \"today\" AND \"Status\" IN (\"Ideia\", \"Planejado\", \"Aguardando informação\", \"Aguardando captação\", \"Em produção\", \"Aguardando aprovação\")) OR (\"Publicação prevista\" < \"today\" AND \"Status\" IN (\"Planejado\", \"Aguardando informação\", \"Aguardando captação\", \"Em produção\", \"Aguardando aprovação\", \"Aprovado\", \"Agendado\")); SORT BY \"Prazo de produção\" ASC; SHOW \"Título\", \"Status\", \"Prazo de produção\", \"Publicação prevista\", \"Com quem está\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -58,7 +58,7 @@
             "name": "Dependem da Larissa",
             "base": "conteudos",
             "type": "table",
-            "configure": "FILTER (\"Com quem está\" = \"Larissa\" OR \"Validação da Larissa\" = \"Necessária\"); FILTER \"Status\" != \"Publicado\"; FILTER \"Status\" != \"Analisado\"; FILTER \"Status\" != \"Arquivado\"; SHOW \"Título\", \"Status\", \"Bloqueio\", \"Motivo da validação\""
+            "configure": "FILTER (\"Com quem está\" = \"Larissa\" OR \"Validação da Larissa\" = \"Necessária\"); FILTER \"Status\" != \"Publicado\"; FILTER \"Status\" != \"Analisado\"; FILTER \"Status\" != \"Arquivado\"; SHOW \"Título\", \"Status\", \"Bloqueio\", \"Motivo da validação\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -68,7 +68,7 @@
             "name": "Hoje",
             "base": "dias",
             "type": "table",
-            "configure": "FILTER \"Data\" = \"today\"; SHOW \"Dia\", \"Intenção do dia\", \"Prioridade 1\", \"Prioridade 2\", \"Prioridade 3\", \"Minha rotina\", \"Disponibilidade para gravar\""
+            "configure": "FILTER \"Data\" = \"today\"; SHOW \"Dia\", \"Intenção do dia\", \"Prioridade 1\", \"Prioridade 2\", \"Prioridade 3\", \"Minha rotina\", \"Disponibilidade para gravar\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -78,7 +78,7 @@
             "name": "Semana vigente",
             "base": "semanas",
             "type": "list",
-            "configure": "FILTER \"Período\" > \"one_week_ago\"; FILTER \"Período\" <= \"today\"; SHOW \"Semana\", \"Intenção editorial\", \"Narrativas\", \"Capacidade de produção\", \"Restrições da semana\""
+            "configure": "FILTER \"Período\" > \"one_week_ago\"; FILTER \"Período\" <= \"today\"; SHOW \"Semana\", \"Intenção editorial\", \"Narrativas\", \"Capacidade de produção\", \"Restrições da semana\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -88,7 +88,7 @@
             "name": "Stories de hoje",
             "base": "conteudos",
             "type": "list",
-            "configure": "FILTER \"Formato\" = \"Sequência de stories\"; FILTER \"Publicação prevista\" = \"today\"; SHOW \"Título\", \"Objetivo\", \"Gancho\", \"Etapa\""
+            "configure": "FILTER \"Formato\" = \"Sequência de stories\"; FILTER \"Publicação prevista\" = \"today\"; SHOW \"Título\", \"Objetivo\", \"Gancho\", \"Etapa\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -98,7 +98,7 @@
             "name": "Próximas publicações",
             "base": "conteudos",
             "type": "table",
-            "configure": "FILTER \"Publicação prevista\" > \"today\"; FILTER \"Publicação prevista\" <= \"one_month_from_now\"; FILTER \"Formato\" != \"Sequência de stories\"; SORT BY \"Publicação prevista\" ASC; SHOW \"Título\", \"Publicação prevista\", \"Formato\", \"Pilar\", \"Etapa\""
+            "configure": "FILTER \"Publicação prevista\" > \"today\"; FILTER \"Publicação prevista\" <= \"one_month_from_now\"; FILTER \"Formato\" != \"Sequência de stories\"; SORT BY \"Publicação prevista\" ASC; SHOW \"Título\", \"Publicação prevista\", \"Formato\", \"Pilar\", \"Etapa\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -108,7 +108,7 @@
             "name": "Para decidir",
             "base": "recomendacoes",
             "type": "table",
-            "configure": "FILTER \"Decisão\" = \"Aguardando decisão\"; FILTER \"Quem decide\" = \"Social media\"; SHOW \"Recomendação\", \"Nível\", \"Proposta\", \"Por quê\", \"Conteúdo\", \"Decisão\""
+            "configure": "FILTER \"Decisão\" = \"Aguardando decisão\"; FILTER \"Quem decide\" = \"Social media\"; SHOW \"Recomendação\", \"Nível\", \"Proposta\", \"Por quê\", \"Conteúdo\", \"Decisão\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -118,7 +118,7 @@
             "name": "Quadro",
             "base": "conteudos",
             "type": "board",
-            "configure": "GROUP BY \"Status\" BY OPTION HIDE EMPTY; FILTER \"Status\" != \"Ideia\"; FILTER \"Status\" != \"Analisado\"; FILTER \"Status\" != \"Arquivado\"; SHOW \"Título\", \"Formato\", \"Publicação prevista\", \"Com quem está\"; CARD LAYOUT compact"
+            "configure": "GROUP BY \"Status\" BY OPTION HIDE EMPTY; FILTER \"Status\" != \"Ideia\"; FILTER \"Status\" != \"Analisado\"; FILTER \"Status\" != \"Arquivado\"; SHOW \"Título\", \"Formato\", \"Publicação prevista\", \"Com quem está\"; CARD LAYOUT compact; FILTER \"Origem\" != \"Simulação\""
           }
         }
       ],
@@ -139,7 +139,7 @@
             "name": "Meu dia",
             "base": "dias",
             "type": "table",
-            "configure": "FILTER \"Data\" = \"today\"; SHOW \"Dia\", \"Minha rotina\", \"Disponibilidade para gravar\""
+            "configure": "FILTER \"Data\" = \"today\"; SHOW \"Dia\", \"Minha rotina\", \"Disponibilidade para gravar\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -149,7 +149,7 @@
             "name": "Para eu gravar",
             "base": "captacao",
             "type": "list",
-            "configure": "FILTER \"Quem capta\" != \"Social media\"; FILTER \"Status\" IN (\"Solicitado à Larissa\", \"Agendado\"); SORT BY \"Quando\" ASC; SHOW \"Pedido\", \"Como gravar\", \"Onde\", \"Quando\""
+            "configure": "FILTER \"Quem capta\" != \"Social media\"; FILTER \"Status\" IN (\"Solicitado à Larissa\", \"Agendado\"); SORT BY \"Quando\" ASC; SHOW \"Pedido\", \"Como gravar\", \"Onde\", \"Quando\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -159,7 +159,7 @@
             "name": "Para eu validar",
             "base": "conteudos",
             "type": "gallery",
-            "configure": "FILTER \"Validação da Larissa\" = \"Necessária\"; FILTER \"Status\" != \"Ideia\"; FILTER \"Status\" != \"Arquivado\"; SHOW \"Título\", \"Motivo da validação\", \"Publicação prevista\"; CARD SIZE small"
+            "configure": "FILTER \"Validação da Larissa\" = \"Necessária\"; FILTER \"Status\" != \"Ideia\"; FILTER \"Status\" != \"Arquivado\"; SHOW \"Título\", \"Motivo da validação\", \"Publicação prevista\"; CARD SIZE small; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -169,7 +169,7 @@
             "name": "Minhas perguntas",
             "base": "pendencias",
             "type": "list",
-            "configure": "FILTER \"Quem responde\" = \"Larissa\"; FILTER \"Status\" = \"Aberta\"; SORT BY \"Bloco do questionário\" ASC; SHOW \"Pendência\", \"Bloco do questionário\""
+            "configure": "FILTER \"Quem responde\" = \"Larissa\"; FILTER \"Status\" = \"Aberta\"; SORT BY \"Bloco do questionário\" ASC; SHOW \"Pendência\", \"Bloco do questionário\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -215,7 +215,7 @@
             "name": "Decisões da gestão",
             "base": "pendencias",
             "type": "table",
-            "configure": "FILTER \"Quem responde\" = \"Gestão\"; FILTER \"Status\" IN (\"Aberta\", \"Parcial\"); SORT BY \"Prioridade\" ASC; SHOW \"Pendência\", \"Prioridade\", \"Status\", \"Conteúdos afetados\""
+            "configure": "FILTER \"Quem responde\" = \"Gestão\"; FILTER \"Status\" IN (\"Aberta\", \"Parcial\"); SORT BY \"Prioridade\" ASC; SHOW \"Pendência\", \"Prioridade\", \"Status\", \"Conteúdos afetados\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -225,7 +225,7 @@
             "name": "Para a gestão",
             "base": "recomendacoes",
             "type": "table",
-            "configure": "FILTER \"Decisão\" = \"Aguardando decisão\"; FILTER \"Quem decide\" = \"Gestão\"; SHOW \"Recomendação\", \"Nível\", \"Proposta\", \"Por quê\", \"Decisão\""
+            "configure": "FILTER \"Decisão\" = \"Aguardando decisão\"; FILTER \"Quem decide\" = \"Gestão\"; SHOW \"Recomendação\", \"Nível\", \"Proposta\", \"Por quê\", \"Decisão\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -235,7 +235,7 @@
             "name": "Prioridades",
             "base": "prioridades",
             "type": "table",
-            "configure": "FILTER \"Status\" != \"Encerrada\"; SHOW \"Prioridade\", \"Período\", \"Status\", \"Procedimento ou serviço\", \"Meta\", \"Peso\""
+            "configure": "FILTER \"Status\" != \"Encerrada\"; SHOW \"Prioridade\", \"Período\", \"Status\", \"Procedimento ou serviço\", \"Meta\", \"Peso\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -245,7 +245,7 @@
             "name": "Semanas",
             "base": "semanas",
             "type": "table",
-            "configure": "SORT BY \"Período\" DESC; SHOW \"Semana\", \"Status do plano\", \"Intenção editorial\", \"Capacidade de produção\", \"Planejados\", \"Publicados\""
+            "configure": "SORT BY \"Período\" DESC; SHOW \"Semana\", \"Status do plano\", \"Intenção editorial\", \"Capacidade de produção\", \"Planejados\", \"Publicados\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -255,7 +255,7 @@
             "name": "Atenção",
             "base": "conteudos",
             "type": "table",
-            "configure": "FILTER (\"Status\" = \"Aguardando informação\") OR (\"Prazo de produção\" < \"today\" AND \"Status\" IN (\"Planejado\", \"Aguardando captação\", \"Em produção\", \"Aguardando aprovação\")) OR (\"Publicação prevista\" < \"today\" AND \"Status\" IN (\"Planejado\", \"Aguardando captação\", \"Em produção\", \"Aguardando aprovação\", \"Aprovado\", \"Agendado\")); SHOW \"Título\", \"Status\", \"Prazo de produção\", \"Bloqueio\", \"Com quem está\""
+            "configure": "FILTER (\"Status\" = \"Aguardando informação\") OR (\"Prazo de produção\" < \"today\" AND \"Status\" IN (\"Planejado\", \"Aguardando captação\", \"Em produção\", \"Aguardando aprovação\")) OR (\"Publicação prevista\" < \"today\" AND \"Status\" IN (\"Planejado\", \"Aguardando captação\", \"Em produção\", \"Aguardando aprovação\", \"Aprovado\", \"Agendado\")); SHOW \"Título\", \"Status\", \"Prazo de produção\", \"Bloqueio\", \"Com quem está\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -265,7 +265,7 @@
             "name": "Calendário",
             "base": "conteudos",
             "type": "calendar",
-            "configure": "CALENDAR BY \"Publicação prevista\"; SHOW \"Título\", \"Formato\", \"Pilar\""
+            "configure": "CALENDAR BY \"Publicação prevista\"; SHOW \"Título\", \"Formato\", \"Pilar\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -275,7 +275,7 @@
             "name": "Por pilar",
             "base": "conteudos",
             "type": "chart",
-            "configure": "FILTER \"Status\" != \"Ideia\"; FILTER \"Status\" != \"Arquivado\"; GROUP BY \"Pilar\"; CHART donut AGGREGATE count"
+            "configure": "FILTER \"Status\" != \"Ideia\"; FILTER \"Status\" != \"Arquivado\"; GROUP BY \"Pilar\"; CHART donut AGGREGATE count; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -285,7 +285,7 @@
             "name": "Por objetivo",
             "base": "conteudos",
             "type": "chart",
-            "configure": "FILTER \"Status\" != \"Ideia\"; FILTER \"Status\" != \"Arquivado\"; GROUP BY \"Objetivo\"; CHART bar AGGREGATE count"
+            "configure": "FILTER \"Status\" != \"Ideia\"; FILTER \"Status\" != \"Arquivado\"; GROUP BY \"Objetivo\"; CHART bar AGGREGATE count; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -295,7 +295,7 @@
             "name": "Leituras recentes",
             "base": "metricas",
             "type": "table",
-            "configure": "SORT BY \"Data da leitura\" DESC; SHOW \"Leitura\", \"Conteúdo\", \"Janela\", \"Alcance de não seguidores\", \"Retenção média (%)\", \"Salvamentos\", \"Compartilhamentos\", \"Conversas qualificadas\""
+            "configure": "SORT BY \"Data da leitura\" DESC; SHOW \"Leitura\", \"Conteúdo\", \"Janela\", \"Alcance de não seguidores\", \"Retenção média (%)\", \"Salvamentos\", \"Compartilhamentos\", \"Conversas qualificadas\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
@@ -305,7 +305,7 @@
             "name": "Aprendizados",
             "base": "aprendizados",
             "type": "board",
-            "configure": "GROUP BY \"Status\"; SHOW \"Aprendizado\", \"Área\", \"Próxima verificação\""
+            "configure": "GROUP BY \"Status\"; SHOW \"Aprendizado\", \"Área\", \"Próxima verificação\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {

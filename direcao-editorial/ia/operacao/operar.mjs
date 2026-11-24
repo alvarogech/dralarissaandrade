@@ -389,14 +389,17 @@ else if (cmd === 'validar') {
       if (!campos.some((c) => c.campo === 'Direcionamento')) campos.push({ campo: 'Direcionamento', valor: 'Gerado pelo agente' });
       const sec = secoesDia(saida, ctx());
       if (porChave[al.dia]) atualizar('dias', al.dia, campos, sec);
-      else { const op = ops.find((o) => o.op === 'criar' && o.chave === chaveTeste(al.dia)); if (op) { Object.assign(op.properties, montarProps('dias', campos).props); Object.assign(op.refs, montarProps('dias', campos).refs); op.content = corpoDe(sec); } }
+      else { const op = ops.find((o) => o.op === 'criar' && o.chave === chaveTeste(al.dia)); if (op) { const mp = montarProps('dias', campos); Object.assign(op.properties, mp.props); op.refs = { ...(op.refs || {}), ...mp.refs }; op.properties['Hash do agente'] = hashAgente(op.properties); op.content = corpoDe(sec); } }
       continue;
     }
     if (a.tipo === 'atualizar_semana') {
       const campos = a.campos.filter((c) => ['Intenção editorial', 'Narrativas', 'Revisão de sexta'].includes(c.campo));
+      // Intenção e narrativas sempre vêm do próprio plano (determinístico), mesmo que a ação não as traga.
+      if (!campos.some((c) => c.campo === 'Intenção editorial')) campos.push({ campo: 'Intenção editorial', valor: saida.intencao });
+      if (!campos.some((c) => c.campo === 'Narrativas' && c.valor)) campos.push({ campo: 'Narrativas', valor: saida.narrativas.map((n, i) => `${i + 1}) ${n.titulo}`).join(' ') });
       const sec = secaoSemana(saida, ctx());
       if (porChave[al.semana]) atualizar('semanas', al.semana, campos, sec);
-      else { const op = ops.find((o) => o.op === 'criar' && o.chave === chaveTeste(al.semana)); if (op) { Object.assign(op.properties, montarProps('semanas', campos).props); op.content = corpoDe(sec); } }
+      else { const op = ops.find((o) => o.op === 'criar' && o.chave === chaveTeste(al.semana)); if (op) { Object.assign(op.properties, montarProps('semanas', campos).props); op.properties['Hash do agente'] = hashAgente(op.properties); op.content = corpoDe(sec); } }
       continue;
     }
     // priorizar, mover_data, marcar_validacao, atualizar_rascunho
@@ -405,8 +408,9 @@ else if (cmd === 'validar') {
   }
   // O plano semanal sem ação explícita na Semana ainda grava o plano no corpo da Semana.
   if (e.workflow === 'plano-semanal' && !acoes.some((a) => a.tipo === 'atualizar_semana')) {
-    if (porChave[al.semana]) atualizar('semanas', al.semana, [{ campo: 'Intenção editorial', valor: saida.intencao }], secaoSemana(saida, ctx()));
-    else { const op = ops.find((o) => o.op === 'criar' && o.chave === chaveTeste(al.semana)); if (op) { op.properties['Intenção editorial'] = saida.intencao; op.content = corpoDe(secaoSemana(saida, ctx())); } }
+    const narr = saida.narrativas.map((n, i) => `${i + 1}) ${n.titulo}`).join(' ');
+    if (porChave[al.semana]) atualizar('semanas', al.semana, [{ campo: 'Intenção editorial', valor: saida.intencao }, { campo: 'Narrativas', valor: narr }], secaoSemana(saida, ctx()));
+    else { const op = ops.find((o) => o.op === 'criar' && o.chave === chaveTeste(al.semana)); if (op) { op.properties['Intenção editorial'] = saida.intencao; op.properties.Narrativas = narr; op.properties['Hash do agente'] = hashAgente(op.properties); op.content = corpoDe(secaoSemana(saida, ctx())); } }
   }
   if (e.workflow === 'direcionamento-diario' && !acoes.some((a) => a.tipo === 'atualizar_dia')) avisos.push('saída sem atualizar_dia: o Dia não recebeu direcionamento');
   ops.forEach((o, i) => { o.id = `op${String(i + 1).padStart(2, '0')}`; if (o.refs && !Object.keys(o.refs).length) delete o.refs; });
