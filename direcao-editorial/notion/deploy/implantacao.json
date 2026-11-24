@@ -161,6 +161,19 @@
       "Pendências · Questionário": "42216ed6-3a26-81ba-82c7-000cb1bed74b",
       "Captação · Agenda": "42216ed6-3a26-8104-aa41-000c0a0c6671",
       "Recomendações · Histórico": "42216ed6-3a26-816b-89e1-000ce9065559"
+    },
+    "agente": {
+      "conteudos": "42216ed6-3a26-8192-9742-000c5d5c6c39",
+      "semanas": "42216ed6-3a26-817a-860f-000c29180358",
+      "dias": "42216ed6-3a26-813e-b2fa-000ca1306ecd",
+      "captacao": "42216ed6-3a26-81f0-bc9b-000c5467755e",
+      "pendencias": "42216ed6-3a26-8131-b33a-000c6d14387e",
+      "historias": "42216ed6-3a26-810e-817d-000ce80533e6",
+      "aprendizados": "42216ed6-3a26-8193-b428-000c64605f63",
+      "prioridades": "42216ed6-3a26-8131-a15d-000ccf7a0b5a",
+      "recomendacoes": "42216ed6-3a26-813f-9ea9-000c3ba9fd46",
+      "execucoes": "42216ed6-3a26-817e-8342-000cada206e9",
+      "$comment": "Fase 4A: views 'Agente · leitura' (sem filtro, ordenadas por Atualizado em). O modo view do conector não consome a cota de consultas do plano."
     }
   },
   "simulacao": {
@@ -195,5 +208,11 @@
       "42216ed6-3a26-8107-9a67-c1139532b57d"
     ]
   },
-  "fase3_alteracoes": "2026-11-24: base Histórias; Conteúdos +Tema, Argumento central, Procedimentos citados, História; Referências +7 campos de pesquisa; Aprendizados status Hipótese/Em teste/Preferência/Evidência/Diretriz aprovada/Refutado, +Fonte do aprendizado, Ocorrências, Área +Linguagem/Abordagem."
+  "fase3_alteracoes": "2026-11-24: base Histórias; Conteúdos +Tema, Argumento central, Procedimentos citados, História; Referências +7 campos de pesquisa; Aprendizados status Hipótese/Em teste/Preferência/Evidência/Diretriz aprovada/Refutado, +Fonte do aprendizado, Ocorrências, Área +Linguagem/Abordagem.",
+  "fase4a_teste": {
+    "$comment": "Registros de teste da Fase 4A (Origem = Simulação, Chave teste4a:).",
+    "dia": "42216ed6-3a26-81d7-b3c6-eed1f0822947",
+    "conteudo_travado": "42216ed6-3a26-8188-9d11-e7b314578cb2",
+    "conteudo_agendado": "42216ed6-3a26-813f-a8d2-d5a80a793b0b"
+  }
 }
