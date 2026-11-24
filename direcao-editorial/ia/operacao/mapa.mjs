@@ -1,6 +1,7 @@
 // Converte linhas do conector MCP do Notion (modo "rows") no snapshot normalizado que lib/contexto.mjs espera.
 // Nenhuma regra editorial aqui: só tradução de nomes, tipos e relações.
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,12 +38,35 @@ const txt = (r, p) => limpar(r[p] ?? '') || '';
 const sel = (r, p) => limpar(r[p] ?? '') || null;
 const chk = (r, p) => r[p] === '__YES__' || r[p] === true;
 
-// Margem entre a última escrita do agente e a última edição da página: acima disso, alguém da equipe mexeu.
+// Valor canônico de uma propriedade, igual para o que o agente grava e para o que o Notion devolve.
+export const canon = (v) => {
+  if (v == null) return '';
+  const arr = Array.isArray(v) ? v : (typeof v === 'string' && v.trim().startsWith('[') ? lista(v) : null);
+  if (arr) return arr.map((x) => idDeUrl(x) || String(limpar(x)).normalize('NFD').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase()).sort().join('|');
+  return String(limpar(String(v).replace(/<\/?[a-z][^>]*>/gi, '').replace(/\*\*/g, ''))).normalize('NFD').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+};
+// Hash do agente (v2): "h2|Campo1,Campo2|<sha1>" sobre os valores que o agente gravou.
+// Se os valores atuais desses campos não batem com o hash, alguém da equipe mudou o que o agente escreveu.
+export function hashAgente(props) {
+  const campos = Object.keys(props).filter((k) => !/Hash do agente|Última escrita|Sincronização|^Chave$|^Origem$|:is_datetime$|:end$/.test(k)).sort();
+  const h = createHash('sha1').update(campos.map((c) => `${c}=${canon(props[c])}`).join('\n')).digest('hex').slice(0, 12);
+  return `h2|${campos.join(',')}|${h}`;
+}
+export function hashConfere(r) {
+  const atual = limpar(r['Hash do agente'] || '');
+  if (!atual.startsWith('h2|')) return null;
+  const [, lista_, h] = atual.split('|');
+  const campos = lista_ ? lista_.split(',') : [];
+  const calc = createHash('sha1').update(campos.map((c) => `${c}=${canon(r[c])}`).join('\n')).digest('hex').slice(0, 12);
+  return calc === h;
+}
+// Sem hash v2 (registros antigos): alteração humana = página editada mais de 15 minutos depois da última escrita do agente.
 export const MARGEM_EDICAO_MIN = 15;
 export function meta(base, r) {
   const ultima = r['date:Última escrita do agente:start'] || null;
   const atualizado = r['Atualizado em'] || null;
-  const editado = Boolean(ultima && atualizado && (new Date(atualizado) - new Date(ultima)) / 60000 > MARGEM_EDICAO_MIN);
+  const confere = hashConfere(r);
+  const editado = confere === null ? Boolean(ultima && atualizado && (new Date(atualizado) - new Date(ultima)) / 60000 > MARGEM_EDICAO_MIN) : !confere;
   return { base, url: r.url, id: idDeUrl(r.url), chave: txt(r, 'Chave'), origem: sel(r, 'Origem'), atualizado_em: atualizado,
     ultima_escrita: ultima, editado_pela_equipe: editado, travado: chk(r, 'Travar para o agente'), status: sel(r, 'Status') };
 }
@@ -64,7 +88,7 @@ export function montarSnapshot(brutoPorBase, { modo = 'producao' } = {}) {
   const B = (k) => brutoPorBase[k] || [];
   const pendCod = (u) => { const m = indice[idDeUrl(u)]; return m ? (B('pendencias').find((r) => idDeUrl(r.url) === m.id)?.['Código'] || m.chave) : null; };
 
-  const conteudos = B('conteudos').map((r) => { const m = meta('conteudos', r); return {
+  const conteudos = B('conteudos').filter((r) => modo !== 'piloto-teste' || txt(r, 'Chave').startsWith('teste4a:')).map((r) => { const m = meta('conteudos', r); return {
     chave: m.chave, titulo: txt(r, 'Título'), status: m.status, formato: sel(r, 'Formato'), pilar: sel(r, 'Pilar'), objetivo: sel(r, 'Objetivo'),
     tema: lista(r['Tema']), argumento: txt(r, 'Argumento central'), procedimentos: lista(r['Procedimentos citados']), gancho: txt(r, 'Gancho'), cta: txt(r, 'CTA'),
     prazo: data(r, 'Prazo de produção'), publicacao_prevista: data(r, 'Publicação prevista'), publicado_em: data(r, 'Publicado em'),

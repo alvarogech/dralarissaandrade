@@ -7,6 +7,7 @@ Variáveis da execução (vêm do prompt da tarefa):
 - `WORKFLOW`: `direcionamento-diario` ou `plano-semanal`
 - `MODO`: `producao` ou `piloto-teste`
 - `MODELO`: o modelo da tarefa (para o registro)
+- `RODADA` (só em teste, opcional): rótulo da rodada de validação, por exemplo `V1`. Repetir a mesma rodada no mesmo dia deve ser barrado como duplicada.
 
 ## Regras absolutas
 
@@ -25,8 +26,9 @@ Todos os comandos rodam a partir de `direcao-editorial/`.
 **1. Início**
 ```bash
 cd direcao-editorial
-node ia/operacao/operar.mjs inicio $WORKFLOW --modo $MODO
+node ia/operacao/operar.mjs inicio $WORKFLOW --modo $MODO   # em teste: acrescente --rodada $RODADA
 ```
+O `inicio` apaga `ia/operacao/run/` e começa do zero.
 
 **2. Leia o contexto editorial vigente** (nesta ordem):
 `ia/prompts/00-instrucao-mestra.md`, todos os arquivos de `base-de-conhecimento/`, o módulo do workflow
@@ -51,7 +53,7 @@ node ia/operacao/operar.mjs pacote
 ```
 Leia `ia/operacao/run/pacote.json`. Ele já vem **sem nenhum registro de simulação** (o código derruba a execução se sobrar algum).
 
-**6. Gere a proposta editorial.** Seguindo a instrução mestra e o módulo, escreva `ia/operacao/run/saida.json`
+**6. Gere a proposta editorial.** No plano semanal, o código transforma sozinho cada conteúdo existente do feed em prioridade da semana e cada pedido de captação em demanda de captação; você não precisa repetir isso em `acoes`. No diário, use `pacote.plano_da_semana` para manter coerência com o plano da semana. Seguindo a instrução mestra e o módulo, escreva `ia/operacao/run/saida.json`
 no formato do contrato. Use **apenas** o pacote e a base de conhecimento. Regras de preenchimento:
 - `atualizar_dia` usa a chave `pacote.alvos.dia`; `atualizar_semana` usa `pacote.alvos.semana`.
 - Chaves de registros novos: `agente:<workflow>:<hoje>:<n>` (n = 1, 2, 3...).

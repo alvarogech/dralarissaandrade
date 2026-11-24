@@ -15,7 +15,7 @@
 //   node ia/operacao/operar.mjs conferir-depois → run/resultado.json, run/execucao.json, run/resumo.md
 //
 // Ver ia/operacao/RUNBOOK.md. Pasta de trabalho: ia/operacao/run/ (não versionada).
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -23,7 +23,7 @@ import { montarPacote } from '../lib/contexto.mjs';
 import { SCHEMAS, validarSchema, regras, checarAcoes } from '../lib/contratos.mjs';
 import { lintSaida } from '../lib/revisao.mjs';
 import { radar, semelhanca } from '../lib/radar.mjs';
-import { BASES_LIDAS, dsDe, viewUrlDe, dbSchema, SCHEMA, montarSnapshot, linhasDe, lerPagina, lista, limpar, idDeUrl, meta } from './mapa.mjs';
+import { BASES_LIDAS, dsDe, viewUrlDe, dbSchema, SCHEMA, montarSnapshot, linhasDe, lerPagina, lista, limpar, idDeUrl, meta, hashAgente } from './mapa.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RUN = join(AQUI, 'run');
@@ -32,7 +32,7 @@ const ler = (f, padrao) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) 
 const gravar = (f, v) => { mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, typeof v === 'string' ? v : JSON.stringify(v, null, 2)); };
 const arg = (n, padrao) => (process.argv.includes(`--${n}`) ? process.argv[process.argv.indexOf(`--${n}`) + 1] : padrao);
 const sair = (msg, cod = 1) => { console.error(msg); process.exit(cod); };
-const VERSAO = 'operacao@4a.2';
+const VERSAO = 'operacao@4a.3';
 const PROTEGIDOS = ['Aprovado', 'Agendado', 'Publicado', 'Analisado', 'Arquivado'];
 const ABERTOS = ['Ideia', 'Planejado', 'Aguardando informação', 'Aguardando captação', 'Em produção', 'Aguardando aprovação'];
 const TESTE = 'teste4a:';
@@ -146,7 +146,10 @@ if (cmd === 'inicio') {
   if (!['producao', 'piloto-teste'].includes(modo)) sair('Modo: producao ou piloto-teste');
   const hoje = arg('hoje', hojeSP());
   const sem = semanaISO(workflow === 'plano-semanal' && new Date(`${hoje}T12:00:00Z`).getUTCDay() === 0 ? somaDias(hoje, 1) : hoje);
-  const idem = `${workflow}:${workflow === 'plano-semanal' ? sem.codigo : hoje}:${modo}`;
+  const rodada = arg('rodada', null);
+  const idem = `${workflow}:${workflow === 'plano-semanal' ? sem.codigo : hoje}:${modo}${rodada ? `:${rodada}` : ''}`;
+  // Cada execução começa do zero: nada de uma execução anterior na mesma sessão pode contaminar esta.
+  rmSync(RUN, { recursive: true, force: true });
   mkdirSync(P('bruto'), { recursive: true });
   const e = { workflow, modo, hoje, semana: sem, idempotencia: idem, inicio: new Date().toISOString(), versao: VERSAO };
   gravar(P('estado.json'), e);
@@ -172,8 +175,8 @@ else if (cmd === 'snapshot') {
   snapshot.conteudos = snapshot.conteudos.filter((c) => c.status !== 'Arquivado' && (!['Publicado', 'Analisado'].includes(c.status) || (c.publicado_em && c.publicado_em >= corte(90))));
   snapshot.dias = snapshot.dias.filter((d) => d.data && d.data >= corte(7));
   snapshot.semanas = snapshot.semanas.filter((w) => !w.fim || w.fim >= corte(21));
-  // No piloto de teste a execução pode ser repetida; em produção, uma por dia (ou semana).
-  const ja = e.modo === 'producao' && snapshot.execucoes.find((x) => x.idempotencia === e.idempotencia && ['Sucesso', 'Sucesso parcial'].includes(x.status));
+  // Uma execução por dia (ou semana). No teste, a chave inclui a rodada (--rodada), para poder repetir de propósito.
+  const ja = snapshot.execucoes.find((x) => x.idempotencia === e.idempotencia && ['Sucesso', 'Sucesso parcial'].includes(x.status));
   gravar(P('snapshot.json'), snapshot); gravar(P('indice.json'), indice);
   const sim = Object.values(indice).filter((m) => m.origem === 'Simulação').length;
   console.log(JSON.stringify({ registros: Object.keys(indice).length, simulacao_lida: sim, ja_executado: Boolean(ja) }, null, 2));
@@ -191,7 +194,10 @@ else if (cmd === 'pacote') {
   const pacote = montarPacote(e.workflow, s2, { hoje: e.hoje, ambiente: 'producao', semana: semanaReal?.chave || semanaChave });
   const diaChave = (e.modo === 'piloto-teste' ? TESTE : '') + `dia:${e.hoje}`;
   const diaReal = snap.dias.find((d) => d.chave === diaChave);
-  pacote.alvos = { semana: semanaReal?.chave || semanaChave, semana_existe: Boolean(semanaReal), dia: diaChave, dia_existe: Boolean(diaReal), amanha: `dia:${somaDias(e.hoje, 1)}` };
+  const semanaAlvo = semanaReal?.chave || (e.modo === 'piloto-teste' ? TESTE : '') + semanaChave;
+  pacote.alvos = { semana: semanaAlvo, semana_existe: Boolean(semanaReal), dia: diaChave, dia_existe: Boolean(diaReal), amanha: `dia:${somaDias(e.hoje, 1)}` };
+  // Coerência com o plano semanal: o diário recebe o que a semana já planejou.
+  pacote.plano_da_semana = snap.conteudos.filter((c) => c.semana && c.semana === semanaAlvo).map((c) => ({ chave: c.chave, titulo: c.titulo, status: c.status, prioridade: c.prioridade, publicacao_prevista: c.publicacao_prevista }));
   gravar(P('pacote.json'), pacote);
   const vazou = JSON.stringify(pacote).match(/"sim:[^"]+"/g);
   if (vazou) sair(`Simulação no pacote: ${vazou.join(', ')}`);
@@ -206,7 +212,35 @@ else if (cmd === 'validar') {
   const tituloDe = Object.fromEntries([...snap.conteudos.map((c) => [c.chave, c.titulo])]);
   const travadas = Object.values(indice).filter((m) => m.travado).map((m) => m.chave);
   const editadas = Object.values(indice).filter((m) => m.editado_pela_equipe).map((m) => m.chave);
-  const acoes = saida.acoes || [];
+  const preservadosAntes = [];
+  // Plano semanal: o que o plano diz vira ação, de forma determinística, se o modelo não incluiu.
+  const brutas = [...(saida.acoes || [])];
+  if (e.workflow === 'plano-semanal') {
+    saida.feed.forEach((f, i) => {
+      if (!f.chave || !porChave[f.chave] || f.origem === 'nova' || brutas.some((a) => a.chave === f.chave && a.tipo === 'priorizar')) return;
+      brutas.push({ nivel: 'A', tipo: 'priorizar', base: 'conteudos', chave: f.chave, campos: [{ campo: 'Semana', valor: pacote.alvos.semana }, { campo: 'Prioridade', valor: i < 2 ? 'Alta' : 'Média' }], quem_decide: null, motivo: `Feed da semana (${f.dia}).`, fontes: [f.chave, pacote.alvos.semana] });
+    });
+    saida.captacao.forEach((k, i) => {
+      if (brutas.some((a) => a.tipo === 'criar_captacao' && semelhanca((a.campos.find((c) => c.campo === 'Pedido') || {}).valor || '', k.pedido) > 0.5)) return;
+      const cs = (k.conteudos || []).filter((c) => porChave[c]);
+      brutas.push({ nivel: 'A', tipo: 'criar_captacao', base: 'captacao', chave: `agente:plano-semanal:${e.semana.codigo}:cap${i + 1}`, campos: [
+        { campo: 'Pedido', valor: k.pedido }, { campo: 'Tipo', valor: k.tipo }, { campo: 'Quem capta', valor: k.quem_capta }, { campo: 'Como gravar', valor: `${k.como_gravar} (${k.duracao})` },
+        { campo: 'Onde', valor: k.onde }, ...(k.quando ? [{ campo: 'Quando', valor: k.quando }] : []), { campo: 'Requer autorização de paciente', valor: k.requer_autorizacao ? 'sim' : 'não' },
+        ...(cs.length ? [{ campo: 'Conteúdos', valor: cs.join(', ') }] : [])], quem_decide: null, motivo: 'Captação do plano semanal.', fontes: [pacote.alvos.semana] });
+    });
+  }
+  // Página travada: a ação é descartada (nem sugestão). Página com alteração humana em campo do agente: vira recomendação.
+  let acoes = brutas.filter((a) => {
+    if (a.tipo.startsWith('criar_') || a.tipo === 'recomendar' || !travadas.includes(a.chave)) return true;
+    preservadosAntes.push({ chave: a.chave, motivo: 'página travada pela equipe: ação descartada' }); return false;
+  }).map((a) => {
+    if (a.nivel === 'A' && editadas.includes(a.chave) && !a.tipo.startsWith('criar_') && a.tipo !== 'recomendar') {
+      preservadosAntes.push({ chave: a.chave, motivo: 'alterado pela equipe: mudança virou recomendação' });
+      return { ...a, nivel: 'B', quem_decide: a.quem_decide || 'Social media', motivo: `${a.motivo} (a equipe alterou este registro depois da última escrita do agente)` };
+    }
+    return a;
+  });
+  saida.acoes = acoes;
   const erros = [
     ...validarSchema(saida, SCHEMAS[e.workflow]).map((x) => `schema: ${x}`),
     ...regras(e.workflow, saida, pacote).map((x) => `regra: ${x}`),
@@ -241,10 +275,12 @@ else if (cmd === 'validar') {
   // Sondas do piloto: tentativas propositais de mexer em conteúdo travado e agendado precisam ser barradas.
   const sondas = [];
   if (e.modo === 'piloto-teste') {
-    for (const k of [`${TESTE}conteudo:travado`, `${TESTE}conteudo:agendado`]) {
+    for (const k of [`${TESTE}conteudo:travado`, `${TESTE}conteudo:agendado`, `${TESTE}conteudo:editado`]) {
       const m = porChave[k];
       if (!m) { sondas.push({ chave: k, ok: false, motivo: 'registro de teste não encontrado no Notion' }); continue; }
-      const tentativa = { nivel: 'A', tipo: 'atualizar_rascunho', base: 'conteudos', chave: k, campos: [{ campo: 'corpo:Roteiro', valor: 'x' }, { campo: 'Gancho', valor: 'x' }], quem_decide: null, motivo: 'sonda', fontes: ['sonda'] };
+      const tentativa = k.endsWith(':editado')
+        ? { nivel: 'A', tipo: 'priorizar', base: 'conteudos', chave: k, campos: [{ campo: 'Prioridade', valor: 'Baixa' }], quem_decide: null, motivo: 'sonda', fontes: ['sonda'] }
+        : { nivel: 'A', tipo: 'atualizar_rascunho', base: 'conteudos', chave: k, campos: [{ campo: 'corpo:Roteiro', valor: 'x' }, { campo: 'Gancho', valor: 'x' }], quem_decide: null, motivo: 'sonda', fontes: ['sonda'] };
       const bloq = [...checarAcoes([tentativa], { travadas, editadas }), ...(PROTEGIDOS.includes(m.status) ? ['status protegido'] : [])];
       sondas.push({ chave: k, ok: bloq.length > 0, barrado_por: bloq });
     }
@@ -259,7 +295,9 @@ else if (cmd === 'validar') {
   const prefixo = e.modo === 'piloto-teste' ? '[TESTE 4A] ' : '';
   const chaveTeste = (k) => (e.modo === 'piloto-teste' && !k.startsWith(TESTE) ? TESTE + k : k);
   const criando = new Set();
-  const ops = []; const avisos = []; const simulados = []; const preservados = [];
+  const ops = []; const avisos = []; const simulados = []; const preservados = [...preservadosAntes]; const duplicados = [];
+  const titulosPorBase = { conteudos: snap.conteudos.map((c) => c.titulo), historias: snap.historias.map((h) => h.titulo), captacao: snap.captacao.filter((c) => c.status !== 'Cancelado').map((c) => c.pedido),
+    pendencias: snap.pendencias.filter((x) => ['Aberta', 'Parcial'].includes(x.status)).map((x) => x.pendencia), recomendacoes: snap.recomendacoes.filter((r) => !r.decisao || r.decisao === 'Aguardando decisão').map((r) => r.titulo) };
   const ctx = () => ({ porChave, criando, modo: e.modo, tituloDe });
   const hash = (o) => createHash('sha1').update(JSON.stringify(o)).digest('hex').slice(0, 12);
   const sync = (base) => (dbSchema(base).sync ? { 'date:Última escrita do agente:start': agora, 'date:Última escrita do agente:is_datetime': 1, 'Sincronização': 'OK' } : {});
@@ -281,8 +319,11 @@ else if (cmd === 'validar') {
     const tp = tituloProp(base);
     if (props[tp] && prefixo && !props[tp].startsWith(prefixo)) props[tp] = prefixo + props[tp];
     Object.assign(props, { Chave: k, Origem: origem, ...sync(base), ...extra });
-    props['Hash do agente'] = dbSchema(base).sync ? hash(props) : undefined;
-    if (props['Hash do agente'] === undefined) delete props['Hash do agente'];
+    if (dbSchema(base).sync) props['Hash do agente'] = hashAgente(props);
+    // Duplicidade: já existe registro aberto com título quase igual nesta base.
+    const tp2 = tituloProp(base); const novo = String(props[tp2] || '').replace(prefixo, '');
+    const parecido = (titulosPorBase[base] || []).find((t) => semelhanca(t, novo) > 0.6);
+    if (parecido && base !== 'dias' && base !== 'semanas') { criando.delete(k); avisos.push(`duplicidade evitada em ${base}: "${novo}" parece "${parecido}"`); duplicados.push({ base, titulo: novo, parecido }); return null; }
     const op = { op: 'criar', base, data_source_id: dsDe(base), chave: k, properties: props, refs, content: conteudo || undefined };
     ops.push(op); return op;
   }
@@ -292,8 +333,10 @@ else if (cmd === 'validar') {
     if (e.modo === 'piloto-teste' && !chave.startsWith(TESTE)) { simulados.push({ base, chave, campos: campos.map((c) => c.campo), secoes: Object.keys(secoes || {}) }); return; }
     const { props, refs } = montarProps(base, campos);
     Object.assign(props, sync(base));
-    if (dbSchema(base).sync) props['Hash do agente'] = hash(props);
-    ops.push({ op: 'atualizar', base, chave, page_id: m.id, url: m.url, atualizado_em_lido: m.atualizado_em, properties: props, refs });
+    // Mais de uma ação na mesma página vira uma única atualização (o hash cobre todos os campos escritos).
+    const ja = ops.find((o) => o.op === 'atualizar' && o.chave === chave);
+    if (ja) { delete ja.properties['Hash do agente']; Object.assign(ja.properties, props); for (const [c, ks] of Object.entries(refs)) (ja.refs ||= {})[c] = [...((ja.refs || {})[c] || []), ...ks]; if (dbSchema(base).sync) ja.properties['Hash do agente'] = hashAgente(ja.properties); }
+    else { if (dbSchema(base).sync) props['Hash do agente'] = hashAgente(props); ops.push({ op: 'atualizar', base, chave, page_id: m.id, url: m.url, atualizado_em_lido: m.atualizado_em, properties: props, refs }); }
     for (const [secao, md] of Object.entries(secoes || {})) ops.push({ op: 'secao', base, chave, page_id: m.id, url: m.url, atualizado_em_lido: m.atualizado_em, secao, markdown: md });
   }
 
@@ -320,7 +363,9 @@ else if (cmd === 'validar') {
         { campo: 'Recomendação', valor: `${a.tipo.replace('_', ' ')}: ${tit(ctx(), a.chave)}` }, { campo: 'Tipo', valor: a.tipo === 'mover_data' ? 'Mudança de data' : a.tipo === 'criar_conteudo' ? 'Novo conteúdo' : 'Revisão de roteiro' },
         { campo: 'Nível', valor: a.nivel === 'C' ? 'C · Validação humana' : 'B · Precisa de aprovação' }, { campo: 'Quem decide', valor: a.quem_decide || 'Social media' },
         { campo: 'Proposta', valor: a.campos.map((c) => `${c.campo}: ${typeof c.valor === 'string' ? c.valor : JSON.stringify(c.valor)}`).join(' | ') }, { campo: 'Por quê', valor: a.motivo },
-        { campo: 'Fontes consultadas', valor: a.fontes.join(', ') }, ...(porChave[al.dia] || criando.has(al.dia) ? [{ campo: 'Dia', valor: al.dia }] : [])]);
+        { campo: 'Fontes consultadas', valor: a.fontes.join(', ') },
+        ...(e.workflow === 'direcionamento-diario' && (porChave[al.dia] || criando.has(al.dia)) ? [{ campo: 'Dia', valor: al.dia }] : []),
+        ...(e.workflow === 'plano-semanal' && (porChave[al.semana] || criando.has(al.semana)) ? [{ campo: 'Semana', valor: al.semana }] : [])]);
       continue;
     }
     if (a.tipo === 'recomendar') {
@@ -365,7 +410,7 @@ else if (cmd === 'validar') {
   }
   if (e.workflow === 'direcionamento-diario' && !acoes.some((a) => a.tipo === 'atualizar_dia')) avisos.push('saída sem atualizar_dia: o Dia não recebeu direcionamento');
   ops.forEach((o, i) => { o.id = `op${String(i + 1).padStart(2, '0')}`; if (o.refs && !Object.keys(o.refs).length) delete o.refs; });
-  gravar(P('plano.json'), { gerado_em: agora, modo: e.modo, ops, simulados, preservados, avisos });
+  gravar(P('plano.json'), { gerado_em: agora, modo: e.modo, ops, simulados, preservados, avisos, duplicados });
   console.log(JSON.stringify({ ok: true, criar: ops.filter((o) => o.op === 'criar').length, atualizar: ops.filter((o) => o.op === 'atualizar').length, secoes: ops.filter((o) => o.op === 'secao').length,
     simulados: simulados.length, viraram_recomendacao: preservados.length, avisos }, null, 2));
 }
@@ -479,7 +524,7 @@ else if (cmd === 'conferir-depois') {
   }
   // Piloto: os conteúdos de teste protegidos não podem ter mudado.
   const preservacao = [];
-  for (const k of e.modo === 'piloto-teste' ? [`${TESTE}conteudo:travado`, `${TESTE}conteudo:agendado`] : []) {
+  for (const k of e.modo === 'piloto-teste' ? [`${TESTE}conteudo:travado`, `${TESTE}conteudo:agendado`, `${TESTE}conteudo:editado`] : []) {
     const antes = Object.values(indice).find((m) => m.chave === k); const depois = posPorChave[k];
     preservacao.push({ chave: k, intacto: Boolean(antes && depois && depois['Atualizado em'] === antes.atualizado_em), antes: antes?.atualizado_em, depois: depois?.['Atualizado em'] || 'não relido' });
   }
@@ -502,6 +547,7 @@ else if (cmd === 'conferir-depois') {
     ...(plano.simulados.length ? ['', `**Só simulados (teste não escreve em registro real):** ${plano.simulados.length}`, ...plano.simulados.map((s) => `- ${s.chave}: ${[...s.campos, ...s.secoes].join(', ')}`)] : []),
     ...(preservacao.length ? ['', '**Preservação de alterações humanas (teste):**', ...preservacao.map((p) => `- ${p.chave}: ${p.intacto ? 'intacto' : 'ALTERADO'}`)] : []),
     ...(falhas.length ? ['', '**Falhas:**', ...falhas.map((f) => `- ${f}`)] : []),
+    ...((plano.duplicados || []).length ? ['', `**Duplicidades evitadas:** ${plano.duplicados.length}`, ...plano.duplicados.map((d) => `- ${d.base}: "${d.titulo}" ≈ "${d.parecido}"`)] : []),
     ...(plano.avisos.length ? ['', '**Avisos:**', ...plano.avisos.map((a) => `- ${a}`)] : []),
   ].join('\n');
   gravar(P('resumo.md'), resumo);
@@ -522,7 +568,7 @@ else if (cmd === 'reler') {
   if (quando === 'antes') for (const o of plano.ops) { if (['atualizar', 'secao'].includes(o.op) && o.atualizado_em_lido) ids.add(o.page_id); }
   else if (quando === 'depois') {
     for (const o of plano.ops) { if (o.cancelada) continue; const id = o.page_id || (criados[o.chave] && idDeUrl(criados[o.chave])); if (id) ids.add(id); }
-    if (e.modo === 'piloto-teste') for (const m of Object.values(indice)) if ([`${TESTE}conteudo:travado`, `${TESTE}conteudo:agendado`].includes(m.chave)) ids.add(m.id);
+    if (e.modo === 'piloto-teste') for (const m of Object.values(indice)) if ([`${TESTE}conteudo:travado`, `${TESTE}conteudo:agendado`, `${TESTE}conteudo:editado`].includes(m.chave)) ids.add(m.id);
   } else sair('Use: reler antes | reler depois');
   console.log(JSON.stringify([...ids].map((id) => ({ page_id: id, salvar_em: `ia/operacao/run/paginas/${id}-${quando}.txt` })), null, 2));
 }
