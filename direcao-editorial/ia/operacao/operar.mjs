@@ -170,6 +170,9 @@ else if (cmd === 'snapshot') {
     if (semChave) console.warn(`aviso: ${semChave} registro(s) sem Chave em ${b}; ficam fora das escritas do agente.`);
   }
   const { snapshot, indice } = montarSnapshot(bruto, { modo: e.modo });
+  // Produção: nenhum registro de simulação fica no snapshot (contexto, deduplicação e alvos de escrita).
+  if (e.modo === 'producao') for (const [k, v] of Object.entries(snapshot)) if (Array.isArray(v)) snapshot[k] = v.filter((x) => x.origem !== 'Simulação');
+  if (e.modo === 'producao') for (const [id, m] of Object.entries(indice)) if (m.origem === 'Simulação') delete indice[id];
   // Filtros que antes iam na consulta: só o que importa para a janela editorial.
   const corte = (n) => somaDias(e.hoje, -n);
   snapshot.conteudos = snapshot.conteudos.filter((c) => c.status !== 'Arquivado' && (!['Publicado', 'Analisado'].includes(c.status) || (c.publicado_em && c.publicado_em >= corte(90))));

@@ -94,3 +94,21 @@ Nenhum registro real foi alterado. No modo teste, mudanças em registros reais (
 3. Ativar as tarefas A e B (eu ativo quando você aprovar).
 4. Decidir o que fazer com os registros de teste: arquivar ou manter visíveis como exemplo. Não serão excluídos sem a sua confirmação.
 5. Começar o acompanhamento de 21 dias na página do Notion.
+
+---
+
+# Validação final (24/11, tarde)
+
+**Parecer: pronto com ressalvas.**
+
+| Verificação | Resultado |
+|---|---|
+| Ferramentas proibidas do Notion (excluir, mover, criar base, alterar views e propriedades, comentar) | Indisponíveis na tarefa (restrição técnica, confirmada na nuvem) |
+| Plano semanal na nuvem | Sucesso: Semana com intenção e plano no corpo; 3 conteúdos existentes relacionados (nenhum novo); 2 captações; 1 pendência; 1 recomendação |
+| Direcionamento diário | Sucesso: coerente com a semana; Prioridades 1, 2 e 3 como relação; normalização de HTML e conferência pós-escrita OK |
+| Repetição na mesma rodada | Barrada ("Ignorada (duplicada)"), nada criado |
+| Alteração humana (Intenção do dia reescrita) | Preservada; a proposta do agente virou recomendação para a social media |
+| Sondas (travado, agendado, editado) | Barradas e intactas |
+| Registros de teste | Arquivados por status, nada excluído; views operacionais filtram Origem = Simulação; produção remove simulação do snapshot |
+
+**Ressalvas:** o conector do Notion tem leitura em todo o workspace e escreve com o usuário do Álvaro (sem escopo por página, conforme a documentação oficial; restrição à Central depende do código e das instruções). As seções do corpo escritas pelo agente podem ser reescritas por ele (o guia orienta a equipe a editar em Roteiro, Notas e Observações). A base Execuções mantém o histórico dos testes (sem filtro de Origem). Narrativas da semana: corrigido no código depois da validação (não reexecutado na nuvem).
