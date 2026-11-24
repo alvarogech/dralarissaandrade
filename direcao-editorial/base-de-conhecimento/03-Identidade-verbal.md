@@ -10,14 +10,15 @@ Natural, elegante e seguro. **[Plano mestre]**
 | Use | Evite | Fonte |
 |---|---|---|
 | "procedimento" ou o nome do tratamento | "harmonização" | [Trello] |
+| "HOF" só em contexto informal (caixinhas) | "HOF" em conteúdo clínico | [Decisão] |
 | Linguagem falada, frases curtas | Linguagem rebuscada | [Trello] |
 | Convite claro quando fizer sentido | Venda insistente | [Trello] |
 | Argumento concreto (caso, número, decisão) | Frases de efeito | [Trello] |
 
-Conflito em aberto: a caixinha de stories se chama "Tudo sobre HOF" / "Tudo menos HOF" e um
-brainstorm usa "versão HOF". HOF é sigla de harmonização orofacial. Precisa definir se a sigla
-é aceita **[Pendente P-08]**. Até lá, o agente mantém os nomes já existentes das caixinhas e não
-usa "HOF" nem "harmonização" em textos novos.
+**HOF [Decisão 2026-11-24]:** a sigla pode ser usada em contextos informais, como caixinhas de
+perguntas ("Tudo sobre HOF", "Tudo menos HOF") e brincadeiras de stories. Na comunicação
+clínica (roteiros, carrosséis, legendas que explicam tratamento), use o nome do procedimento ou
+tratamento. "Harmonização" por extenso continua evitado.
 
 ## Regras de escrita para o agente
 **[Plano mestre]**

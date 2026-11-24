@@ -1,0 +1,15 @@
+{
+  "name": "direcao-editorial-notion",
+  "private": true,
+  "type": "module",
+  "description": "Estrutura da Central Editorial no Notion (Fase 2). Sem dependências.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "validar": "node scripts/validar.mjs",
+    "doc": "node scripts/gerar-doc.mjs",
+    "setup:simular": "node scripts/setup.mjs",
+    "setup": "node scripts/setup.mjs --apply",
+    "importar:simular": "node scripts/importar.mjs",
+    "importar": "node scripts/importar.mjs --apply"
+  }
+}

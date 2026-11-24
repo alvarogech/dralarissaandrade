@@ -35,5 +35,6 @@
 - 16 conteúdos herdados: **5 planejados**, **3 aguardando captação**, **8 bloqueados** por
   informação que só a Larissa tem.
 - O Reels do Método ERA, peça central da semana 4, está bloqueado.
-- O calendário de novembro/2026 do Trello já passou em boa parte; as 4 semanas devem ser
-  replanejadas a partir de dezembro/2026 (decisão a confirmar, P-12).
+- **[Decisão 2026-11-24]** O calendário de novembro/2026 é **inventário histórico**. Não se presume
+  que algum desses conteúdos foi publicado. Nenhum recebe data de publicação; a social media
+  confirma, item a item, o que já saiu (campo "Publicado no Trello?" = A confirmar).

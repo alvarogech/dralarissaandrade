@@ -1,6 +1,7 @@
 # 04 — Método ERA
 
-> Nomenclatura oficial definida pelo Álvaro em 2026-11-24. **[Decisão]**
+> Nomenclatura oficial definida pelo Álvaro em 2026-11-24, confirmada na aprovação da Fase 1. **[Decisão]**
+> Significado e etapas seguem dependendo da Larissa (P-01, P-02).
 > "Método LA™" não é mais usado. Nunca misturar os dois nomes.
 
 ## O que se sabe

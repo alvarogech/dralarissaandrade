@@ -1,0 +1,82 @@
+{
+  "$comment": "Páginas e visualizações da Central Editorial. Lido por scripts/setup.mjs. 'show' = propriedades visíveis, na ordem; todas as outras ficam ocultas. Filtros usam o formato do endpoint de query do Notion, com nomes de propriedade (o script troca pelos IDs). 'manual' lista o que a API não cobre e precisa ser feito à mão (ver notion/06-Configuracao.md).",
+  "root": { "title": "Central Editorial | Larissa Andrade", "icon": "✨" },
+  "pages": [
+    {
+      "key": "social",
+      "title": "Hoje | Social media",
+      "icon": "🏠",
+      "intro": "Comece por aqui. De cima para baixo: o porquê da semana, o que fazer hoje, o que pedir à Larissa e o que está travado.",
+      "sections": [
+        { "heading": "Intenção da semana", "view": { "name": "Semana vigente", "base": "semanas", "type": "list", "filter": { "property": "Vigente", "formula": { "checkbox": { "equals": true } } }, "show": ["Semana", "Intenção editorial", "Narrativas", "Capacidade de produção", "Restrições da semana"] } },
+        { "heading": "Hoje", "view": { "name": "Direcionamento de hoje", "base": "dias", "type": "table", "filter": { "property": "É hoje", "formula": { "checkbox": { "equals": true } } }, "show": ["Dia", "Intenção do dia", "Prioridade 1", "Prioridade 2", "Prioridade 3", "Minha rotina", "Disponibilidade para gravar", "Direcionamento"] } },
+        { "heading": "Stories de hoje", "view": { "name": "Stories de hoje", "base": "conteudos", "type": "list", "filter": { "and": [ { "property": "Formato", "select": { "equals": "Sequência de stories" } }, { "property": "Para hoje", "formula": { "checkbox": { "equals": true } } } ] }, "show": ["Título", "Pilar", "Objetivo", "Gancho", "Etapa"] } },
+        { "heading": "Próximas publicações do feed", "view": { "name": "Próximos 14 dias", "base": "conteudos", "type": "table", "filter": { "and": [ { "property": "Dias até publicar", "formula": { "number": { "greater_than_or_equal_to": 0 } } }, { "property": "Dias até publicar", "formula": { "number": { "less_than_or_equal_to": 14 } } }, { "property": "Formato", "select": { "does_not_equal": "Sequência de stories" } } ] }, "sorts": [ { "property": "Publicação prevista", "direction": "ascending" } ], "show": ["Título", "Publicação prevista", "Formato", "Pilar", "Etapa", "Com quem está"] } },
+        { "heading": "Pedir à Larissa", "view": { "name": "Materiais a pedir", "base": "captacao", "type": "table", "filter": { "and": [ { "property": "Status", "select": { "equals": "A solicitar" } }, { "property": "Quem capta", "select": { "does_not_equal": "Social media" } } ] }, "sorts": [ { "property": "Quando", "direction": "ascending" } ], "show": ["Pedido", "Tipo", "Como gravar", "Quando", "Conteúdos"] } },
+        { "heading": "Aguardando edição", "view": { "name": "Em produção", "base": "conteudos", "type": "table", "filter": { "property": "Status", "status": { "equals": "Em produção" } }, "sorts": [ { "property": "Prazo de produção", "direction": "ascending" } ], "show": ["Título", "Formato", "Prazo de produção", "Publicação prevista", "Atrasado"] } },
+        { "heading": "Aguardando aprovação da Larissa", "view": { "name": "Com a Larissa", "base": "conteudos", "type": "table", "filter": { "property": "Status", "status": { "equals": "Aguardando aprovação" } }, "show": ["Título", "Formato", "Publicação prevista"] } },
+        { "heading": "Pendências e impedimentos", "view": { "name": "Travados", "base": "conteudos", "type": "table", "filter": { "property": "Status", "status": { "equals": "Aguardando informação" } }, "show": ["Título", "Bloqueio", "Pendências", "Informação clínica pendente"] } },
+        { "heading": "Sugestões do agente para decidir", "view": { "name": "Recomendações abertas", "base": "recomendacoes", "type": "table", "filter": { "property": "Decisão", "select": { "equals": "Aguardando decisão" } }, "show": ["Recomendação", "Tipo", "Proposta", "Por quê", "Conteúdo", "Decisão"] } },
+        { "heading": "Meu quadro", "view": { "name": "Quadro de produção", "base": "conteudos", "type": "board", "group_by": "Status", "filter": { "and": [ { "property": "Status", "status": { "does_not_equal": "Arquivado" } }, { "property": "Status", "status": { "does_not_equal": "Analisado" } }, { "property": "Status", "status": { "does_not_equal": "Ideia" } } ] }, "show": ["Título", "Formato", "Publicação prevista", "Com quem está"] } }
+      ],
+      "manual": ["Botão 'Registrar dificuldade' (opcional): botões não são criados pela API."]
+    },
+    {
+      "key": "larissa",
+      "title": "Larissa",
+      "icon": "🎬",
+      "intro": "Cinco minutos por dia. Conte como é o seu dia, veja o que gravar e aprove o que está pronto.",
+      "sections": [
+        { "heading": "1. Como é o meu dia hoje", "view": { "name": "Meu dia", "base": "dias", "type": "table", "filter": { "property": "É hoje", "formula": { "checkbox": { "equals": true } } }, "show": ["Dia", "Minha rotina", "Disponibilidade para gravar"] } },
+        { "heading": "2. O que preciso gravar", "view": { "name": "Para eu gravar", "base": "captacao", "type": "list", "filter": { "and": [ { "property": "Quem capta", "select": { "does_not_equal": "Social media" } }, { "or": [ { "property": "Status", "select": { "equals": "Solicitado à Larissa" } }, { "property": "Status", "select": { "equals": "Agendado" } } ] } ] }, "sorts": [ { "property": "Quando", "direction": "ascending" } ], "show": ["Pedido", "Como gravar", "Onde", "Quando"] } },
+        { "heading": "3. Para eu aprovar", "view": { "name": "Para eu aprovar", "base": "conteudos", "type": "gallery", "filter": { "property": "Status", "status": { "equals": "Aguardando aprovação" } }, "show": ["Título", "Formato", "Publicação prevista"] } },
+        { "heading": "4. Perguntas para mim", "view": { "name": "Minhas perguntas", "base": "pendencias", "type": "list", "filter": { "and": [ { "property": "Quem responde", "select": { "equals": "Larissa" } }, { "property": "Status", "select": { "equals": "Aberta" } } ] }, "sorts": [ { "property": "Bloco do questionário", "direction": "ascending" } ], "show": ["Pendência", "Bloco do questionário", "Prioridade"] } },
+        { "heading": "5. Tive uma ideia ou aconteceu algo", "view": { "name": "Registrar ideia", "base": "conteudos", "type": "form" } },
+        { "heading": "6. Quero guardar um link", "view": { "name": "Guardar referência", "base": "referencias", "type": "form" } }
+      ],
+      "manual": [
+        "Formulário 'Registrar ideia': deixar só as perguntas Título (\"Qual a ideia ou o que aconteceu?\"), Relato (\"Conte mais, se quiser\") e um campo de arquivo opcional; Status padrão = Ideia; Origem padrão = Larissa.",
+        "Formulário 'Guardar referência': perguntas Link, Referência (\"O que é?\") e Por que é útil; Status padrão = Nova; Origem padrão = Larissa.",
+        "Permitir resposta por áudio: incluir pergunta do tipo arquivo nos dois formulários."
+      ]
+    },
+    {
+      "key": "gestao",
+      "title": "Gestão",
+      "icon": "📊",
+      "intro": "Visão do gestor: estratégia, comercial, ritmo de produção, desempenho e decisões que dependem de você.",
+      "sections": [
+        { "heading": "Estratégia vigente", "view": { "name": "Semanas", "base": "semanas", "type": "table", "sorts": [ { "property": "Período", "direction": "descending" } ], "show": ["Semana", "Status do plano", "Intenção editorial", "Capacidade de produção", "Planejados", "Publicados"] }, "note": "A estratégia de longo prazo vive em base-de-conhecimento/05-Estrategia-editorial.md (repositório). Esta tabela mostra o planejado x publicado por semana." },
+        { "heading": "Prioridades comerciais", "view": { "name": "Prioridades", "base": "prioridades", "type": "table", "filter": { "property": "Status", "select": { "does_not_equal": "Encerrada" } }, "show": ["Prioridade", "Período", "Status", "Procedimento ou serviço", "Meta", "Peso"] } },
+        { "heading": "Calendário do mês", "view": { "name": "Calendário", "base": "conteudos", "type": "calendar", "date_property": "Publicação prevista", "show": ["Título", "Formato", "Pilar"] } },
+        { "heading": "Distribuição por pilar", "view": { "name": "Por pilar", "base": "conteudos", "type": "board", "group_by": "Pilar", "filter": { "property": "Status", "status": { "does_not_equal": "Arquivado" } }, "show": ["Título", "Objetivo", "Etapa"] } },
+        { "heading": "Atrasados e bloqueados", "view": { "name": "Atenção", "base": "conteudos", "type": "table", "filter": { "or": [ { "property": "Atrasado", "formula": { "checkbox": { "equals": true } } }, { "property": "Status", "status": { "equals": "Aguardando informação" } } ] }, "show": ["Título", "Status", "Prazo de produção", "Bloqueio", "Com quem está"] } },
+        { "heading": "Indicadores", "view": { "name": "Leituras recentes", "base": "metricas", "type": "table", "sorts": [ { "property": "Data da leitura", "direction": "descending" } ], "show": ["Leitura", "Conteúdo", "Janela", "Alcance de não seguidores", "Retenção média (%)", "Salvamentos", "Compartilhamentos", "Respostas", "Conversas qualificadas", "Agendamentos atribuídos"] } },
+        { "heading": "Aprendizados", "view": { "name": "Memória editorial", "base": "aprendizados", "type": "board", "group_by": "Status", "show": ["Aprendizado", "Área", "Próxima verificação"] } },
+        { "heading": "Decisões pendentes", "view": { "name": "Decisões da gestão", "base": "pendencias", "type": "table", "filter": { "and": [ { "property": "Quem responde", "select": { "equals": "Gestão" } }, { "property": "Status", "select": { "does_not_equal": "Respondida" } }, { "property": "Status", "select": { "does_not_equal": "Cancelada" } } ] }, "show": ["Pendência", "Código", "Prioridade", "Status", "Conteúdos afetados"] } },
+        { "heading": "Saúde da automação", "view": { "name": "Execuções com problema", "base": "execucoes", "type": "table", "filter": { "or": [ { "property": "Status", "select": { "equals": "Erro" } }, { "property": "Status", "select": { "equals": "Sucesso parcial" } }, { "property": "Reprocessar", "checkbox": { "equals": true } } ] }, "sorts": [ { "property": "Início", "direction": "descending" } ], "show": ["Execução", "Workflow", "Status", "Erro", "Custo estimado (US$)", "Reprocessar"] } }
+      ],
+      "manual": [
+        "Gráfico 'Distribuição por pilar e objetivo' (view do tipo chart): a configuração de gráfico não está documentada no corpo do create-view; criar à mão. O quadro 'Por pilar' cobre até lá.",
+        "Gráfico 'Planejado x publicado por mês': criar à mão como chart na base Conteúdos."
+      ]
+    }
+  ],
+  "database_views": {
+    "$comment": "Views extras criadas dentro da própria página de cada base (além da view padrão).",
+    "conteudos": [
+      { "name": "Banco de ideias", "type": "table", "filter": { "property": "Status", "status": { "equals": "Ideia" } }, "show": ["Título", "Relato", "Pilar", "Objetivo", "Origem", "Notas de origem"] },
+      { "name": "Inventário Trello (nov/2026)", "type": "table", "filter": { "property": "Origem", "select": { "equals": "Trello" } }, "show": ["ID", "Título", "Formato", "Pilar", "Objetivo", "Status", "Bloqueio", "Já publicado? (Trello)", "Notas de origem"] },
+      { "name": "Técnico (gestão)", "type": "table", "show": ["ID", "Título", "Chave", "Origem", "Versão", "Sincronização", "Última escrita do agente", "Travar para o agente", "Execução", "Atualizado por", "Atualizado em"] }
+    ],
+    "pendencias": [
+      { "name": "Questionário da Larissa", "type": "board", "group_by": "Bloco do questionário", "filter": { "property": "Quem responde", "select": { "equals": "Larissa" } }, "show": ["Pendência", "Status", "Prioridade"] }
+    ],
+    "captacao": [
+      { "name": "Agenda de captação", "type": "calendar", "date_property": "Quando", "show": ["Pedido", "Quem capta"] }
+    ],
+    "recomendacoes": [
+      { "name": "Histórico", "type": "table", "sorts": [ { "property": "Criado em", "direction": "descending" } ], "show": ["Recomendação", "Tipo", "Decisão", "Decidido por", "Decidido em", "Execução"] }
+    ]
+  }
+}

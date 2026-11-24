@@ -23,13 +23,13 @@
 |---|---|---|---|
 | P-03 | "10 anos de profissão e mais de 30 cursos" segue correto em 2026? | doc 01 | Aberta |
 | P-07 | O que as pacientes dizem querer quando chegam? (desejos, nas palavras delas) | doc 02 | Aberta |
-| P-08 | Pode usar "HOF" nos textos ou só nas caixinhas? E "harmonização", nunca? | doc 03 | Aberta |
+| P-08 | Pode usar "HOF" nos textos ou só nas caixinhas? E "harmonização", nunca? | doc 03 | **Respondida** 2026-11-24: HOF só em contexto informal (caixinhas); na comunicação clínica, nome do procedimento. |
 | P-09 | Expressões que você usa muito e expressões que você nunca usaria. | doc 03 | Aberta |
 | P-14 | Como funcionam os planejamentos anual, concentrado e em etapas? Quais tecnologias a clínica tem? | doc 06, I-01 | Aberta |
 | P-20 | Onde e como você prefere gravar? Grava sozinha ou com a social media? Em quais dias/horários costuma ter tempo? | doc 08, captação | Aberta |
 | P-21 | Os @ das referências e o que você admira em cada uma. A Rita Capelato é qual perfil? | doc 09 | Aberta |
 | P-22 | Quem é a Lara? O que pode ser mostrado da sua filha, marido e mãe? | docs 10 e 11, C-11, I-05 | Aberta |
-| P-18 | Stories: 5 a 6 por dia é mínimo obrigatório ou referência? | doc 07 | Aberta |
+| P-18 | Stories: 5 a 6 por dia é mínimo obrigatório ou referência? | doc 07 | **Respondida** 2026-11-24: meta operacional flexível, conforme relevância e disponibilidade da Larissa. |
 
 ## B. Para o Álvaro (gestor)
 | ID | Pergunta | Destrava | Status |
@@ -38,7 +38,7 @@
 | P-06 | "Mais presença entre 30 e 45" vem do Instagram Insights, das pacientes ou é percepção? | doc 02 | Aberta |
 | P-10 | O Método ERA tem registro de marca? Usar ™ ou ®? | doc 04 | Aberta |
 | P-11 | Aceita tratar "Venda" e "Topo de funil" como objetivos, mantendo os 3 pilares (Autoridade, Desejo e prova social, Conexão)? | doc 05 | Aberta |
-| P-12 | Prioridades comerciais de dez/2026 e jan/2027. Replanejar as 4 semanas do Trello a partir de dezembro? | doc 05, estrategista semanal | Aberta |
+| P-12 | Prioridades comerciais de dez/2026 e jan/2027. Replanejar as 4 semanas do Trello a partir de dezembro? | doc 05, estrategista semanal | **Parcial** 2026-11-24: nov/2026 vira inventário histórico, sem presumir publicação. Prioridades comerciais seguem abertas. |
 | P-13 | Datas importantes (aniversário da clínica, campanhas, férias, feriados com agenda fechada). | doc 05 | Aberta |
 | P-17 | A Clínica Stimma é citada pelo nome no Instagram? | doc 06 | Aberta |
 | P-23 | Quem revisa as normas de publicidade do CFO (antes e depois, depoimentos, preços)? | doc 11 | Aberta |
@@ -58,12 +58,12 @@
 | 3 | Caso +35 aparece nas semanas 1 e 3 | Feed sem. 1 e 3 | P-25 |
 | 4 | Reels da mãe chamado "ep. 6", roteiro diz "quinto episódio" e "cinco episódios" | Feed sem. 3 | P-19 |
 | 5 | Duas classificações: 3 pilares vs. 3 linhas editoriais (Autoridade, Venda, Topo de funil) | Calendário editorial | P-11 |
-| 6 | Tom de voz evita "harmonização", mas as caixinhas usam "HOF" | Stories, brainstorm | P-08 |
-| 7 | Stories "no mínimo 5 a 6" (Trello) vs. "referência, sem obrigação" (plano mestre) | Stories | P-18 |
+| 6 | Tom de voz evita "harmonização", mas as caixinhas usam "HOF" | Stories, brainstorm | **Resolvida** (P-08) |
+| 7 | Stories "no mínimo 5 a 6" (Trello) vs. "referência, sem obrigação" (plano mestre) | Stories | **Resolvida** (P-18) |
 | 8 | Persona 30 a 60 anos, mas carrossel fala "depois dos 40" e série "depois dos 30" | Persona, feed | Não é erro: são recortes. Registrado para o estrategista variar faixas |
 | 9 | "Monjauro" escrito errado no quadro | Feed sem. 2 | Corrigido para Mounjaro na base |
 | 10 | Plano mestre cita paciente "desde 2021"; Trello diz pacientes acompanhadas desde 2020 | Plano mestre §6 | O exemplo do plano é ilustrativo; a base usa 2020 |
-| 11 | Calendário é de novembro/2026, que já está terminando | Calendário de Conteúdo | P-12 |
+| 11 | Calendário é de novembro/2026, que já está terminando | Calendário de Conteúdo | **Resolvida**: inventário histórico (P-12 parcial) |
 
 ## E. Estrutura em branco no Trello (não é pergunta, é trabalho a fazer)
 - Métricas → nasce na Fase 2 (base Resultados) e Fase 5.

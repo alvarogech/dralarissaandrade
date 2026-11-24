@@ -5,8 +5,9 @@
 ## Cadência
 - **[Trello]** No mínimo 5 a 6 stories por dia, intercalados com rotina, assuntos femininos,
   maternidade e o lado empresária.
-- **[Plano mestre]** A quantidade é referência, não obrigação, quando não houver conteúdo
-  relevante. **Conflito:** o Trello diz "no mínimo". **[Pendente P-18]**
+- **[Decisão 2026-11-24]** 5 a 6 stories por dia é **meta operacional flexível**: vale quando há
+  acontecimento relevante e a Larissa tem disponibilidade. Um dia com 2 stories bons é melhor
+  que 6 stories vazios. O agente nunca cobra quantidade; ele sugere o que vale registrar.
 
 ## Matriz semanal
 

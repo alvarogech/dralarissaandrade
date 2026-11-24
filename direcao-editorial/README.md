@@ -13,14 +13,15 @@ Projeto independente dentro deste repositório (não faz parte do STIMMA OS nem 
 |---|---|
 | `fontes/` | Material bruto recebido (levantamento do Trello, plano mestre). Não editar. |
 | `base-de-conhecimento/` | Documentos estruturados que o agente lê. Fase 1. |
+| `notion/` | Fase 2: estrutura da Central Editorial no Notion (schema, layout, scripts, importação). |
 | `DECISIONS.md` | Decisões tomadas e por quê. |
 
 ## Fases
 
 | Fase | Entrega | Situação |
 |---|---|---|
-| 1 | Base de conhecimento + perguntas pendentes | **Em andamento** (v0 pronta, aguardando respostas da Larissa) |
-| 2 | Estrutura do Notion | Não iniciada |
+| 1 | Base de conhecimento + perguntas pendentes | **Aprovada** (respostas da Larissa entram aos poucos) |
+| 2 | Estrutura do Notion | **Pronta no repositório**; falta rodar no Notion (ver `notion/RELATORIO-FASE-2.md`) |
 | 3 | Instruções e prompts do agente | Não iniciada |
 | 4 | Workflows n8n | Não iniciada |
 | 5 | Validação em cenários reais | Não iniciada |
