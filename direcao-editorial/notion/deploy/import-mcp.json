@@ -1,0 +1,899 @@
+{
+ "pendencias": [
+  {
+   "properties": {
+    "Pendência": "P-00 · Exportar do Trello o texto integral dos roteiros e os links das referências",
+    "Chave": "pendencia:P-00",
+    "Origem": "Gestão",
+    "Tipo": "Decisão da gestão",
+    "Status": "Aberta",
+    "Quem responde": "Gestão",
+    "Prioridade": "Alta",
+    "Código": "P-00",
+    "Documento da base": "03, 08, 09"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-01 · O que significa cada letra do Método ERA?",
+    "Chave": "pendencia:P-01",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "1. Método ERA",
+    "Código": "P-01",
+    "Documento da base": "04-Metodo-ERA.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-02 · Como cada etapa do ERA acontece na prática e o que o diferencia de um protocolo comum?",
+    "Chave": "pendencia:P-02",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "1. Método ERA",
+    "Código": "P-02",
+    "Documento da base": "04-Metodo-ERA.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-03 · \"10 anos de profissão e mais de 30 cursos\" segue correto?",
+    "Chave": "pendencia:P-03",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Média",
+    "Bloco do questionário": "6. Minha história",
+    "Código": "P-03",
+    "Documento da base": "01-DNA-da-marca.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-04 · Quais momentos da sua história você quer contar?",
+    "Chave": "pendencia:P-04",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "6. Minha história",
+    "Código": "P-04",
+    "Documento da base": "01-DNA-da-marca.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-05 · Mounjaro: o que contar sobre o seu emagrecimento e o que não expor?",
+    "Chave": "pendencia:P-05",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "6. Minha história",
+    "Código": "P-05",
+    "Documento da base": "01-DNA-da-marca.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-06 · \"Mais presença entre 30 e 45\" vem do Insights, das pacientes ou é percepção?",
+    "Chave": "pendencia:P-06",
+    "Origem": "Trello",
+    "Tipo": "Decisão da gestão",
+    "Status": "Aberta",
+    "Quem responde": "Gestão",
+    "Prioridade": "Média",
+    "Código": "P-06",
+    "Documento da base": "02-Persona.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-07 · O que as pacientes dizem querer quando chegam?",
+    "Chave": "pendencia:P-07",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Média",
+    "Bloco do questionário": "7. Meu jeito de falar",
+    "Código": "P-07",
+    "Documento da base": "02-Persona.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-08 · Uso de \"HOF\" e \"harmonização\"",
+    "Chave": "pendencia:P-08",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Respondida",
+    "Quem responde": "Larissa",
+    "Prioridade": "Média",
+    "Bloco do questionário": "7. Meu jeito de falar",
+    "Código": "P-08",
+    "Documento da base": "03-Identidade-verbal.md",
+    "Resposta": "HOF em contexto informal (caixinhas). Na comunicação clínica, nome do procedimento. \"Harmonização\" segue evitado.",
+    "date:Respondida em:start": "2026-11-24",
+    "date:Respondida em:is_datetime": 0
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-09 · Expressões que você usa muito e que nunca usaria",
+    "Chave": "pendencia:P-09",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Média",
+    "Bloco do questionário": "7. Meu jeito de falar",
+    "Código": "P-09",
+    "Documento da base": "03-Identidade-verbal.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-10 · O Método ERA tem registro de marca? Usar ™ ou ®?",
+    "Chave": "pendencia:P-10",
+    "Origem": "Trello",
+    "Tipo": "Decisão da gestão",
+    "Status": "Aberta",
+    "Quem responde": "Gestão",
+    "Prioridade": "Baixa",
+    "Código": "P-10",
+    "Documento da base": "04-Metodo-ERA.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-11 · Tratar Venda e Topo de funil como objetivos, mantendo os 3 pilares?",
+    "Chave": "pendencia:P-11",
+    "Origem": "Trello",
+    "Tipo": "Decisão da gestão",
+    "Status": "Aberta",
+    "Quem responde": "Gestão",
+    "Prioridade": "Média",
+    "Código": "P-11",
+    "Documento da base": "05-Estrategia-editorial.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-12 · Prioridades comerciais de dez/2026 e jan/2027",
+    "Chave": "pendencia:P-12",
+    "Origem": "Trello",
+    "Tipo": "Decisão da gestão",
+    "Status": "Parcial",
+    "Quem responde": "Gestão",
+    "Prioridade": "Alta",
+    "Código": "P-12",
+    "Documento da base": "05-Estrategia-editorial.md",
+    "Resposta": "Nov/2026 tratado como inventário histórico, sem presumir publicação. Prioridades comerciais ainda abertas."
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-13 · Datas importantes (aniversário da clínica, campanhas, férias, feriados)",
+    "Chave": "pendencia:P-13",
+    "Origem": "Trello",
+    "Tipo": "Decisão da gestão",
+    "Status": "Aberta",
+    "Quem responde": "Gestão",
+    "Prioridade": "Média",
+    "Código": "P-13",
+    "Documento da base": "05-Estrategia-editorial.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-14 · Como funcionam os planejamentos anual, concentrado e em etapas? Quais tecnologias a clínica tem?",
+    "Chave": "pendencia:P-14",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Média",
+    "Bloco do questionário": "5. Procedimentos",
+    "Código": "P-14",
+    "Documento da base": "06-Produtos-e-servicos.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-15 · Peptídeos: para que você usa e o que considera hype?",
+    "Chave": "pendencia:P-15",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "5. Procedimentos",
+    "Código": "P-15",
+    "Documento da base": "06-Produtos-e-servicos.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-16 · Plasma IQ nas pálpebras: benefícios e para quem não indica",
+    "Chave": "pendencia:P-16",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "5. Procedimentos",
+    "Código": "P-16",
+    "Documento da base": "06-Produtos-e-servicos.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-17 · A Clínica Stimma é citada pelo nome no Instagram?",
+    "Chave": "pendencia:P-17",
+    "Origem": "Trello",
+    "Tipo": "Decisão da gestão",
+    "Status": "Aberta",
+    "Quem responde": "Gestão",
+    "Prioridade": "Baixa",
+    "Código": "P-17",
+    "Documento da base": "06-Produtos-e-servicos.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-18 · Stories: 5 a 6 por dia é mínimo ou referência?",
+    "Chave": "pendencia:P-18",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Respondida",
+    "Quem responde": "Larissa",
+    "Prioridade": "Média",
+    "Bloco do questionário": "4. Rotina e gravação",
+    "Código": "P-18",
+    "Documento da base": "07-Manual-de-stories.md",
+    "Resposta": "Meta operacional flexível, conforme relevância e disponibilidade da Larissa.",
+    "date:Respondida em:start": "2026-11-24",
+    "date:Respondida em:is_datetime": 0
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-19 · \"Depois dos 30\": quantos episódios publicados? O da mãe é o 5º ou o 6º?",
+    "Chave": "pendencia:P-19",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a social media",
+    "Status": "Aberta",
+    "Quem responde": "Social media",
+    "Prioridade": "Média",
+    "Código": "P-19",
+    "Documento da base": "12-Inventario-de-conteudos.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-20 · Onde e como você prefere gravar, e quando costuma ter tempo?",
+    "Chave": "pendencia:P-20",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "4. Rotina e gravação",
+    "Código": "P-20",
+    "Documento da base": "08-Manual-de-reels.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-21 · Os @ das referências e o que você admira em cada uma",
+    "Chave": "pendencia:P-21",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Média",
+    "Bloco do questionário": "7. Meu jeito de falar",
+    "Código": "P-21",
+    "Documento da base": "09-Referencias-criativas.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-22 · Quem é a Lara? O que pode ser mostrado da filha, do marido e da mãe?",
+    "Chave": "pendencia:P-22",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "3. Família e exposição",
+    "Código": "P-22",
+    "Documento da base": "10, 11"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-23 · Quem revisa as normas de publicidade do CFO?",
+    "Chave": "pendencia:P-23",
+    "Origem": "Trello",
+    "Tipo": "Decisão da gestão",
+    "Status": "Aberta",
+    "Quem responde": "Gestão",
+    "Prioridade": "Alta",
+    "Código": "P-23",
+    "Documento da base": "11-Diretrizes-eticas.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-24 · Onde fica registrada a autorização de imagem das pacientes?",
+    "Chave": "pendencia:P-24",
+    "Origem": "Trello",
+    "Tipo": "Decisão da gestão",
+    "Status": "Aberta",
+    "Quem responde": "Gestão",
+    "Prioridade": "Alta",
+    "Código": "P-24",
+    "Documento da base": "11-Diretrizes-eticas.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-25 · Qual caso de paciente +35 entra? É o mesmo nas semanas 1 e 3?",
+    "Chave": "pendencia:P-25",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "2. Casos e pacientes",
+    "Código": "P-25",
+    "Documento da base": "12-Inventario-de-conteudos.md"
+   }
+  },
+  {
+   "properties": {
+    "Pendência": "P-26 · Preencher as lacunas do roteiro \"Depois dos 30: minha mãe\"",
+    "Chave": "pendencia:P-26",
+    "Origem": "Trello",
+    "Tipo": "Pergunta para a Larissa",
+    "Status": "Aberta",
+    "Quem responde": "Larissa",
+    "Prioridade": "Alta",
+    "Bloco do questionário": "6. Minha história",
+    "Código": "P-26",
+    "Documento da base": "12-Inventario-de-conteudos.md"
+   }
+  }
+ ],
+ "referencias": [
+  {
+   "properties": {
+    "Referência": "Mariana Georges",
+    "Chave": "trello:ref-mariana-georges",
+    "Origem": "Trello",
+    "Tipo": "Perfil",
+    "Status": "Aprovada"
+   }
+  },
+  {
+   "properties": {
+    "Referência": "Najla Vicentini",
+    "Chave": "trello:ref-najla-vicentini",
+    "Origem": "Trello",
+    "Tipo": "Perfil",
+    "Status": "Aprovada"
+   }
+  },
+  {
+   "properties": {
+    "Referência": "Ana Rassi",
+    "Chave": "trello:ref-ana-rassi",
+    "Origem": "Trello",
+    "Tipo": "Perfil",
+    "Status": "Aprovada"
+   }
+  },
+  {
+   "properties": {
+    "Referência": "Monique Roque",
+    "Chave": "trello:ref-monique-roque",
+    "Origem": "Trello",
+    "Tipo": "Perfil",
+    "Status": "Aprovada"
+   }
+  },
+  {
+   "properties": {
+    "Referência": "Ericka Marinho",
+    "Chave": "trello:ref-ericka-marinho",
+    "Origem": "Trello",
+    "Tipo": "Perfil",
+    "Status": "Aprovada"
+   }
+  },
+  {
+   "properties": {
+    "Referência": "Rita Capelato",
+    "Chave": "trello:ref-rita-capelato",
+    "Origem": "Trello",
+    "Tipo": "Perfil",
+    "Status": "A confirmar",
+    "Por que é útil": "Perfil ainda a confirmar (P-21)."
+   }
+  }
+ ],
+ "aprendizados": [
+  {
+   "properties": {
+    "Aprendizado": "Explicar uma decisão clínica durante a consulta gera identificação e mostra autoridade com naturalidade",
+    "Chave": "base:A-001",
+    "Origem": "Gestão",
+    "Status": "Hipótese",
+    "Área": "Formato",
+    "Evidência": "Nenhuma ainda. Exemplo do plano mestre."
+   }
+  },
+  {
+   "properties": {
+    "Aprendizado": "Conteúdos com a Lara apresentam sinais de maior engajamento",
+    "Chave": "base:A-002",
+    "Origem": "Gestão",
+    "Status": "Hipótese",
+    "Área": "Tema",
+    "Evidência": "Nenhuma ainda. Quem é a Lara: P-22."
+   }
+  },
+  {
+   "properties": {
+    "Aprendizado": "Gerenciamento do envelhecimento é estratégico, mas precisa variar histórias para não desgastar",
+    "Chave": "base:A-003",
+    "Origem": "Gestão",
+    "Status": "Hipótese",
+    "Área": "Tema",
+    "Evidência": "Nenhuma ainda."
+   }
+  }
+ ],
+ "conteudos": [
+  {
+   "pendencias": [
+    "P-00"
+   ],
+   "properties": {
+    "Título": "Não indico protocolo Ctrl C, Ctrl V",
+    "Chave": "trello:C-01",
+    "Origem": "Trello",
+    "Status": "Planejado",
+    "Formato": "Carrossel",
+    "Pilar": "Autoridade",
+    "Objetivo": "Quebra de objeção",
+    "Bloqueio": "Escolher versão A (dois casos com a mesma queixa) ou B (\"minha amiga fez\"). Texto integral não migrado.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 1 (nov/2026). Roteiro completo em 2 versões de 6 páginas.",
+    "Com quem está": "Social media"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nO roteiro existe no Trello, mas o texto integral ainda não foi migrado (P-00).\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [],
+   "properties": {
+    "Título": "Momento consulta",
+    "Chave": "trello:C-02",
+    "Origem": "Trello",
+    "Status": "Aguardando captação",
+    "Formato": "Reels",
+    "Pilar": "Autoridade",
+    "Objetivo": "Construção de confiança",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 1 (nov/2026). Direção: take orgânico da Larissa educando a paciente. Tem referência anexada (link não migrado).",
+    "Com quem está": "Social media"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-04"
+   ],
+   "properties": {
+    "Título": "História da Larissa",
+    "Chave": "trello:C-03",
+    "Origem": "Trello",
+    "Status": "Aguardando informação",
+    "Formato": "Reels",
+    "Pilar": "Conexão",
+    "Objetivo": "Descoberta",
+    "Bloqueio": "Cartão vazio. Depende do relato da Larissa.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 1 (nov/2026). Vazio.",
+    "Com quem está": "Larissa"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-25",
+    "P-24"
+   ],
+   "properties": {
+    "Título": "Caso clínico de paciente +35",
+    "Chave": "trello:C-04",
+    "Origem": "Trello",
+    "Status": "Aguardando informação",
+    "Formato": "Carrossel",
+    "Pilar": "Desejo e prova social",
+    "Objetivo": "Geração de desejo",
+    "Bloqueio": "Definir qual caso e confirmar autorização de imagem.",
+    "Informação clínica pendente": "__YES__",
+    "Autorização de imagem": "Pendente",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Necessária",
+    "Motivo da validação": "[\"Caso clínico\",\"Imagem de paciente\"]",
+    "Notas de origem": "Trello · Feed · Semana 1 (nov/2026). Só a estrutura: queixa, planejamento, resultado.",
+    "Com quem está": "Larissa"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-05"
+   ],
+   "properties": {
+    "Título": "Mounjaro e o meu emagrecimento",
+    "Chave": "trello:C-05",
+    "Origem": "Trello",
+    "Status": "Aguardando informação",
+    "Formato": "Reels",
+    "Pilar": "Conexão",
+    "Objetivo": "Descoberta",
+    "Bloqueio": "Cartão vazio. Relato pessoal, nunca indicação de medicamento.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 2 (nov/2026). Vazio. No quadro estava escrito \"Monjauro\".",
+    "Com quem está": "Larissa"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-00"
+   ],
+   "properties": {
+    "Título": "Pior erro ao tratar o rosto depois dos 40",
+    "Chave": "trello:C-06",
+    "Origem": "Trello",
+    "Status": "Planejado",
+    "Formato": "Carrossel",
+    "Pilar": "Autoridade",
+    "Objetivo": "Quebra de objeção",
+    "Bloqueio": "Texto integral não migrado.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 2 (nov/2026). Roteiro completo em 6 páginas, contra o procedimento isolado.",
+    "Com quem está": "Social media"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nO roteiro existe no Trello, mas o texto integral ainda não foi migrado (P-00).\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-00"
+   ],
+   "properties": {
+    "Título": "Deus sempre me empurrou pra fora",
+    "Chave": "trello:C-07",
+    "Origem": "Trello",
+    "Status": "Planejado",
+    "Formato": "Reels",
+    "Pilar": "Conexão",
+    "Objetivo": "Engajamento",
+    "Bloqueio": "Texto integral não migrado.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 2 (nov/2026). Roteiro completo, conexão e fé (Provérbios 3).",
+    "Com quem está": "Social media"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nO roteiro existe no Trello, mas o texto integral ainda não foi migrado (P-00).\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-15"
+   ],
+   "properties": {
+    "Título": "A verdade sobre os peptídeos",
+    "Chave": "trello:C-08",
+    "Origem": "Trello",
+    "Status": "Aguardando informação",
+    "Formato": "A definir",
+    "Pilar": "Autoridade",
+    "Objetivo": "Educação",
+    "Bloqueio": "Larissa precisa informar para que usa e o que considera hype.",
+    "Informação clínica pendente": "__YES__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Necessária",
+    "Motivo da validação": "[\"Afirmação clínica inédita\"]",
+    "Notas de origem": "Trello · Feed · Semana 2 (nov/2026). Previsto como Reels ou carrossel.",
+    "Com quem está": "Larissa"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-00"
+   ],
+   "properties": {
+    "Título": "Prefiro peeling a full face",
+    "Chave": "trello:C-09",
+    "Origem": "Trello",
+    "Status": "Planejado",
+    "Formato": "Reels",
+    "Pilar": "Autoridade",
+    "Objetivo": "Quebra de objeção",
+    "Bloqueio": "Texto integral e legenda não migrados.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 3 (nov/2026). Roteiro e legenda completos (argumento dos 730 dias).",
+    "Com quem está": "Social media"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nO roteiro existe no Trello, mas o texto integral ainda não foi migrado (P-00).\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-25",
+    "P-24"
+   ],
+   "properties": {
+    "Título": "Caso clínico em storytelling",
+    "Chave": "trello:C-10",
+    "Origem": "Trello",
+    "Status": "Aguardando informação",
+    "Formato": "Reels",
+    "Pilar": "Desejo e prova social",
+    "Objetivo": "Geração de desejo",
+    "Bloqueio": "Repete o caso +35 de CON trello:C-04. Definir se é o mesmo caso.",
+    "Informação clínica pendente": "__YES__",
+    "Autorização de imagem": "Pendente",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Necessária",
+    "Motivo da validação": "[\"Caso clínico\",\"Imagem de paciente\"]",
+    "Notas de origem": "Trello · Feed · Semana 3 (nov/2026). Só a estrutura.",
+    "Com quem está": "Larissa"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-22"
+   ],
+   "properties": {
+    "Título": "Conexão: família",
+    "Chave": "trello:C-11",
+    "Origem": "Trello",
+    "Status": "Planejado",
+    "Formato": "Carrossel",
+    "Pilar": "Conexão",
+    "Objetivo": "Engajamento",
+    "Bloqueio": "Confirmar o que pode ser mostrado da família.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 3 (nov/2026). Direção com referência anexada (link não migrado).",
+    "Com quem está": "Social media"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-26",
+    "P-19"
+   ],
+   "properties": {
+    "Título": "Depois dos 30: minha mãe",
+    "Chave": "trello:C-12",
+    "Origem": "Trello",
+    "Status": "Aguardando informação",
+    "Formato": "Reels",
+    "Pilar": "Conexão",
+    "Objetivo": "Engajamento",
+    "Bloqueio": "Roteiro com lacunas que só a Larissa preenche. Numeração do episódio inconsistente (ep. 6 x quinto).",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Não necessária",
+    "Notas de origem": "Trello · Feed · Semana 3 (nov/2026). Série \"Depois dos 30\".",
+    "Com quem está": "Larissa"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-01",
+    "P-02"
+   ],
+   "properties": {
+    "Título": "Método ERA",
+    "Chave": "trello:C-13",
+    "Origem": "Trello",
+    "Status": "Aguardando informação",
+    "Formato": "Reels",
+    "Pilar": "Autoridade",
+    "Objetivo": "Conversão",
+    "Bloqueio": "Significado e etapas do Método ERA a confirmar pela Larissa.",
+    "Informação clínica pendente": "__YES__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Necessária",
+    "Motivo da validação": "[\"Afirmação clínica inédita\"]",
+    "Notas de origem": "Trello · Feed · Semana 4 (nov/2026). Vazio. Peça central da semana.",
+    "Com quem está": "Larissa"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-16"
+   ],
+   "properties": {
+    "Título": "Plasma IQ nas pálpebras",
+    "Chave": "trello:C-14",
+    "Origem": "Trello",
+    "Status": "Aguardando informação",
+    "Formato": "Carrossel",
+    "Pilar": "Autoridade",
+    "Objetivo": "Educação",
+    "Bloqueio": "Larissa precisa informar os benefícios e para quem não indica.",
+    "Informação clínica pendente": "__YES__",
+    "Autorização de imagem": "Não se aplica",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Necessária",
+    "Motivo da validação": "[\"Afirmação clínica inédita\"]",
+    "Notas de origem": "Trello · Feed · Semana 4 (nov/2026). Capa sugerida: \"O que ninguém te contou…\".",
+    "Com quem está": "Larissa"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-24"
+   ],
+   "properties": {
+    "Título": "Caso em tela dividida: paciente de longa data",
+    "Chave": "trello:C-15",
+    "Origem": "Trello",
+    "Status": "Aguardando captação",
+    "Formato": "Reels",
+    "Pilar": "Desejo e prova social",
+    "Objetivo": "Construção de confiança",
+    "Bloqueio": "Autorização de imagem a confirmar.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Pendente",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Necessária",
+    "Motivo da validação": "[\"Caso clínico\",\"Imagem de paciente\"]",
+    "Notas de origem": "Trello · Feed · Semana 4 (nov/2026). Direção completa, até 1min30.",
+    "Com quem está": "Social media"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-24"
+   ],
+   "properties": {
+    "Título": "Casos com feedbacks",
+    "Chave": "trello:C-16",
+    "Origem": "Trello",
+    "Status": "Aguardando captação",
+    "Formato": "Carrossel",
+    "Pilar": "Desejo e prova social",
+    "Objetivo": "Construção de confiança",
+    "Bloqueio": "Autorização de uso dos feedbacks a confirmar.",
+    "Informação clínica pendente": "__NO__",
+    "Autorização de imagem": "Pendente",
+    "Já publicado? (Trello)": "A confirmar",
+    "Validação da Larissa": "Necessária",
+    "Motivo da validação": "[\"Caso clínico\",\"Imagem de paciente\"]",
+    "Notas de origem": "Trello · Feed · Semana 4 (nov/2026). Direção completa: prova social da semana ERA.",
+    "Com quem está": "Social media"
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-14"
+   ],
+   "properties": {
+    "Título": "Associação de procedimentos com as tecnologias da clínica",
+    "Chave": "trello:I-01",
+    "Origem": "Trello",
+    "Status": "Ideia",
+    "Formato": "A definir",
+    "Informação clínica pendente": "__NO__",
+    "Notas de origem": "Trello · Brainstorm."
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [],
+   "properties": {
+    "Título": "A tecnologia tem em todo lugar, mas na mão de quem ela faz efeito?",
+    "Chave": "trello:I-02",
+    "Origem": "Trello",
+    "Status": "Ideia",
+    "Formato": "Reels",
+    "Informação clínica pendente": "__NO__",
+    "Notas de origem": "Trello · Brainstorm."
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [],
+   "properties": {
+    "Título": "Fotos da viagem a SP e o perfil dela",
+    "Chave": "trello:I-03",
+    "Origem": "Trello",
+    "Status": "Ideia",
+    "Formato": "Reels",
+    "Informação clínica pendente": "__NO__",
+    "Notas de origem": "Trello · Brainstorm."
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [],
+   "properties": {
+    "Título": "(In)felizmente funciona, versão HOF",
+    "Chave": "trello:I-04",
+    "Origem": "Trello",
+    "Status": "Ideia",
+    "Formato": "A definir",
+    "Informação clínica pendente": "__NO__",
+    "Notas de origem": "Trello · Brainstorm. Tem post de referência (link não migrado). HOF liberado em tom informal (P-08)."
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  },
+  {
+   "pendencias": [
+    "P-22"
+   ],
+   "properties": {
+    "Título": "Post de conexão com a filha",
+    "Chave": "trello:I-05",
+    "Origem": "Trello",
+    "Status": "Ideia",
+    "Formato": "A definir",
+    "Informação clínica pendente": "__NO__",
+    "Notas de origem": "Trello · Brainstorm. Tem reel de referência (link não migrado)."
+   },
+   "content": "<callout icon=\"📦\">\n\tImportado do Trello em 2026-11-24 como inventário histórico de nov/2026. Não há confirmação de que foi publicado.\n</callout>\n## Rascunho do agente\n\n## Roteiro\nA desenvolver.\n## Direção criativa\nA desenvolver.\n## Legenda\nA desenvolver.\n## Notas da equipe\n"
+  }
+ ]
+}

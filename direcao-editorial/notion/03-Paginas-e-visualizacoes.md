@@ -1,5 +1,7 @@
 # 03 — Páginas e visualizações
 
+> **Atualizado na Fase 2.1:** as páginas foram simplificadas e implantadas. A fonte atual é `schema/layout.json` (DSL). Cada página abre com as respostas de 1 minuto (social media: produzir hoje, publicar hoje, pedir à Larissa, atrasados, dependem da Larissa; Larissa: meu dia, gravar, validar, perguntas, registrar). Formulários viraram abas das bases. O que está abaixo é o desenho da Fase 2 (histórico).
+
 Definição executável: `schema/layout.json`. O setup cria as páginas e as views pela API; o que a
 API não cobre está marcado como **[manual]**.
 

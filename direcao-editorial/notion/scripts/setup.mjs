@@ -108,31 +108,11 @@ async function main() {
     if (view.sorts) body.sorts = view.sorts;
     return body;
   };
-  for (const [baseKey, views] of Object.entries(layout.database_views)) {
-    if (baseKey.startsWith('$')) continue;
-    for (const view of views) {
-      const vkey = `${baseKey}:${view.name}`;
-      if (state.views[vkey]) { report.existentes.push(`view ${vkey}`); continue; }
-      const r = await step(`view ${vkey}`, async () => api.post('/views', { ...(await viewBody(view, baseKey)), database_id: state.databases[baseKey].database_id }));
-      if (r) { state.views[vkey] = r.id; saveState(state); report.criados.push(`view ${vkey}`); }
-    }
-  }
+  // Views: desde a Fase 2.1 são descritas na DSL do Notion (layout.json "configure") e aplicadas pelo
+  // conector MCP, que valida a DSL. A API REST pede outro formato; este script cria só as páginas.
   for (const page of layout.pages) {
     const pageId = await ensurePage(page.key, page.title, page.icon, root, page.intro);
-    if (!pageId) continue;
-    for (const section of page.sections) {
-      const vkey = `${page.key}:${section.view.name}`;
-      if (state.views[vkey]) { report.existentes.push(`view ${vkey}`); continue; }
-      const blocks = [{ object: 'block', type: 'heading_2', heading_2: { rich_text: richText(section.heading) } }];
-      if (section.note) blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: richText(section.note) } });
-      const appended = await step(`título ${section.heading}`, () => api.patch(`/blocks/${pageId}/children`, { children: blocks }));
-      if (!appended) continue;
-      const r = await step(`view ${vkey}`, async () => api.post('/views', {
-        ...(await viewBody(section.view, section.view.base)),
-        create_database: { parent: { type: 'page_id', page_id: pageId } },
-      }));
-      if (r) { state.views[vkey] = r.id; saveState(state); report.criados.push(`view ${vkey}`); }
-    }
+    if (pageId) report.manuais.push(`[${page.title}] criar as ${page.sections.length} views de schema/layout.json via conector MCP (ver notion/11-Implantacao.md).`);
     report.manuais.push(...(page.manual || []).map((m) => `[${page.title}] ${m}`));
   }
 

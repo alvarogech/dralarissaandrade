@@ -21,7 +21,8 @@ Projeto independente dentro deste repositório (não faz parte do STIMMA OS nem 
 | Fase | Entrega | Situação |
 |---|---|---|
 | 1 | Base de conhecimento + perguntas pendentes | **Aprovada** (respostas da Larissa entram aos poucos) |
-| 2 | Estrutura do Notion | **Pronta no repositório**; falta rodar no Notion (ver `notion/RELATORIO-FASE-2.md`) |
+| 2 | Estrutura do Notion | Concluída no repositório |
+| 2.1 | Implantação e validação | **Implantada no Notion**; faltam permissões e teste com as pessoas (ver `notion/RELATORIO-FASE-2.1.md`) |
 | 3 | Instruções e prompts do agente | Não iniciada |
 | 4 | Workflows n8n | Não iniciada |
 | 5 | Validação em cenários reais | Não iniciada |

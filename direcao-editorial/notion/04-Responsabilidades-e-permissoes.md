@@ -7,15 +7,17 @@
 | Contar a rotina do dia | **R** | I | | C (lê) |
 | Gerar direcionamento diário | I | I | | **R** |
 | Ajustar prioridades do dia | | **R** | I | |
-| Plano semanal | C | C | **A** | **R** (rascunho) |
+| Plano semanal | C | C | I (aprova só mudança estratégica) | **R** (nível A, preliminar) |
 | Prioridades comerciais | C | I | **R/A** | C (lê) |
 | Registrar ideia | **R** | **R** | R | R (como Recomendação) |
-| Escrever ou ajustar roteiro | C | **R** | I | R (como Recomendação) |
+| Escrever ou ajustar roteiro | C | **R** | I | R (nível A, só em "Rascunho do agente") |
 | Sugerir formato novo | C | **R** | I | R (como Recomendação) |
 | Alterar data de publicação | I | **R** | I | R (como Recomendação) |
 | Pedir material à Larissa | I | **R** | | R (cria pedido de Captação) |
 | Gravar | **R** | R | | |
-| Aprovar conteúdo | **A** | R | I | |
+| Aprovar conteúdo de rotina | I | **A** | | |
+| Validar clínico, caso, resultado ou posicionamento inédito (nível C) | **A** | R | I | ✗ só sinaliza |
+| Aprovar campanha ou mudança estratégica (nível B) | C | I | **A** | R (propõe) |
 | Agendar e publicar no Instagram | I | **R** | | ✗ nunca |
 | Responder pergunta clínica | **R** | | | ✗ nunca inventa |
 | Registrar dificuldade | | **R** | I | C (lê) |
@@ -23,6 +25,8 @@
 | Lançar métricas | | **R** (manual por enquanto) | C | R (análise) |
 | Promover aprendizado a "Validado por dados" | | | **A** | R (propõe) |
 | Reprocessar execução com erro | | | **R** | executa |
+
+> Níveis de autonomia do agente (A automático, B com aprovação, C humano): ver `09-Niveis-de-autonomia.md`.
 
 ## Dono de cada campo (regra que as automações respeitam)
 Cada propriedade tem um dono no `schema.json`. A lista completa está em `02b-Propriedades.md`.

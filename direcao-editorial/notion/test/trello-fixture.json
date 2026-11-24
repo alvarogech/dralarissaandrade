@@ -1,0 +1,10 @@
+{"$comment":"Fixture sintética para testar scripts/trello-plano.mjs. Não são dados reais do Trello.",
+ "lists":[{"id":"L1","name":"Feed semana 1"},{"id":"L2","name":"Brainstorm"}],
+ "cards":[
+  {"id":"c1","idList":"L1","name":"Carrossel: Não indico protocolo Ctrl C, Ctrl V","desc":"TEXTO DE TESTE","shortUrl":"https://trello.com/c/teste1","attachments":[{"name":"capa.jpg","url":"https://trello.com/x"}]},
+  {"id":"c2","idList":"L1","name":"Reels: Momento consulta","desc":""},
+  {"id":"c3","idList":"L2","name":"Ideia totalmente nova de teste","desc":"x"},
+  {"id":"c4","idList":"L1","name":"Caso clínico","desc":""},
+  {"id":"c5","idList":"L1","name":"Cartão arquivado","closed":true}],
+ "checklists":[{"idCard":"c1","name":"Páginas","checkItems":[{"name":"p1","state":"complete"}]}],
+ "actions":[{"type":"commentCard","date":"2026-11-01","data":{"card":{"id":"c2"},"text":"comentário de teste"}}]}

@@ -1,0 +1,194 @@
+{
+  "$comment": "IDs reais da implantação no Notion (Fase 2.1). IDs não são segredo; o acesso é controlado pelas permissões do Notion.",
+  "workspace": "Álvaro Henrique Gomes Ferreira’s Space",
+  "via": "Conector MCP do Notion (conta do Álvaro)",
+  "pages": {
+    "root": "42216ed6-3a26-81b9-8714-df7bd9e28f08",
+    "social": "42216ed6-3a26-815d-a419-df2a4f39aec0",
+    "larissa": "42216ed6-3a26-8154-8d65-e427aedb8e24",
+    "gestao": "42216ed6-3a26-8151-912e-cc1da49f2d1f",
+    "bases": "42216ed6-3a26-810e-ae18-ebc61e47e836",
+    "motor": "42216ed6-3a26-8181-9482-f661f5b3a0e9"
+  },
+  "databases": {
+    "conteudos": {
+      "database": "42216ed63a2681ca9776e1ea690b99f8",
+      "data_source": "42216ed6-3a26-8163-b4f6-000bbbc0bacc"
+    },
+    "semanas": {
+      "database": "42216ed63a2681738170e4e21684582e",
+      "data_source": "42216ed6-3a26-8159-8263-000b86c7370a"
+    },
+    "dias": {
+      "database": "42216ed63a2681ca9b5cc59e2b700488",
+      "data_source": "42216ed6-3a26-8161-af04-000bfb42e40f"
+    },
+    "captacao": {
+      "database": "42216ed63a26814f83c3f02f86460653",
+      "data_source": "42216ed6-3a26-8196-ab8a-000b3d289cc2"
+    },
+    "pendencias": {
+      "database": "42216ed63a268176b7f7e4de73556ca0",
+      "data_source": "42216ed6-3a26-81ac-834d-000be97a328b"
+    },
+    "referencias": {
+      "database": "42216ed63a268119b569c71018404df6",
+      "data_source": "42216ed6-3a26-8169-b7be-000b8d5fb476"
+    },
+    "metricas": {
+      "database": "42216ed63a2681d98f4dc3fc8c9b296b",
+      "data_source": "42216ed6-3a26-81a4-be0a-000b9c77e7df"
+    },
+    "aprendizados": {
+      "database": "42216ed63a26813d9ff3de8586f41bb3",
+      "data_source": "42216ed6-3a26-81f8-a778-000befa22a0f"
+    },
+    "prioridades": {
+      "database": "42216ed63a26812abf1af1384c93b2d1",
+      "data_source": "42216ed6-3a26-810a-b8d4-000bd6012e06"
+    },
+    "recomendacoes": {
+      "database": "42216ed63a2681d7ba49fee14c160931",
+      "data_source": "42216ed6-3a26-8175-883d-000b6075b9cb"
+    },
+    "execucoes": {
+      "database": "42216ed63a2681fcb832e089a99b2340",
+      "data_source": "42216ed6-3a26-8176-8090-000b4b7585e3"
+    }
+  },
+  "importados": {
+    "pendencias": {
+      "P-00": "42216ed6-3a26-81dc-97dc-c5f5399c5f98",
+      "P-01": "42216ed6-3a26-8174-a104-df6a613b701b",
+      "P-02": "42216ed6-3a26-812a-ae34-e5fdd587b83e",
+      "P-03": "42216ed6-3a26-8131-b4e6-cd45a30193e4",
+      "P-04": "42216ed6-3a26-8152-a8dd-f37282693a06",
+      "P-05": "42216ed6-3a26-81fa-9130-fb056debbe57",
+      "P-06": "42216ed6-3a26-8172-8da3-cf7e6ce7443f",
+      "P-07": "42216ed6-3a26-81db-8c81-deb126a1c7bb",
+      "P-08": "42216ed6-3a26-8102-ade9-fd5697de10b2",
+      "P-09": "42216ed6-3a26-81ca-8b0c-df95b17f6e8b",
+      "P-10": "42216ed6-3a26-81d3-8f36-e43a1102eaf5",
+      "P-11": "42216ed6-3a26-8164-b135-f3a0da120628",
+      "P-12": "42216ed6-3a26-817a-958d-fed6dc827885",
+      "P-13": "42216ed6-3a26-81ff-9dd1-fb24ed1772e1",
+      "P-14": "42216ed6-3a26-8149-af2a-c41c87c31255",
+      "P-15": "42216ed6-3a26-81da-bbe3-e25015a68a99",
+      "P-16": "42216ed6-3a26-81f1-8fa3-f4fb856be47b",
+      "P-17": "42216ed6-3a26-8171-a631-d8ca8e79b839",
+      "P-18": "42216ed6-3a26-81cd-9bad-d4ea5debeb29",
+      "P-19": "42216ed6-3a26-8127-b4e0-c529fe1080c8",
+      "P-20": "42216ed6-3a26-81e3-a4d7-fd44f3356782",
+      "P-21": "42216ed6-3a26-8135-a2b8-ce5eba7ed4e6",
+      "P-22": "42216ed6-3a26-81ce-8d27-fe7891819a99",
+      "P-23": "42216ed6-3a26-8177-b8de-fabdb2de9b18",
+      "P-24": "42216ed6-3a26-81b3-afb8-ecd5e5e7eca0",
+      "P-25": "42216ed6-3a26-81e3-8406-fe7918dc5fa8",
+      "P-26": "42216ed6-3a26-8137-b49e-d6af4c8371ec"
+    },
+    "conteudos": {
+      "C-01": "42216ed6-3a26-8154-ab6c-d0b38333c749",
+      "C-02": "42216ed6-3a26-810f-977e-fabeec83e2af",
+      "C-03": "42216ed6-3a26-8134-aac1-febb47d8574d",
+      "C-04": "42216ed6-3a26-8124-b7b6-c46835cdb5e2",
+      "C-05": "42216ed6-3a26-81be-a9b2-fb658ce61e7d",
+      "C-06": "42216ed6-3a26-8127-a0ff-e83b5e7cf85a",
+      "C-07": "42216ed6-3a26-819b-9a4b-cd462db23147",
+      "C-08": "42216ed6-3a26-8109-8cf7-f25789994949",
+      "C-09": "42216ed6-3a26-81cc-82e8-e75a392e4a28",
+      "C-10": "42216ed6-3a26-81ca-a249-ea0b011a7a78",
+      "C-11": "42216ed6-3a26-81b5-b02e-ffc0c1cc1e92",
+      "C-12": "42216ed6-3a26-8152-8dcb-de7ce35ccd24",
+      "C-13": "42216ed6-3a26-819d-9076-f86529279457",
+      "C-14": "42216ed6-3a26-814d-9a66-d8843b8aa26a",
+      "C-15": "42216ed6-3a26-8109-adc9-cd167d908028",
+      "C-16": "42216ed6-3a26-81de-ace5-c611844f5fab",
+      "I-01": "42216ed6-3a26-8123-bb8e-cd35d9894c29",
+      "I-02": "42216ed6-3a26-8125-950b-d5c0945495c6",
+      "I-03": "42216ed6-3a26-81ca-801f-c849b4a023ba",
+      "I-04": "42216ed6-3a26-81a8-bbd0-d69c70db1a30",
+      "I-05": "42216ed6-3a26-8134-8145-e56c0312e4ab"
+    },
+    "referencias": 6,
+    "aprendizados": 3
+  },
+  "verificacao_importacao": "P-00 (PEN-1) com 4 Conteúdos afetados no espelho; 27+6+3+21 = 57 registros criados em 2026-11-24.",
+  "views": {
+    "social": {
+      "Produzir hoje": "42216ed6-3a26-8122-9332-000cfd2e3ff7",
+      "Publicar hoje": "42216ed6-3a26-81c6-b39a-000c03e3c54b",
+      "Pedir à Larissa": "42216ed6-3a26-8142-9fc3-000c66c60024",
+      "Atrasados": "42216ed6-3a26-81a8-8bc1-000cd4828ae7",
+      "Dependem da Larissa": "42216ed6-3a26-8176-8a64-000c6e50e21c",
+      "Hoje": "42216ed6-3a26-8153-b1aa-000c3d3995ab",
+      "Semana vigente": "42216ed6-3a26-816d-aab7-000cf74015db",
+      "Stories de hoje": "42216ed6-3a26-81e4-948c-000cf37cb4b7",
+      "Próximas publicações": "42216ed6-3a26-812b-9004-000c8e6298a7",
+      "Para decidir": "42216ed6-3a26-8142-9700-000c874e2cf4",
+      "Quadro": "42216ed6-3a26-8168-a62e-000c5f8065f4"
+    },
+    "larissa": {
+      "Meu dia": "42216ed6-3a26-8142-8aee-000c6541035f",
+      "Para eu gravar": "42216ed6-3a26-81ea-b584-000c4983e637",
+      "Para eu validar": "42216ed6-3a26-81af-b8ad-000cda3b95f0",
+      "Minhas perguntas": "42216ed6-3a26-81fe-a8cb-000c54c6cd6d",
+      "Registrar ideia (aba da base)": "42216ed6-3a26-8122-80c8-000cd3c8bffe",
+      "Guardar referência (aba da base)": "(criado; id não retornado pela API)"
+    },
+    "gestao": {
+      "Decisões da gestão": "42216ed6-3a26-8186-8ff9-000c7e8f1c19",
+      "Para a gestão": "42216ed6-3a26-81bc-a68c-000ccda8901a",
+      "Prioridades": "42216ed6-3a26-8172-93d8-000c2324636d",
+      "Semanas": "42216ed6-3a26-81c9-98a7-000cb4ff666f",
+      "Atenção": "42216ed6-3a26-81fe-a3ef-000c9eb608d6",
+      "Calendário": "42216ed6-3a26-8142-ac0b-000c0f27ce4a",
+      "Por pilar": "42216ed6-3a26-813d-89f6-000c8c6cc7d1",
+      "Por objetivo": "42216ed6-3a26-8111-913d-000c48a4a10f",
+      "Leituras recentes": "42216ed6-3a26-8196-b0e6-000c309da65c",
+      "Aprendizados": "42216ed6-3a26-811d-aa92-000c58a975a1",
+      "Execuções com problema": "42216ed6-3a26-81f9-ab33-000cdb7780d3"
+    },
+    "bases": {
+      "Conteúdos · Todos": "42216ed6-3a26-81b3-bc59-000cb9861362",
+      "Conteúdos · Banco de ideias": "42216ed6-3a26-81de-8040-000cd5190e2b",
+      "Conteúdos · Inventário Trello": "42216ed6-3a26-8112-94dc-000c6d8c86d1",
+      "Conteúdos · Simulação": "42216ed6-3a26-8194-ba79-000c895561e7",
+      "Conteúdos · Técnico": "42216ed6-3a26-81a1-ab2b-000c60372a6f",
+      "Pendências · Questionário": "42216ed6-3a26-81ba-82c7-000cb1bed74b",
+      "Captação · Agenda": "42216ed6-3a26-8104-aa41-000c0a0c6671",
+      "Recomendações · Histórico": "42216ed6-3a26-816b-89e1-000ce9065559"
+    }
+  },
+  "simulacao": {
+    "semana": "42216ed6-3a26-817a-a1fe-f5025762d9e5",
+    "dias": [
+      "42216ed6-3a26-8151-8665-ddac8ee368a2",
+      "42216ed6-3a26-81b4-8886-d940bfcc43ea"
+    ],
+    "conteudos": {
+      "F1": "42216ed6-3a26-815d-8aa2-da32b784331c",
+      "F2": "42216ed6-3a26-812a-b57c-cd03a89e9b50",
+      "F3": "42216ed6-3a26-8118-9645-cfadf37aa688",
+      "F4": "42216ed6-3a26-8101-8cf2-de985191a34e",
+      "S1": "42216ed6-3a26-81d8-82d0-ea4c10c19587",
+      "O1": "42216ed6-3a26-8159-9ca9-e8117bea28e2"
+    },
+    "pendencia": "42216ed6-3a26-81d5-b14f-e31006b58a2e",
+    "captacao": [
+      "42216ed6-3a26-81ef-96ad-cba1060d4853",
+      "42216ed6-3a26-8138-b637-ea1c7074ad7f",
+      "42216ed6-3a26-8116-b92e-cf279a6d7055"
+    ],
+    "recomendacoes": [
+      "42216ed6-3a26-8139-a70e-dc0fb7e96e74",
+      "42216ed6-3a26-81bc-a8aa-e47f34034956",
+      "42216ed6-3a26-8103-b1f5-e3f0ba953e82",
+      "42216ed6-3a26-8132-bc41-cb1ef3c6be90"
+    ],
+    "prioridade": "42216ed6-3a26-81ee-b4b7-e894e066e781",
+    "execucoes": [
+      "42216ed6-3a26-81cc-bc12-f45a1a1cea98",
+      "42216ed6-3a26-8107-9a67-c1139532b57d"
+    ]
+  }
+}

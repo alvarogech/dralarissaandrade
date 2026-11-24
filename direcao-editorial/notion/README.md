@@ -2,7 +2,13 @@
 
 | Arquivo | Entregável |
 |---|---|
-| [RELATORIO-FASE-2.md](RELATORIO-FASE-2.md) | Relatório: o que está pronto, o que configurar, o que depende da equipe |
+| [RELATORIO-FASE-2.1.md](RELATORIO-FASE-2.1.md) | **Fase 2.1:** implantação real, testado x planejado |
+| [11-Implantacao.md](11-Implantacao.md) | O que foi criado no Notion, achados da API, etapas que dependem de você |
+| [12-Simulacao-operacional.md](12-Simulacao-operacional.md) | Semana simulada e resultado das views |
+| [09-Niveis-de-autonomia.md](09-Niveis-de-autonomia.md) | Níveis A, B e C do agente |
+| [10-Consulta-da-inteligencia.md](10-Consulta-da-inteligencia.md) | Como a Fase 3 vai ler as fontes |
+| [13-Importacao-Trello.md](13-Importacao-Trello.md) | Importação integral do Trello (aguardando o JSON) |
+| [RELATORIO-FASE-2.md](RELATORIO-FASE-2.md) | Relatório da Fase 2 (histórico) |
 | [01-Arquitetura.md](01-Arquitetura.md) | Arquitetura e capacidades verificadas da API do Notion |
 | [02-Modelo-de-dados.md](02-Modelo-de-dados.md) | Bases, relações, fonte única, ciclo de vida |
 | [02b-Propriedades.md](02b-Propriedades.md) | Propriedades e tipos (gerado do schema) |

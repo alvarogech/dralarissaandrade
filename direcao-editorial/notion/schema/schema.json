@@ -1,7 +1,7 @@
 {
   "$comment": "Fonte única da estrutura da Central Editorial no Notion. Lido por scripts/setup.mjs, scripts/importar.mjs e scripts/validar.mjs. Documentado em notion/02-Modelo-de-dados.md. owner: quem é dono do campo (larissa | social | gestao | equipe | agente | sistema). O agente só escreve em campos 'agente' ou 'sistema'; mudanças em campos humanos viram Recomendações.",
   "notion_version": "2026-03-11",
-  "origens": ["Trello", "Larissa", "Social media", "Gestão", "Agente", "Instagram", "Sistema"],
+  "origens": ["Trello", "Larissa", "Social media", "Gestão", "Agente", "Instagram", "Sistema", "Simulação"],
   "common_properties": {
     "ID": { "type": "unique_id", "owner": "sistema", "desc": "Identificador estável legível (prefixo por base). Nunca muda." },
     "Chave": { "type": "rich_text", "owner": "sistema", "desc": "Chave externa estável e de idempotência. Ex.: trello:C-01, pendencia:P-01, agente:planejamento-semanal:2026-W49:3. Única por base." },
@@ -62,13 +62,17 @@
         "Autorização de imagem": { "type": "select", "owner": "equipe", "options": [["Não se aplica", "gray"], ["Pendente", "red"], ["Registrada", "green"]] },
         "Já publicado? (Trello)": { "type": "select", "owner": "social", "options": [["A confirmar", "yellow"], ["Sim", "green"], ["Não", "gray"]], "desc": "Só para o inventário de nov/2026. Nunca presumido." },
         "Notas de origem": { "type": "rich_text", "owner": "sistema", "desc": "De onde veio (lista, semana, cartão do Trello; ou mensagem da Larissa)." },
+        "Cartão do Trello": { "type": "url", "owner": "sistema", "desc": "Link do cartão de origem. O Trello continua como fonte histórica até a migração ser confirmada." },
+        "ID do cartão Trello": { "type": "rich_text", "owner": "sistema", "desc": "ID do cartão no export JSON. Usado para casar a importação integral sem duplicar." },
         "Relato": { "type": "rich_text", "owner": "equipe", "desc": "Texto livre de quem trouxe a ideia (formulário da Larissa ou da social media). Nunca reescrito pelo agente." },
         "Dificuldades": { "type": "rich_text", "owner": "social", "desc": "Social media registra o que travou a produção." },
         "Pedir revisão ao agente": { "type": "checkbox", "owner": "equipe", "desc": "Marcar dispara a revisão sob demanda. O n8n desmarca ao concluir." },
         "O que revisar": { "type": "rich_text", "owner": "equipe" },
         "Travar para o agente": { "type": "checkbox", "owner": "equipe", "desc": "Marcado: o agente nunca altera nem sugere mudanças nesta página." },
-        "Aprovado por": { "type": "people", "owner": "larissa" },
-        "Aprovado em": { "type": "date", "owner": "larissa" },
+        "Validação da Larissa": { "type": "select", "owner": "larissa", "options": [["Não necessária", "gray"], ["Necessária", "red"], ["Validado", "green"]], "desc": "Nível C. Necessária só quando há afirmação clínica inédita, caso clínico, imagem de paciente ou posicionamento inédito. Conteúdo rotineiro dentro das diretrizes não passa pela Larissa." },
+        "Motivo da validação": { "type": "multi_select", "owner": "agente", "options": [["Afirmação clínica inédita", "red"], ["Caso clínico", "pink"], ["Imagem de paciente", "orange"], ["Posicionamento inédito", "purple"]], "desc": "O agente ou a equipe marcam; só um humano desmarca." },
+        "Validado por": { "type": "people", "owner": "larissa" },
+        "Validado em": { "type": "date", "owner": "larissa" },
         "Semana": { "type": "relation", "target": "semanas", "dual": "Conteúdos", "owner": "equipe" },
         "Dia": { "type": "relation", "target": "dias", "dual": "Conteúdos do dia", "owner": "equipe", "desc": "Dia de produção ou de stories." },
         "Prioridade comercial": { "type": "relation", "target": "prioridades", "dual": "Conteúdos", "owner": "gestao" },
@@ -84,18 +88,16 @@
         },
         "Atrasado": {
           "type": "formula", "owner": "sistema",
-          "expression": "and(!empty(prop(\"Prazo de produção\")), dateBetween(today(), prop(\"Prazo de produção\"), \"days\") > 0, ![\"Aprovado\", \"Agendado\", \"Publicado\", \"Analisado\", \"Arquivado\"].includes(prop(\"Status\")))"
+          "expression": "or(and(!empty(prop(\"Prazo de produção\")), dateBetween(today(), prop(\"Prazo de produção\"), \"days\") > 0, ![\"Aprovado\", \"Agendado\", \"Publicado\", \"Analisado\", \"Arquivado\"].includes(prop(\"Status\"))), and(!empty(prop(\"Publicação prevista\")), dateBetween(today(), prop(\"Publicação prevista\"), \"days\") > 0, ![\"Publicado\", \"Analisado\", \"Arquivado\"].includes(prop(\"Status\"))))"
         },
         "Dias até publicar": {
           "type": "formula", "owner": "sistema",
           "expression": "dateBetween(prop(\"Publicação prevista\"), today(), \"days\")"
         },
-        "Para hoje": {
-          "type": "formula", "owner": "sistema",
-          "expression": "prop(\"Dia\").filter(formatDate(current.prop(\"Data\"), \"YYYY-MM-DD\") == formatDate(today(), \"YYYY-MM-DD\")).length() > 0"
-        }
+        "Conta: planejado": { "type": "formula", "owner": "sistema", "desc": "Auxiliar oculto para o rollup Planejados de Semanas.", "expression": "![\"Ideia\", \"Arquivado\"].includes(prop(\"Status\"))" },
+        "Conta: publicado": { "type": "formula", "owner": "sistema", "desc": "Auxiliar oculto para o rollup Publicados de Semanas.", "expression": "[\"Publicado\", \"Analisado\"].includes(prop(\"Status\"))" }
       },
-      "body_template": ["Roteiro", "Direção criativa", "Legenda", "Notas da equipe"]
+      "body_template": ["Rascunho do agente", "Roteiro", "Direção criativa", "Legenda", "Notas da equipe"]
     },
     {
       "key": "semanas",
@@ -107,7 +109,7 @@
       "properties": {
         "Semana": { "type": "title", "owner": "sistema", "desc": "Ex.: 2026-W49 · 30/11 a 06/12" },
         "Período": { "type": "date", "owner": "sistema" },
-        "Status do plano": { "type": "select", "owner": "gestao", "options": [["Rascunho do agente", "gray"], ["Em revisão", "yellow"], ["Aprovado", "green"], ["Encerrado", "brown"]] },
+        "Status do plano": { "type": "select", "owner": "equipe", "options": [["Preliminar do agente", "purple"], ["Ajustado pela equipe", "blue"], ["Encerrado", "brown"]], "desc": "Nível A: o plano preliminar entra em uso direto. Mudança estratégica relevante vira Recomendação nível B para a gestão." },
         "Intenção editorial": { "type": "rich_text", "owner": "agente" },
         "Narrativas": { "type": "rich_text", "owner": "agente" },
         "Capacidade de produção": { "type": "select", "owner": "gestao", "options": [["Normal", "green"], ["Reduzida", "yellow"], ["Mínima", "red"]] },
@@ -115,8 +117,8 @@
         "Revisão de sexta": { "type": "rich_text", "owner": "agente" },
         "Prioridades comerciais": { "type": "relation", "target": "prioridades", "dual": "Semanas", "owner": "gestao" },
         "Vigente": { "type": "formula", "owner": "sistema", "expression": "and(formatDate(dateStart(prop(\"Período\")), \"YYYY-MM-DD\") <= formatDate(today(), \"YYYY-MM-DD\"), formatDate(dateEnd(prop(\"Período\")), \"YYYY-MM-DD\") >= formatDate(today(), \"YYYY-MM-DD\"))" },
-        "Planejados": { "type": "formula", "owner": "sistema", "expression": "prop(\"Conteúdos\").filter(![\"Ideia\", \"Arquivado\"].includes(current.prop(\"Status\"))).length()" },
-        "Publicados": { "type": "formula", "owner": "sistema", "expression": "prop(\"Conteúdos\").filter([\"Publicado\", \"Analisado\"].includes(current.prop(\"Status\"))).length()" }
+        "Planejados": { "type": "rollup", "owner": "sistema", "relation": "Conteúdos", "target_property": "Conta: planejado", "function": "checked" },
+        "Publicados": { "type": "rollup", "owner": "sistema", "relation": "Conteúdos", "target_property": "Conta: publicado", "function": "checked" }
       }
     },
     {
@@ -250,7 +252,7 @@
       "properties": {
         "Prioridade": { "type": "title", "owner": "gestao" },
         "Período": { "type": "date", "owner": "gestao" },
-        "Status": { "type": "select", "owner": "gestao", "options": [["Planejada", "gray"], ["Ativa", "green"], ["Encerrada", "brown"]] },
+        "Status": { "type": "select", "owner": "gestao", "options": [["Proposta do agente", "purple"], ["Planejada", "gray"], ["Ativa", "green"], ["Encerrada", "brown"]], "desc": "Nível B: campanhas só ficam Planejadas ou Ativas por decisão da gestão." },
         "Procedimento ou serviço": { "type": "rich_text", "owner": "gestao" },
         "Meta": { "type": "rich_text", "owner": "gestao" },
         "Peso": { "type": "select", "owner": "gestao", "options": [["Alta", "red"], ["Média", "yellow"], ["Baixa", "gray"]] }
@@ -266,7 +268,9 @@
       "properties": {
         "Recomendação": { "type": "title", "owner": "agente" },
         "Tipo": { "type": "select", "owner": "agente", "options": [["Novo conteúdo", "green"], ["Revisão de roteiro", "blue"], ["Mudança de data", "yellow"], ["Plano semanal", "purple"], ["Direcionamento diário", "orange"], ["Nova pendência", "red"], ["Novo aprendizado", "brown"], ["Possível duplicidade", "pink"]] },
-        "Decisão": { "type": "select", "owner": "equipe", "options": [["Aguardando decisão", "yellow"], ["Aceita", "green"], ["Aceita com ajustes", "blue"], ["Recusada", "red"], ["Aplicada", "brown"], ["Obsoleta", "gray"]] },
+        "Nível": { "type": "select", "owner": "agente", "options": [["A · Automático", "gray"], ["B · Precisa de aprovação", "yellow"], ["C · Validação humana", "red"]], "desc": "Ver schema/autonomia.json. A: já aplicada, registrada para histórico e reversão. B e C: só aplicam depois da decisão." },
+        "Quem decide": { "type": "select", "owner": "agente", "options": [["Social media", "blue"], ["Larissa", "pink"], ["Gestão", "gray"]] },
+        "Decisão": { "type": "select", "owner": "equipe", "options": [["Aguardando decisão", "yellow"], ["Aplicada automaticamente", "gray"], ["Aceita", "green"], ["Aceita com ajustes", "blue"], ["Recusada", "red"], ["Revertida", "orange"], ["Aplicada", "brown"], ["Obsoleta", "gray"]] },
         "Proposta": { "type": "rich_text", "owner": "agente", "desc": "Resumo legível. O payload completo (JSON) fica no corpo da página." },
         "Por quê": { "type": "rich_text", "owner": "agente" },
         "Fontes consultadas": { "type": "rich_text", "owner": "agente", "desc": "IDs de conteúdos, aprendizados e documentos da base usados." },

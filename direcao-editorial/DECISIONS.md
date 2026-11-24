@@ -40,3 +40,12 @@ agente distinguir fato de proposta e de lacuna.
 - **Setup pela API** (`/v1/databases`, `/v1/data_sources`, `/v1/views`, Notion-Version 2026-03-11), com simulação padrão, idempotência por arquivo de estado e relatório de falhas. Ficam manuais (a API não cobre): permissões, perguntas de formulário, gráficos e botões.
 - **Webhooks só como acelerador.** A entrega é "no máximo uma vez", então toda automação tem varredura periódica.
 - **Blocos do questionário** numerados pela ordem de impacto (o que mais destrava vem primeiro).
+
+## 2026-11-24 — Fase 2.1: implantação e autonomia
+- **Implantação pelo conector MCP do Notion** (conta do Álvaro), não por token. Nenhum segredo trafegou nem foi salvo. A integração interna com token só será criada na Fase 4, para o n8n.
+- **Três níveis de autonomia** (`notion/schema/autonomia.json`): A automático e registrado, B com aprovação de quem decide, C sempre humano. A Larissa deixa de aprovar conteúdo de rotina e passa a validar só o nível C. "Aprovado por/em" virou "Validado por/em".
+- **Rascunho do agente** é uma seção própria no corpo do conteúdo. O agente escreve ali no nível A sem tocar no Roteiro da equipe.
+- **Views na DSL do Notion** (`layout.json` › `configure`), aplicadas pelo conector. Achados da API real: filtro sobre fórmula ou rollup é descartado em silêncio; `current.prop()` em fórmula é recusado; formulário só como aba da base; gráfico funciona; consulta SQL do conector exige plano Business. O validador passou a bloquear filtros em fórmula e rollup.
+- **Simulação nas mesmas bases**, marcada (Origem = Simulação, `[SIMULAÇÃO]`, Chave `sim:`), arquivável por uma view. Escolha do Álvaro.
+- **Stories usam "Publicação prevista"** como os demais formatos, em vez de depender do Dia; o rollup "Data do dia" foi removido.
+- **Importação integral do Trello** gera primeiro um plano revisável (`trello-plano.mjs`); nunca escreve direto.

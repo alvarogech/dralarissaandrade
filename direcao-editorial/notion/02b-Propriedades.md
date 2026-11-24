@@ -55,13 +55,17 @@ Fonte única de cada peça de conteúdo, inclusive ideias (Status = Ideia) e seq
 | Autorização de imagem | Seleção | Equipe (humano) | Não se aplica · Pendente · Registrada |
 | Já publicado? (Trello) | Seleção | Social media | A confirmar · Sim · Não. Só para o inventário de nov/2026. Nunca presumido. |
 | Notas de origem | Texto | Sistema | De onde veio (lista, semana, cartão do Trello; ou mensagem da Larissa). |
+| Cartão do Trello | URL | Sistema | Link do cartão de origem. O Trello continua como fonte histórica até a migração ser confirmada. |
+| ID do cartão Trello | Texto | Sistema | ID do cartão no export JSON. Usado para casar a importação integral sem duplicar. |
 | Relato | Texto | Equipe (humano) | Texto livre de quem trouxe a ideia (formulário da Larissa ou da social media). Nunca reescrito pelo agente. |
 | Dificuldades | Texto | Social media | Social media registra o que travou a produção. |
 | Pedir revisão ao agente | Caixa | Equipe (humano) | Marcar dispara a revisão sob demanda. O n8n desmarca ao concluir. |
 | O que revisar | Texto | Equipe (humano) |  |
 | Travar para o agente | Caixa | Equipe (humano) | Marcado: o agente nunca altera nem sugere mudanças nesta página. |
-| Aprovado por | Pessoa | Larissa |  |
-| Aprovado em | Data | Larissa |  |
+| Validação da Larissa | Seleção | Larissa | Não necessária · Necessária · Validado. Nível C. Necessária só quando há afirmação clínica inédita, caso clínico, imagem de paciente ou posicionamento inédito. Conteúdo rotineiro dentro das diretrizes não passa pela Larissa. |
+| Motivo da validação | Seleção múltipla | Agente (IA) | Afirmação clínica inédita · Caso clínico · Imagem de paciente · Posicionamento inédito. O agente ou a equipe marcam; só um humano desmarca. |
+| Validado por | Pessoa | Larissa |  |
+| Validado em | Data | Larissa |  |
 | Semana | Relação | Equipe (humano) | → Semanas (espelho: "Conteúdos") |
 | Dia | Relação | Equipe (humano) | → Dias (espelho: "Conteúdos do dia"). Dia de produção ou de stories. |
 | Prioridade comercial | Relação | Gestão | → Prioridades comerciais (espelho: "Conteúdos") |
@@ -72,11 +76,12 @@ Fonte única de cada peça de conteúdo, inclusive ideias (Status = Ideia) e seq
 | Aprendizados | Relação | Agente (IA) | → Aprendizados (espelho: "Evidências") |
 | Recomendações | Relação | Sistema | → Recomendações do agente (espelho: "Conteúdo") |
 | Etapa | Fórmula | Sistema | `ifs(prop("Status") == "Ideia", "Ideia", ["Planejado", "Aguardando informação", "Aguardando captação"].includes(prop("Status")), "A fazer", prop("Status") == "Em produção", "Produzindo", prop("Status") == "Aguardando aprovação", "Com a Larissa", ["Aprovado", "Agendado"].includes(prop("Status")), "Pronto", ["Publicado", "Analisado"].includes(prop("Status")), "Publicado", "Arquivado")`. Status simplificado para a social media. |
-| Atrasado | Fórmula | Sistema | `and(!empty(prop("Prazo de produção")), dateBetween(today(), prop("Prazo de produção"), "days") > 0, !["Aprovado", "Agendado", "Publicado", "Analisado", "Arquivado"].includes(prop("Status")))` |
+| Atrasado | Fórmula | Sistema | `or(and(!empty(prop("Prazo de produção")), dateBetween(today(), prop("Prazo de produção"), "days") > 0, !["Aprovado", "Agendado", "Publicado", "Analisado", "Arquivado"].includes(prop("Status"))), and(!empty(prop("Publicação prevista")), dateBetween(today(), prop("Publicação prevista"), "days") > 0, !["Publicado", "Analisado", "Arquivado"].includes(prop("Status"))))` |
 | Dias até publicar | Fórmula | Sistema | `dateBetween(prop("Publicação prevista"), today(), "days")` |
-| Para hoje | Fórmula | Sistema | `prop("Dia").filter(formatDate(current.prop("Data"), "YYYY-MM-DD") == formatDate(today(), "YYYY-MM-DD")).length() > 0` |
+| Conta: planejado | Fórmula | Sistema | `!["Ideia", "Arquivado"].includes(prop("Status"))`. Auxiliar oculto para o rollup Planejados de Semanas. |
+| Conta: publicado | Fórmula | Sistema | `["Publicado", "Analisado"].includes(prop("Status"))`. Auxiliar oculto para o rollup Publicados de Semanas. |
 
-Corpo da página (modelo): **Roteiro**, **Direção criativa**, **Legenda**, **Notas da equipe**.
+Corpo da página (modelo): **Rascunho do agente**, **Roteiro**, **Direção criativa**, **Legenda**, **Notas da equipe**.
 
 ## 🗓️ Semanas (prefixo SEM)
 
@@ -86,7 +91,7 @@ Planejamento semanal: intenção, narrativas, capacidade real e prioridades come
 |---|---|---|---|
 | Semana | Título | Sistema | Ex.: 2026-W49 · 30/11 a 06/12 |
 | Período | Data | Sistema |  |
-| Status do plano | Seleção | Gestão | Rascunho do agente · Em revisão · Aprovado · Encerrado |
+| Status do plano | Seleção | Equipe (humano) | Preliminar do agente · Ajustado pela equipe · Encerrado. Nível A: o plano preliminar entra em uso direto. Mudança estratégica relevante vira Recomendação nível B para a gestão. |
 | Intenção editorial | Texto | Agente (IA) |  |
 | Narrativas | Texto | Agente (IA) |  |
 | Capacidade de produção | Seleção | Gestão | Normal · Reduzida · Mínima |
@@ -94,8 +99,8 @@ Planejamento semanal: intenção, narrativas, capacidade real e prioridades come
 | Revisão de sexta | Texto | Agente (IA) |  |
 | Prioridades comerciais | Relação | Gestão | → Prioridades comerciais (espelho: "Semanas") |
 | Vigente | Fórmula | Sistema | `and(formatDate(dateStart(prop("Período")), "YYYY-MM-DD") <= formatDate(today(), "YYYY-MM-DD"), formatDate(dateEnd(prop("Período")), "YYYY-MM-DD") >= formatDate(today(), "YYYY-MM-DD"))` |
-| Planejados | Fórmula | Sistema | `prop("Conteúdos").filter(!["Ideia", "Arquivado"].includes(current.prop("Status"))).length()` |
-| Publicados | Fórmula | Sistema | `prop("Conteúdos").filter(["Publicado", "Analisado"].includes(current.prop("Status"))).length()` |
+| Planejados | undefined | Sistema |  |
+| Publicados | undefined | Sistema |  |
 
 ## ☀️ Dias (prefixo DIA)
 
@@ -209,7 +214,7 @@ O que a clínica precisa vender ou ocupar em cada período. Definido pela gestã
 |---|---|---|---|
 | Prioridade | Título | Gestão |  |
 | Período | Data | Gestão |  |
-| Status | Seleção | Gestão | Planejada · Ativa · Encerrada |
+| Status | Seleção | Gestão | Proposta do agente · Planejada · Ativa · Encerrada. Nível B: campanhas só ficam Planejadas ou Ativas por decisão da gestão. |
 | Procedimento ou serviço | Texto | Gestão |  |
 | Meta | Texto | Gestão |  |
 | Peso | Seleção | Gestão | Alta · Média · Baixa |
@@ -222,7 +227,9 @@ Tudo o que a IA propõe e ainda não é decisão humana. Separação explícita 
 |---|---|---|---|
 | Recomendação | Título | Agente (IA) |  |
 | Tipo | Seleção | Agente (IA) | Novo conteúdo · Revisão de roteiro · Mudança de data · Plano semanal · Direcionamento diário · Nova pendência · Novo aprendizado · Possível duplicidade |
-| Decisão | Seleção | Equipe (humano) | Aguardando decisão · Aceita · Aceita com ajustes · Recusada · Aplicada · Obsoleta |
+| Nível | Seleção | Agente (IA) | A · Automático · B · Precisa de aprovação · C · Validação humana. Ver schema/autonomia.json. A: já aplicada, registrada para histórico e reversão. B e C: só aplicam depois da decisão. |
+| Quem decide | Seleção | Agente (IA) | Social media · Larissa · Gestão |
+| Decisão | Seleção | Equipe (humano) | Aguardando decisão · Aplicada automaticamente · Aceita · Aceita com ajustes · Recusada · Revertida · Aplicada · Obsoleta |
 | Proposta | Texto | Agente (IA) | Resumo legível. O payload completo (JSON) fica no corpo da página. |
 | Por quê | Texto | Agente (IA) |  |
 | Fontes consultadas | Texto | Agente (IA) | IDs de conteúdos, aprendizados e documentos da base usados. |

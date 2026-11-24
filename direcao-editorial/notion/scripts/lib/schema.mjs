@@ -68,6 +68,7 @@ export function propertyConfig(schema, p, ids = {}) {
     return { ...base, relation: p.single ? { data_source_id: target, single_property: {} } : { data_source_id: target, dual_property: {} } };
   }
   if (t === 'formula') return { ...base, formula: { expression: p.expression } };
+  if (t === 'rollup') return { ...base, rollup: { relation_property_name: p.relation, rollup_property_name: p.target_property, function: p.function } };
   throw new Error(`Tipo de propriedade não suportado: ${t}`);
 }
 

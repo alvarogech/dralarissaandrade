@@ -3,7 +3,7 @@
 // Confere coerência entre schema, layout, inventário e a base de conhecimento.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadAll, effectiveProperties, optionList, databasePayloads, filterProps, viewConfiguration, NOTION_DIR } from './lib/schema.mjs';
+import { loadAll, effectiveProperties, optionList, databasePayloads, NOTION_DIR } from './lib/schema.mjs';
 import { buildRecords } from './importar.mjs';
 
 const { schema, layout, inventario } = loadAll();
@@ -38,6 +38,11 @@ for (const db of schema.databases) {
         ok(others.length === 0, `${p.target}: espelho "${p.dual}" duplicado`);
       }
     }
+    if (p.type === 'formula') ok(!/current\.prop\(/.test(p.expression), `${db.title}.${name}: a API do Notion recusa current.prop() em fórmula; use rollup`);
+    if (p.type === 'rollup') {
+      const rel = props[p.relation];
+      ok(rel?.type === 'relation' || namesOf(db.key).includes(p.relation), `${db.title}.${name}: rollup sem relação ${p.relation}`);
+    }
     if (p.type === 'formula') {
       const refs = [...p.expression.matchAll(/(?<!current\.)prop\("([^"]+)"\)/g)].map((m) => m[1]);
       const mirrors = schema.databases.flatMap((d) => Object.values(propsOf[d.key]).filter((q) => q.type === 'relation' && q.target === db.key && q.dual).map((q) => q.dual));
@@ -50,40 +55,88 @@ for (const db of schema.databases) {
 }
 
 // Nomes disponíveis por base (inclui espelhos criados por relações de outras bases)
-const namesOf = (key) => {
+function namesOf(key) {
   const own = Object.keys(propsOf[key]);
   const mirrors = schema.databases.flatMap((d) => Object.values(propsOf[d.key]).filter((q) => q.type === 'relation' && q.target === key && q.dual).map((q) => q.dual));
   return [...own, ...mirrors];
-};
+}
 const typeOf = (key, name) => propsOf[key][name]?.type ?? (namesOf(key).includes(name) ? 'relation' : undefined);
 
-// 2. Layout
-const FILTER_KIND = { select: 'select', multi_select: 'multi_select', status: 'status', formula: 'formula', checkbox: 'checkbox', relation: 'relation', date: 'date', rich_text: 'rich_text', number: 'number' };
+// 2. Layout (DSL de views do Notion)
+const RELATIVE_DATES = ['today', 'tomorrow', 'yesterday', 'one_week_ago', 'one_week_from_now', 'one_month_ago', 'one_month_from_now'];
+const VIEW_TYPES = ['table', 'board', 'list', 'calendar', 'timeline', 'gallery', 'form', 'chart'];
+export function parseDsl(configure = '') {
+  const out = { props: [], conditions: [], groupBy: null, groupMode: null, calendarBy: null };
+  for (const raw of configure.split(';')) {
+    const d = raw.trim();
+    if (!d) continue;
+    const kw = d.match(/^(QUICK FILTER|FILTER|SORT BY|GROUP BY|SUB GROUP BY|SHOW|HIDE|CALENDAR BY|CHART|CARD LAYOUT|CARD SIZE|FORM|WRAP CELLS|ICON|WIDTH)\b/i)?.[1]?.toUpperCase();
+    if (!kw) { out.unknown = (out.unknown || []).concat(d); continue; }
+    if (kw === 'FILTER' || kw === 'QUICK FILTER') {
+      for (const m of d.matchAll(/"([^"]+)"\s*(!=|>=|<=|=|>|<|IN\b|IS\b|CONTAINS\b)\s*(\([^)]*\)|"[^"]*"|TRUE|FALSE|EMPTY|NOT EMPTY)?/gi)) {
+        const vals = m[3] ? [...m[3].matchAll(/"([^"]*)"/g)].map((x) => x[1]) : [];
+        const bool = m[3] && /^(TRUE|FALSE)$/i.test(m[3]);
+        out.props.push(m[1]);
+        out.conditions.push({ prop: m[1], op: m[2].toUpperCase(), values: vals, bool });
+      }
+    } else if (kw === 'GROUP BY' || kw === 'SUB GROUP BY') {
+      const m = d.match(/"([^"]+)"(.*)$/); out.props.push(m[1]);
+      if (kw === 'GROUP BY') { out.groupBy = m[1]; out.groupMode = /BY (OPTION|GROUP)/i.test(m[2]) ? 'status-mode' : null; }
+    } else if (kw === 'CALENDAR BY') { out.calendarBy = d.match(/"([^"]+)"/)[1]; out.props.push(out.calendarBy); }
+    else if (['SORT BY', 'SHOW', 'HIDE', 'WIDTH', 'CHART'].includes(kw)) for (const m of d.matchAll(/"([^"]+)"/g)) out.props.push(m[1]);
+  }
+  return out;
+}
+const formulaKind = (key, name) => {
+  const p = propsOf[key][name];
+  if (p?.type !== 'formula') return null;
+  return /^(and|or)\(|\.length\(\) >|==|>=|<=/.test(p.expression) && !/^dateBetween|^ifs/.test(p.expression) ? 'checkbox' : 'other';
+};
 const checkView = (where, view, baseKey) => {
   ok(!!dbs[baseKey], `${where}: base inexistente ${baseKey}`);
   if (!dbs[baseKey]) return;
+  ok(VIEW_TYPES.includes(view.type), `${where}: tipo de view inválido ${view.type}`);
   const names = namesOf(baseKey);
-  (view.show || []).forEach((n) => ok(names.includes(n), `${where}: coluna inexistente "${n}"`));
-  for (const f of filterProps(view.filter)) {
-    const tp = typeOf(baseKey, f.property);
-    ok(!!tp, `${where}: filtro em propriedade inexistente "${f.property}"`);
-    const kind = Object.keys(f).find((k) => k !== 'property');
-    ok(FILTER_KIND[tp] === kind, `${where}: filtro "${kind}" incompatível com ${f.property} (${tp})`);
-    const val = f[kind]?.equals ?? f[kind]?.does_not_equal;
-    if (['select', 'status'].includes(kind) && typeof val === 'string') {
-      ok(optionList(schema, propsOf[baseKey][f.property]).some((o) => o[0] === val), `${where}: opção "${val}" não existe em ${f.property}`);
+  const dsl = parseDsl(view.configure);
+  ok(!dsl.unknown, `${where}: diretiva desconhecida ${dsl.unknown}`);
+  ok(!/NOT IN/i.test(view.configure || ''), `${where}: NOT IN não existe na DSL`);
+  dsl.props.forEach((n) => ok(names.includes(n), `${where}: propriedade inexistente "${n}"`));
+  for (const c of dsl.conditions) {
+    const tp = typeOf(baseKey, c.prop);
+    if (['select', 'status', 'multi_select'].includes(tp)) {
+      const opts = optionList(schema, propsOf[baseKey][c.prop]).map((o) => o[0]);
+      const groups = tp === 'status' ? ['To-do', 'In progress', 'Complete'] : [];
+      c.values.forEach((v) => ok(opts.includes(v) || groups.includes(v), `${where}: opção "${v}" não existe em ${c.prop}`));
     }
+    ok(!['formula', 'rollup'].includes(tp), `${where}: filtro em ${tp} "${c.prop}" é descartado em silêncio pelo Notion (validado na Fase 2.1)`);
+    if (c.bool) ok(tp === 'checkbox' || formulaKind(baseKey, c.prop) === 'checkbox', `${where}: TRUE/FALSE em ${c.prop} que não é caixa`);
+    if (tp === 'date' || tp === 'rollup') c.values.forEach((v) => ok(RELATIVE_DATES.includes(v) || /^\d{4}-\d{2}-\d{2}$/.test(v), `${where}: data inválida "${v}"`));
   }
-  (view.sorts || []).forEach((s) => ok(names.includes(s.property), `${where}: ordenação em propriedade inexistente "${s.property}"`));
-  if (view.type === 'board') ok(['select', 'status'].includes(typeOf(baseKey, view.group_by)), `${where}: agrupamento inválido "${view.group_by}"`);
-  if (view.type === 'calendar') ok(typeOf(baseKey, view.date_property) === 'date', `${where}: calendário sem data válida`);
-  try { viewConfiguration(view, names, null, Object.fromEntries(names.map((n) => [n, typeOf(baseKey, n)]))); } catch (e) { ok(false, `${where}: ${e.message}`); }
+  if (view.type === 'board') ok(!!dsl.groupBy && ['select', 'status'].includes(typeOf(baseKey, dsl.groupBy)), `${where}: quadro precisa de GROUP BY em seleção/status`);
+  if (dsl.groupMode) ok(typeOf(baseKey, dsl.groupBy) === 'status', `${where}: BY OPTION/GROUP só vale para status`);
+  if (view.type === 'calendar') ok(['date'].includes(typeOf(baseKey, dsl.calendarBy)), `${where}: calendário sem data válida`);
+  if (view.type === 'chart') ok(/CHART /i.test(view.configure) && !!dsl.groupBy, `${where}: gráfico precisa de CHART e GROUP BY`);
+  const shown = (view.configure || '').match(/SHOW ([^;]+)/)?.[1]?.match(/"/g)?.length / 2 || 0;
+  ok(shown <= 11, `${where}: colunas demais (${shown})`);
 };
 for (const page of layout.pages) for (const s of page.sections) checkView(`${page.title} › ${s.view.name}`, s.view, s.view.base);
 for (const [k, views] of Object.entries(layout.database_views)) if (!k.startsWith('$')) views.forEach((v) => checkView(`${k} › ${v.name}`, v, k));
-const socialSections = layout.pages.find((p) => p.key === 'social').sections.map((s) => s.heading);
-['Intenção da semana', 'Hoje', 'Stories de hoje', 'Próximas publicações do feed', 'Pedir à Larissa', 'Aguardando edição', 'Aguardando aprovação da Larissa', 'Pendências e impedimentos']
-  .forEach((h) => ok(socialSections.includes(h), `Página da social media sem a seção "${h}"`));
+const socialHeads = layout.pages.find((p) => p.key === 'social').sections.filter((s) => s.group === 'Em 1 minuto').map((s) => s.view.name);
+['Produzir hoje', 'Publicar hoje', 'Pedir à Larissa', 'Atrasados', 'Dependem da Larissa'].forEach((h) => ok(socialHeads.includes(h), `Social media sem a resposta de 1 minuto "${h}"`));
+const larissaHeads = layout.pages.find((p) => p.key === 'larissa').sections.map((s) => s.view.name);
+['Para eu gravar', 'Minhas perguntas', 'Para eu validar', 'Registrar ideia', 'Meu dia'].forEach((h) => ok(larissaHeads.includes(h), `Larissa sem a seção "${h}"`));
+
+// 2b. Política de autonomia
+const autonomia = JSON.parse(readFileSync(join(NOTION_DIR, 'schema', 'autonomia.json'), 'utf8'));
+const recProps = propsOf.recomendacoes;
+const quem = optionList(schema, recProps['Quem decide']).map((o) => o[0]);
+ok(new Set(autonomia.acoes.map((a) => a.id)).size === autonomia.acoes.length, 'Autonomia: ids repetidos');
+for (const a of autonomia.acoes) {
+  ok(['A', 'B', 'C'].includes(a.nivel), `Autonomia ${a.id}: nível inválido`);
+  ok(a.nivel === 'A' ? a.aprovador === null : quem.includes(a.aprovador), `Autonomia ${a.id}: aprovador inválido`);
+}
+['publicacao', 'caso-clinico', 'autorizacao-imagem', 'afirmacao-clinica'].forEach((id) => ok(autonomia.acoes.find((a) => a.id === id)?.nivel === 'C', `Autonomia: ${id} precisa ser nível C`));
+ok(optionList(schema, recProps['Nível']).length === 3, 'Recomendações precisa do campo Nível com A, B e C');
 
 // 3. Inventário
 const conteudos = inventario.conteudos;
