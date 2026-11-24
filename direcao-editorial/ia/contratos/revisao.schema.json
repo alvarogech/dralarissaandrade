@@ -1,0 +1,77 @@
+{
+  "$comment": "Contrato de saída do workflow revisao. Gerado por ia/lib/contratos.mjs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "aprovado",
+    "requer_validacao",
+    "criterios",
+    "problemas"
+  ],
+  "properties": {
+    "aprovado": {
+      "type": "boolean"
+    },
+    "requer_validacao": {
+      "type": "boolean"
+    },
+    "criterios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterio",
+          "nota",
+          "comentario"
+        ],
+        "properties": {
+          "criterio": {
+            "type": "string",
+            "enum": [
+              "posicionamento",
+              "naturalidade",
+              "originalidade",
+              "clareza",
+              "interesse",
+              "relevancia",
+              "viabilidade",
+              "seguranca_clinica",
+              "privacidade",
+              "validacao_humana"
+            ]
+          },
+          "nota": {
+            "type": "integer"
+          },
+          "comentario": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "problemas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trecho",
+          "problema",
+          "reescrita"
+        ],
+        "properties": {
+          "trecho": {
+            "type": "string"
+          },
+          "problema": {
+            "type": "string"
+          },
+          "reescrita": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "01-dia-normal",
+  "saida": {
+    "dia": "2026-12-01",
+    "rotina_informada": true,
+    "social": {
+      "intencao": "Usar o pedido de hoje por um ponto só para mostrar, sem expor ninguém, por que a Larissa olha o rosto inteiro antes de indicar.",
+      "prioridades": [
+        {
+          "ordem": 1,
+          "chave": "trello:C-06",
+          "titulo": "Pior erro ao tratar o rosto depois dos 40",
+          "o_que_fazer": "Diagramar o carrossel com o texto do Trello. Ele conversa com a caixinha de hoje."
+        },
+        {
+          "ordem": 2,
+          "chave": "trello:C-02",
+          "titulo": "Momento consulta",
+          "o_que_fazer": "Combinar com a Larissa um take da explicação dela sem a paciente na cena."
+        },
+        {
+          "ordem": 3,
+          "chave": "trello:C-01",
+          "titulo": "Não indico protocolo Ctrl C, Ctrl V",
+          "o_que_fazer": "Escolher entre a versão A e a B para a próxima semana."
+        }
+      ],
+      "publicar": [],
+      "produzir": [
+        {
+          "chave": "trello:C-06",
+          "o_que_fazer": "Copiar o texto do cartão do Trello (P-00) e montar as 6 páginas."
+        }
+      ],
+      "pedir_larissa": [
+        {
+          "pedido": "Uma fala explicando por que você prefere olhar o rosto todo antes de indicar algo num ponto só",
+          "duracao": "30 segundos",
+          "como": "Depois da avaliação, no consultório, celular na vertical. Sem paciente na cena."
+        }
+      ],
+      "acompanhar": [
+        "P-24 (autorização de imagem) segura 4 conteúdos de prova social.",
+        "P-00: os textos completos do Trello ainda não estão na central."
+      ]
+    },
+    "larissa": {
+      "registrar": [
+        {
+          "o_que": "A frase que a paciente usou para pedir o preenchimento, sem nome",
+          "por_que": "Pergunta real vira caixinha e gancho; é melhor que qualquer tema inventado."
+        },
+        {
+          "o_que": "O que você reparou no retorno da paciente de 2021, só para você contar depois",
+          "por_que": "Acompanhamento ao longo dos anos é um dos seus diferenciais confirmados."
+        }
+      ],
+      "gravar": [
+        {
+          "pedido": "Explicar como você responde quando alguém pede para tratar um ponto só",
+          "duracao": "30 segundos",
+          "onde": "Consultório, entre as avaliações da manhã",
+          "como": "Sentada, celular na vertical, falando como você falou com ela. Sem citar a paciente."
+        }
+      ],
+      "stories": [
+        {
+          "titulo": "Terça de objeção: o pedido de hoje",
+          "abertura": "\"Hoje uma paciente me pediu para mexer só aqui.\" Aponte o bigode chinês em você.",
+          "meio": "Conte o que você olhou antes de responder, sem detalhes dela.",
+          "fechamento": "Caixinha Tudo sobre HOF: \"Qual ponto você já quis mudar sozinho?\"",
+          "objetivo": "Quebra de objeção"
+        },
+        {
+          "titulo": "Quem eu acompanho há anos",
+          "abertura": "\"Tem paciente que eu vejo uma vez por ano desde 2021.\"",
+          "meio": "Imagem da sala ou das suas mãos no prontuário, sem a paciente.",
+          "fechamento": "\"O cuidado continua depois do primeiro resultado.\"",
+          "objetivo": "Construção de confiança"
+        }
+      ],
+      "perguntas": [
+        {
+          "codigo": "P-22",
+          "pergunta": "O que pode ser mostrado da sua filha, do seu marido e da sua mãe?"
+        },
+        {
+          "codigo": "P-25",
+          "pergunta": "Qual caso de paciente +35 entra no carrossel?"
+        },
+        {
+          "codigo": "P-01",
+          "pergunta": "O que significa cada letra do Método ERA?"
+        }
+      ],
+      "oportunidades": [
+        {
+          "acontecimento": "Pedido para preencher só o bigode chinês",
+          "ideia": "Stories de terça e ponte para o carrossel \"Pior erro depois dos 40\".",
+          "nivel": "A",
+          "cuidado": "Nada que identifique a paciente."
+        },
+        {
+          "acontecimento": "Retorno da paciente acompanhada desde 2021",
+          "ideia": "Guardar no banco de histórias para um conteúdo de acompanhamento.",
+          "nivel": "A",
+          "cuidado": "Imagem dela só com autorização registrada (P-24)."
+        },
+        {
+          "acontecimento": "Saída às 18h para buscar a filha",
+          "ideia": "Se você quiser, um story de fim de expediente.",
+          "nivel": "B",
+          "cuidado": "Mostrar a filha depende da sua decisão (P-22)."
+        }
+      ]
+    },
+    "acoes": [
+      {
+        "nivel": "A",
+        "tipo": "atualizar_dia",
+        "base": "dias",
+        "chave": "sim:dia:2026-12-01",
+        "campos": [
+          {
+            "campo": "Intenção do dia",
+            "valor": "Mostrar por que a Larissa olha o rosto inteiro antes de indicar."
+          },
+          {
+            "campo": "Prioridade 1",
+            "valor": "trello:C-06"
+          },
+          {
+            "campo": "Prioridade 2",
+            "valor": "trello:C-02"
+          },
+          {
+            "campo": "Prioridade 3",
+            "valor": "trello:C-01"
+          },
+          {
+            "campo": "Direcionamento",
+            "valor": "Gerado pelo agente"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Direcionamento diário (nível A).",
+        "fontes": [
+          "sim:dia:2026-12-01",
+          "trello:C-06",
+          "trello:C-02",
+          "trello:C-01"
+        ]
+      },
+      {
+        "nivel": "A",
+        "tipo": "criar_historia",
+        "base": "historias",
+        "chave": "agente:direcionamento-diario:2026-12-01:1",
+        "campos": [
+          {
+            "campo": "História",
+            "valor": "Pedido para preencher só o bigode chinês"
+          },
+          {
+            "campo": "Tipo",
+            "valor": "Percepção de consulta"
+          },
+          {
+            "campo": "Relato",
+            "valor": "Duas avaliações novas de manhã, uma delas querendo só preencher o bigode chinês."
+          },
+          {
+            "campo": "Status",
+            "valor": "Nova"
+          },
+          {
+            "campo": "Envolve",
+            "valor": "Paciente"
+          },
+          {
+            "campo": "Identificação",
+            "valor": "Sem identificação"
+          },
+          {
+            "campo": "Dia de origem",
+            "valor": "sim:dia:2026-12-01"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Acontecimento real contado na rotina; relato copiado literalmente.",
+        "fontes": [
+          "sim:dia:2026-12-01"
+        ]
+      },
+      {
+        "nivel": "A",
+        "tipo": "criar_captacao",
+        "base": "captacao",
+        "chave": "agente:direcionamento-diario:2026-12-01:2",
+        "campos": [
+          {
+            "campo": "Pedido",
+            "valor": "Fala de 30s: por que olhar o rosto todo antes de tratar um ponto só"
+          },
+          {
+            "campo": "Tipo",
+            "valor": "Vídeo falado"
+          },
+          {
+            "campo": "Quem capta",
+            "valor": "Larissa sozinha"
+          },
+          {
+            "campo": "Como gravar",
+            "valor": "Sentada, celular na vertical, sem paciente na cena."
+          },
+          {
+            "campo": "Onde",
+            "valor": "Consultório"
+          },
+          {
+            "campo": "Quando",
+            "valor": "2026-12-01"
+          },
+          {
+            "campo": "Conteúdos",
+            "valor": "trello:C-06"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Sugestão de captação (nível A); a social media decide se pede.",
+        "fontes": [
+          "sim:dia:2026-12-01",
+          "trello:C-06"
+        ]
+      }
+    ],
+    "alertas": [
+      "Dia com pouco tempo: um pedido de gravação só."
+    ]
+  }
+}

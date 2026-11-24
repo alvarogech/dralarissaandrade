@@ -1,0 +1,149 @@
+{
+  "$comment": "Contrato de saída do workflow estrategia. Gerado por ia/lib/contratos.mjs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "leitura",
+    "desequilibrios",
+    "propostas",
+    "acoes"
+  ],
+  "properties": {
+    "leitura": {
+      "type": "string"
+    },
+    "desequilibrios": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "propostas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mudanca",
+          "motivo",
+          "metrica_esperada"
+        ],
+        "properties": {
+          "mudanca": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "metrica_esperada": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "acoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nivel",
+          "tipo",
+          "base",
+          "chave",
+          "campos",
+          "quem_decide",
+          "motivo",
+          "fontes"
+        ],
+        "properties": {
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "criar_conteudo",
+              "atualizar_rascunho",
+              "priorizar",
+              "mover_data",
+              "criar_captacao",
+              "criar_pendencia",
+              "marcar_validacao",
+              "atualizar_dia",
+              "atualizar_semana",
+              "criar_historia",
+              "criar_aprendizado",
+              "criar_referencia",
+              "recomendar"
+            ]
+          },
+          "base": {
+            "type": "string",
+            "enum": [
+              "conteudos",
+              "semanas",
+              "dias",
+              "captacao",
+              "pendencias",
+              "referencias",
+              "aprendizados",
+              "prioridades",
+              "recomendacoes",
+              "historias"
+            ]
+          },
+          "chave": {
+            "type": "string",
+            "description": "Chave estável do alvo (ex.: trello:C-04) ou nova chave agente:<workflow>:<data>:<n>"
+          },
+          "campos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "campo",
+                "valor"
+              ],
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "valor": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "quem_decide": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Larissa",
+              "Social media",
+              "Gestão",
+              null
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "fontes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

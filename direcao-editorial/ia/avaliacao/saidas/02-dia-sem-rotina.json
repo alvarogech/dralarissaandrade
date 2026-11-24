@@ -1,0 +1,184 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "02-dia-sem-rotina",
+  "saida": {
+    "dia": "2026-12-02",
+    "rotina_informada": false,
+    "social": {
+      "intencao": "Quarta de respostas: trabalhar com o que já existe e pedir à Larissa que conte o dia em uma frase.",
+      "prioridades": [
+        {
+          "ordem": 1,
+          "chave": "trello:C-06",
+          "titulo": "Pior erro ao tratar o rosto depois dos 40",
+          "o_que_fazer": "Seguir com o carrossel a partir do texto do Trello."
+        },
+        {
+          "ordem": 2,
+          "chave": "trello:C-07",
+          "titulo": "Deus sempre me empurrou pra fora",
+          "o_que_fazer": "Separar o roteiro do Trello e montar a direção de cena para gravar na semana."
+        },
+        {
+          "ordem": 3,
+          "chave": "trello:C-01",
+          "titulo": "Não indico protocolo Ctrl C, Ctrl V",
+          "o_que_fazer": "Escolher a versão A ou B."
+        }
+      ],
+      "publicar": [],
+      "produzir": [
+        {
+          "chave": "trello:C-07",
+          "o_que_fazer": "Direção de cena: local calmo, luz natural, até 1 minuto."
+        }
+      ],
+      "pedir_larissa": [
+        {
+          "pedido": "Contar o dia de hoje em uma frase no campo Minha rotina",
+          "duracao": "1 minuto",
+          "como": "Pelo celular, na página Larissa."
+        }
+      ],
+      "acompanhar": [
+        "\"Prefiro peeling a full face\" fala quase o mesmo que o carrossel \"Comece pela pele\" de 05/11. Sugestão: segurar ou mudar o ângulo.",
+        "P-00: textos do Trello ainda fora da central."
+      ]
+    },
+    "larissa": {
+      "registrar": [
+        {
+          "o_que": "Uma frase sobre o seu dia",
+          "por_que": "Sem a rotina, o direcionamento usa só o que já está na central."
+        },
+        {
+          "o_que": "Alguma pergunta que chegou repetida no WhatsApp ou na caixinha",
+          "por_que": "Quarta é dia de responder perguntas."
+        }
+      ],
+      "gravar": [
+        {
+          "pedido": "Responder a pergunta \"dá para fazer só um pouquinho para ninguém perceber?\", se for assim que ela chega para você",
+          "duracao": "40 segundos",
+          "onde": "Onde for mais fácil",
+          "como": "Leia a pergunta em voz alta e responda olhando para a câmera."
+        }
+      ],
+      "stories": [
+        {
+          "titulo": "Quarta de respostas",
+          "abertura": "\"Essa pergunta chega toda semana.\"",
+          "meio": "Leia a pergunta e responda em 3 stories curtos.",
+          "fechamento": "Caixinha aberta para a próxima quarta.",
+          "objetivo": "Quebra de objeção"
+        },
+        {
+          "titulo": "Bastidor da manhã",
+          "abertura": "Takes do consultório vazio pela manhã, que já estão no Drive.",
+          "meio": "Uma frase sua sobre como você prepara o dia, se quiser gravar.",
+          "fechamento": "Sem convite, só presença.",
+          "objetivo": "Engajamento"
+        }
+      ],
+      "perguntas": [
+        {
+          "codigo": "P-22",
+          "pergunta": "O que pode ser mostrado da sua filha, do seu marido e da sua mãe?"
+        },
+        {
+          "codigo": "P-25",
+          "pergunta": "Qual caso de paciente +35 entra no carrossel?"
+        },
+        {
+          "codigo": "P-01",
+          "pergunta": "O que significa cada letra do Método ERA?"
+        }
+      ],
+      "oportunidades": []
+    },
+    "acoes": [
+      {
+        "nivel": "A",
+        "tipo": "atualizar_dia",
+        "base": "dias",
+        "chave": "dia:2026-12-02",
+        "campos": [
+          {
+            "campo": "Intenção do dia",
+            "valor": "Quarta de respostas com o material que já existe."
+          },
+          {
+            "campo": "Prioridade 1",
+            "valor": "trello:C-06"
+          },
+          {
+            "campo": "Prioridade 2",
+            "valor": "trello:C-07"
+          },
+          {
+            "campo": "Prioridade 3",
+            "valor": "trello:C-01"
+          },
+          {
+            "campo": "Direcionamento",
+            "valor": "Gerado pelo agente"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Direcionamento diário sem rotina informada.",
+        "fontes": [
+          "trello:C-06",
+          "trello:C-07",
+          "trello:C-01",
+          "sim:cap:drive:1",
+          "sim:his:2"
+        ]
+      },
+      {
+        "nivel": "B",
+        "tipo": "recomendar",
+        "base": "recomendacoes",
+        "chave": "agente:direcionamento-diario:2026-12-02:1",
+        "campos": [
+          {
+            "campo": "Recomendação",
+            "valor": "\"Prefiro peeling a full face\" repete o argumento de \"Comece pela pele\""
+          },
+          {
+            "campo": "Tipo",
+            "valor": "Possível duplicidade"
+          },
+          {
+            "campo": "Nível",
+            "valor": "B · Precisa de aprovação"
+          },
+          {
+            "campo": "Quem decide",
+            "valor": "Social media"
+          },
+          {
+            "campo": "Proposta",
+            "valor": "Publicar a partir de janeiro ou trocar o ângulo para a decisão de recusar o full face."
+          },
+          {
+            "campo": "Por quê",
+            "valor": "Mesmo argumento central publicado em 05/11, dentro da janela de 60 dias."
+          },
+          {
+            "campo": "Possível duplicata de",
+            "valor": "sim:pub:2"
+          }
+        ],
+        "quem_decide": "Social media",
+        "motivo": "Radar de repetição.",
+        "fontes": [
+          "trello:C-09",
+          "sim:pub:2"
+        ]
+      }
+    ],
+    "alertas": [
+      "Rotina não informada: nenhum acontecimento do dia foi presumido."
+    ]
+  }
+}

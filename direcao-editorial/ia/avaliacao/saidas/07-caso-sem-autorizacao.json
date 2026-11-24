@@ -1,0 +1,198 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "07-caso-sem-autorizacao",
+  "saida": {
+    "semana": "sim:semana:2026-W49",
+    "intencao": "Mostrar acompanhamento e critério sem nenhum caso clínico enquanto a autorização de imagem não estiver resolvida.",
+    "objetivos": [
+      "Construção de confiança",
+      "Quebra de objeção"
+    ],
+    "narrativas": [
+      {
+        "titulo": "Acompanhamento sem mostrar paciente",
+        "fato_real": "História pronta: paciente acompanhada desde 2020 que voltou para o retorno.",
+        "fontes": [
+          "sim:his:1"
+        ]
+      },
+      {
+        "titulo": "Antes de indicar, eu avalio",
+        "fato_real": "Roteiros completos no Trello contra protocolo pronto e procedimento isolado.",
+        "fontes": [
+          "trello:C-01",
+          "trello:C-06"
+        ]
+      }
+    ],
+    "feed": [
+      {
+        "origem": "concluir",
+        "chave": "trello:C-06",
+        "titulo": "Pior erro ao tratar o rosto depois dos 40",
+        "pilar": "Autoridade",
+        "objetivo": "Quebra de objeção",
+        "formato": "Carrossel",
+        "dia": "Terça 01/12",
+        "com_quem": "Social media",
+        "bloqueado_por": [
+          "P-00"
+        ],
+        "nivel": "A",
+        "justificativa": "Não envolve paciente."
+      },
+      {
+        "origem": "concluir",
+        "chave": "trello:C-01",
+        "titulo": "Não indico protocolo Ctrl C, Ctrl V",
+        "pilar": "Autoridade",
+        "objetivo": "Quebra de objeção",
+        "formato": "Carrossel",
+        "dia": "Quinta 03/12",
+        "com_quem": "Social media",
+        "bloqueado_por": [
+          "P-00"
+        ],
+        "nivel": "A",
+        "justificativa": "Versão B dispensa caso clínico."
+      },
+      {
+        "origem": "concluir",
+        "chave": "trello:C-07",
+        "titulo": "Deus sempre me empurrou pra fora",
+        "pilar": "Conexão",
+        "objetivo": "Engajamento",
+        "formato": "Reels",
+        "dia": "Sábado 05/12",
+        "com_quem": "Larissa",
+        "bloqueado_por": [
+          "P-00"
+        ],
+        "nivel": "A",
+        "justificativa": "Equilibra a semana com conexão."
+      },
+      {
+        "origem": "concluir",
+        "chave": "trello:C-15",
+        "titulo": "Caso em tela dividida: paciente de longa data",
+        "pilar": "Desejo e prova social",
+        "objetivo": "Construção de confiança",
+        "formato": "Reels",
+        "dia": "Só depois da autorização",
+        "com_quem": "Gestão",
+        "bloqueado_por": [
+          "P-24"
+        ],
+        "nivel": "C",
+        "justificativa": "Entra na semana apenas se a autorização for registrada; caso contrário, fica para a próxima."
+      }
+    ],
+    "stories": [
+      {
+        "dia": "Segunda",
+        "direcao": "No lugar do caso clínico: como você conduz um retorno anual, com imagens da sala e sem paciente.",
+        "intencao": "Confiança."
+      },
+      {
+        "dia": "Terça",
+        "direcao": "Objeção do protocolo pronto mais caixinha.",
+        "intencao": "Apoiar o carrossel."
+      },
+      {
+        "dia": "Quarta",
+        "direcao": "Respostas.",
+        "intencao": "Conversa."
+      },
+      {
+        "dia": "Quinta",
+        "direcao": "No lugar do caso: a frase da paciente de longa data, em texto, sem identificação.",
+        "intencao": "Prova social sem imagem."
+      },
+      {
+        "dia": "Sexta",
+        "direcao": "Leve, gestão do consultório.",
+        "intencao": "Conexão."
+      },
+      {
+        "dia": "Fim de semana",
+        "direcao": "Pessoal, se ela quiser.",
+        "intencao": "Conexão."
+      }
+    ],
+    "captacao": [
+      {
+        "pedido": "Imagens da sala de consulta e das suas mãos no prontuário, sem paciente",
+        "tipo": "Imagem de apoio",
+        "quem_capta": "Social media",
+        "quando": "2026-11-30",
+        "duracao": "10 minutos",
+        "onde": "Consultório",
+        "como_gravar": "Antes da primeira paciente. Nada de tela de computador com dados.",
+        "conteudos": [],
+        "requer_autorizacao": false
+      }
+    ],
+    "reaproveitamento": [
+      {
+        "chave": "sim:his:1",
+        "como": "Stories de quinta no lugar do caso clínico."
+      }
+    ],
+    "impedimentos": [
+      {
+        "descricao": "Nenhum caso clínico tem autorização de imagem registrada; 4 conteúdos de prova social esperam",
+        "pendencia": "P-24",
+        "quem_destrava": "Gestão"
+      },
+      {
+        "descricao": "Definir qual caso +35 entra",
+        "pendencia": "P-25",
+        "quem_destrava": "Larissa"
+      }
+    ],
+    "prioridades_producao": [
+      {
+        "ordem": 1,
+        "chave": "trello:C-06",
+        "o_que_fazer": "Diagramar."
+      },
+      {
+        "ordem": 2,
+        "chave": "trello:C-01",
+        "o_que_fazer": "Montar a versão B."
+      },
+      {
+        "ordem": 3,
+        "chave": "trello:C-07",
+        "o_que_fazer": "Gravar e editar."
+      }
+    ],
+    "acoes": [
+      {
+        "nivel": "C",
+        "tipo": "marcar_validacao",
+        "base": "conteudos",
+        "chave": "trello:C-15",
+        "campos": [
+          {
+            "campo": "Validação da Larissa",
+            "valor": "Necessária"
+          },
+          {
+            "campo": "Motivo da validação",
+            "valor": "Imagem de paciente"
+          }
+        ],
+        "quem_decide": "Gestão",
+        "motivo": "Caso clínico só com autorização registrada.",
+        "fontes": [
+          "trello:C-15",
+          "P-24"
+        ]
+      }
+    ],
+    "alertas": [
+      "Nenhum caso clínico no feed sem autorização de imagem registrada."
+    ]
+  }
+}

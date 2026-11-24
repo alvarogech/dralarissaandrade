@@ -1,0 +1,96 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "06-repetitivo",
+  "saida": {
+    "chave": "trello:C-06",
+    "formato": "Carrossel",
+    "nivel": "A",
+    "ganchos": [
+      {
+        "texto": "Depois dos 40, o rosto não muda em um ponto só.",
+        "tecnica": "Constatação que contraria a queixa pontual"
+      },
+      {
+        "texto": "Quase toda paciente chega apontando um lugar. Eu olho o rosto inteiro.",
+        "tecnica": "Bastidor de consultório"
+      },
+      {
+        "texto": "O que eu observo antes de você me mostrar onde incomoda.",
+        "tecnica": "Curiosidade"
+      }
+    ],
+    "roteiro": [
+      {
+        "parte": "Página 1",
+        "fala": "Depois dos 40, o rosto não muda em um ponto só.",
+        "visual": "Larissa no consultório, olhando para a câmera."
+      },
+      {
+        "parte": "Página 2",
+        "fala": "Flacidez, contorno, linhas de marionete, cansaço. Quase sempre aparecem juntos.",
+        "visual": "Texto sobre fundo claro."
+      },
+      {
+        "parte": "Página 3",
+        "fala": "Quando a gente trata só o ponto que incomoda hoje, o resto continua mudando.",
+        "visual": "Texto curto, letra grande."
+      },
+      {
+        "parte": "Página 4",
+        "fala": "Por isso a primeira consulta comigo leva cerca de 2 horas. Eu preciso olhar o rosto inteiro antes de indicar qualquer coisa.",
+        "visual": "Foto da sala de consulta."
+      },
+      {
+        "parte": "Página 5",
+        "fala": "Às vezes o planejamento associa procedimentos. Às vezes é em etapas, ao longo do ano.",
+        "visual": "Linha do tempo simples."
+      },
+      {
+        "parte": "Página 6",
+        "fala": "Se você está pensando em tratar um ponto só, conversa comigo antes.",
+        "visual": "Larissa sorrindo, convite."
+      }
+    ],
+    "legenda": "Muita gente chega no consultório apontando um ponto. É natural. Mas depois dos 40 o rosto muda como um todo, e tratar só uma parte costuma deixar o resto para trás. Por isso eu começo olhando o rosto inteiro.",
+    "cta": "Para conversar sobre o seu caso, me chama no WhatsApp.",
+    "variacoes": [
+      {
+        "abordagem": "Pergunta da caixinha",
+        "resumo": "Abrir com a pergunta real que chegar na terça sobre tratar um ponto só."
+      },
+      {
+        "abordagem": "Linha do tempo",
+        "resumo": "Mostrar como um planejamento em etapas se distribui ao longo de um ano, sem caso real."
+      }
+    ],
+    "direcao_criativa": "Carrossel de 6 páginas, padrão da casa. Fotos da Larissa no consultório nas páginas 1 e 6; texto limpo no meio. Observação: o roteiro original está no Trello (P-00). Este rascunho propõe um ângulo diferente do Reels de 17/11, que já usou o pedido recusado.",
+    "pontos_de_validacao": [
+      {
+        "trecho": "Página 4: \"cerca de 2 horas\"",
+        "pendencia": null
+      }
+    ],
+    "acoes": [
+      {
+        "nivel": "A",
+        "tipo": "atualizar_rascunho",
+        "base": "conteudos",
+        "chave": "trello:C-06",
+        "campos": [
+          {
+            "campo": "corpo:Rascunho do agente",
+            "valor": "Roteiro de 6 páginas acima."
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Rascunho do agente; a seção Roteiro da equipe não foi tocada.",
+        "fontes": [
+          "trello:C-06",
+          "sim:pub:1",
+          "02-Persona.md",
+          "01-DNA-da-marca.md"
+        ]
+      }
+    ]
+  }
+}

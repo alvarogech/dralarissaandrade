@@ -1,0 +1,1097 @@
+{
+ "$comment": "SNAPSHOT DE TESTE. Conteúdos e pendências do inventário real + registros sintéticos (Origem = Simulação). Não usar em produção.",
+ "conteudos": [
+  {
+   "chave": "trello:C-01",
+   "titulo": "Não indico protocolo Ctrl C, Ctrl V",
+   "status": "Planejado",
+   "formato": "Carrossel",
+   "pilar": "Autoridade",
+   "objetivo": "Quebra de objeção",
+   "tema": [
+    "Planejamento individual"
+   ],
+   "argumento": "pacientes com a mesma queixa podem precisar de planejamentos diferentes",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Social media",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Escolher versão A (dois casos com a mesma queixa) ou B (\"minha amiga fez\"). Texto integral não migrado.",
+   "pendencias": [
+    "P-00"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-02",
+   "titulo": "Momento consulta",
+   "status": "Aguardando captação",
+   "formato": "Reels",
+   "pilar": "Autoridade",
+   "objetivo": "Construção de confiança",
+   "tema": [
+    "Primeira consulta",
+    "Planejamento individual"
+   ],
+   "argumento": "a consulta explica o porquê de cada indicação",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Social media",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "",
+   "pendencias": [],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-03",
+   "titulo": "História da Larissa",
+   "status": "Aguardando informação",
+   "formato": "Reels",
+   "pilar": "Conexão",
+   "objetivo": "Descoberta",
+   "tema": [
+    "Vida empresarial"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Larissa",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Cartão vazio. Depende do relato da Larissa.",
+   "pendencias": [
+    "P-04"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-04",
+   "titulo": "Caso clínico de paciente +35",
+   "status": "Aguardando informação",
+   "formato": "Carrossel",
+   "pilar": "Desejo e prova social",
+   "objetivo": "Geração de desejo",
+   "tema": [
+    "Acompanhamento ao longo dos anos"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Larissa",
+   "validacao": "Necessária",
+   "motivo_validacao": [
+    "Caso clínico",
+    "Imagem de paciente"
+   ],
+   "autorizacao": "Pendente",
+   "bloqueio": "Definir qual caso e confirmar autorização de imagem.",
+   "pendencias": [
+    "P-25",
+    "P-24"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-05",
+   "titulo": "Mounjaro e o meu emagrecimento",
+   "status": "Aguardando informação",
+   "formato": "Reels",
+   "pilar": "Conexão",
+   "objetivo": "Descoberta",
+   "tema": [
+    "Emagrecimento"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Larissa",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Cartão vazio. Relato pessoal, nunca indicação de medicamento.",
+   "pendencias": [
+    "P-05"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-06",
+   "titulo": "Pior erro ao tratar o rosto depois dos 40",
+   "status": "Planejado",
+   "formato": "Carrossel",
+   "pilar": "Autoridade",
+   "objetivo": "Quebra de objeção",
+   "tema": [
+    "Procedimento isolado",
+    "Envelhecimento"
+   ],
+   "argumento": "tratar o rosto depois dos 40 com procedimento isolado é o erro mais comum",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Social media",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Texto integral não migrado.",
+   "pendencias": [
+    "P-00"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-07",
+   "titulo": "Deus sempre me empurrou pra fora",
+   "status": "Planejado",
+   "formato": "Reels",
+   "pilar": "Conexão",
+   "objetivo": "Engajamento",
+   "tema": [
+    "Fé"
+   ],
+   "argumento": "a trajetória foi guiada por fé",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Social media",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Texto integral não migrado.",
+   "pendencias": [
+    "P-00"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-08",
+   "titulo": "A verdade sobre os peptídeos",
+   "status": "Aguardando informação",
+   "formato": "A definir",
+   "pilar": "Autoridade",
+   "objetivo": "Educação",
+   "tema": [
+    "Pele"
+   ],
+   "argumento": "",
+   "procedimentos": [
+    "Peptídeos"
+   ],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Larissa",
+   "validacao": "Necessária",
+   "motivo_validacao": [
+    "Afirmação clínica inédita"
+   ],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Larissa precisa informar para que usa e o que considera hype.",
+   "pendencias": [
+    "P-15"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-09",
+   "titulo": "Prefiro peeling a full face",
+   "status": "Planejado",
+   "formato": "Reels",
+   "pilar": "Autoridade",
+   "objetivo": "Quebra de objeção",
+   "tema": [
+    "Pele",
+    "Associação de procedimentos"
+   ],
+   "argumento": "começar pela pele faz mais sentido do que um full face",
+   "procedimentos": [
+    "Peeling",
+    "Full face"
+   ],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Social media",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Texto integral e legenda não migrados.",
+   "pendencias": [
+    "P-00"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-10",
+   "titulo": "Caso clínico em storytelling",
+   "status": "Aguardando informação",
+   "formato": "Reels",
+   "pilar": "Desejo e prova social",
+   "objetivo": "Geração de desejo",
+   "tema": [
+    "Acompanhamento ao longo dos anos"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Larissa",
+   "validacao": "Necessária",
+   "motivo_validacao": [
+    "Caso clínico",
+    "Imagem de paciente"
+   ],
+   "autorizacao": "Pendente",
+   "bloqueio": "Repete o caso +35 de CON trello:C-04. Definir se é o mesmo caso.",
+   "pendencias": [
+    "P-25",
+    "P-24"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-11",
+   "titulo": "Conexão: família",
+   "status": "Planejado",
+   "formato": "Carrossel",
+   "pilar": "Conexão",
+   "objetivo": "Engajamento",
+   "tema": [
+    "Família"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Social media",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Confirmar o que pode ser mostrado da família.",
+   "pendencias": [
+    "P-22"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-12",
+   "titulo": "Depois dos 30: minha mãe",
+   "status": "Aguardando informação",
+   "formato": "Reels",
+   "pilar": "Conexão",
+   "objetivo": "Engajamento",
+   "tema": [
+    "Família",
+    "Envelhecimento"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Larissa",
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Roteiro com lacunas que só a Larissa preenche. Numeração do episódio inconsistente (ep. 6 x quinto).",
+   "pendencias": [
+    "P-26",
+    "P-19"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-13",
+   "titulo": "Método ERA",
+   "status": "Aguardando informação",
+   "formato": "Reels",
+   "pilar": "Autoridade",
+   "objetivo": "Conversão",
+   "tema": [
+    "Método ERA"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Larissa",
+   "validacao": "Necessária",
+   "motivo_validacao": [
+    "Afirmação clínica inédita"
+   ],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Significado e etapas do Método ERA a confirmar pela Larissa.",
+   "pendencias": [
+    "P-01",
+    "P-02"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-14",
+   "titulo": "Plasma IQ nas pálpebras",
+   "status": "Aguardando informação",
+   "formato": "Carrossel",
+   "pilar": "Autoridade",
+   "objetivo": "Educação",
+   "tema": [
+    "Pele"
+   ],
+   "argumento": "",
+   "procedimentos": [
+    "Plasma IQ"
+   ],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Larissa",
+   "validacao": "Necessária",
+   "motivo_validacao": [
+    "Afirmação clínica inédita"
+   ],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "Larissa precisa informar os benefícios e para quem não indica.",
+   "pendencias": [
+    "P-16"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-15",
+   "titulo": "Caso em tela dividida: paciente de longa data",
+   "status": "Aguardando captação",
+   "formato": "Reels",
+   "pilar": "Desejo e prova social",
+   "objetivo": "Construção de confiança",
+   "tema": [
+    "Acompanhamento ao longo dos anos"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Social media",
+   "validacao": "Necessária",
+   "motivo_validacao": [
+    "Caso clínico",
+    "Imagem de paciente"
+   ],
+   "autorizacao": "Pendente",
+   "bloqueio": "Autorização de imagem a confirmar.",
+   "pendencias": [
+    "P-24"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:C-16",
+   "titulo": "Casos com feedbacks",
+   "status": "Aguardando captação",
+   "formato": "Carrossel",
+   "pilar": "Desejo e prova social",
+   "objetivo": "Construção de confiança",
+   "tema": [
+    "Acompanhamento ao longo dos anos"
+   ],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": "Social media",
+   "validacao": "Necessária",
+   "motivo_validacao": [
+    "Caso clínico",
+    "Imagem de paciente"
+   ],
+   "autorizacao": "Pendente",
+   "bloqueio": "Autorização de uso dos feedbacks a confirmar.",
+   "pendencias": [
+    "P-24"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:I-01",
+   "titulo": "Associação de procedimentos com as tecnologias da clínica",
+   "status": "Ideia",
+   "formato": "A definir",
+   "pilar": null,
+   "objetivo": null,
+   "tema": [],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": null,
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "",
+   "pendencias": [
+    "P-14"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:I-02",
+   "titulo": "A tecnologia tem em todo lugar, mas na mão de quem ela faz efeito?",
+   "status": "Ideia",
+   "formato": "Reels",
+   "pilar": null,
+   "objetivo": null,
+   "tema": [],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": null,
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "",
+   "pendencias": [],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:I-03",
+   "titulo": "Fotos da viagem a SP e o perfil dela",
+   "status": "Ideia",
+   "formato": "Reels",
+   "pilar": null,
+   "objetivo": null,
+   "tema": [],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": null,
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "",
+   "pendencias": [],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:I-04",
+   "titulo": "(In)felizmente funciona, versão HOF",
+   "status": "Ideia",
+   "formato": "A definir",
+   "pilar": null,
+   "objetivo": null,
+   "tema": [],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": null,
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "",
+   "pendencias": [],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "trello:I-05",
+   "titulo": "Post de conexão com a filha",
+   "status": "Ideia",
+   "formato": "A definir",
+   "pilar": null,
+   "objetivo": null,
+   "tema": [],
+   "argumento": "",
+   "procedimentos": [],
+   "gancho": "",
+   "cta": "",
+   "prazo": null,
+   "publicacao_prevista": null,
+   "publicado_em": null,
+   "com_quem": null,
+   "validacao": "Não necessária",
+   "motivo_validacao": [],
+   "autorizacao": "Não se aplica",
+   "bloqueio": "",
+   "pendencias": [
+    "P-22"
+   ],
+   "travado": false,
+   "editado_pela_equipe": false,
+   "historia": null,
+   "origem": "Trello"
+  },
+  {
+   "chave": "sim:pub:1",
+   "titulo": "[TESTE] Por que eu recusei fazer só o que ela pediu",
+   "status": "Publicado",
+   "formato": "Reels",
+   "pilar": "Autoridade",
+   "objetivo": "Quebra de objeção",
+   "tema": [
+    "Procedimento isolado",
+    "Planejamento individual"
+   ],
+   "argumento": "procedimento isolado não resolve sem planejamento",
+   "gancho": "Eu recusei fazer só o que ela pediu.",
+   "cta": "Agende sua avaliação pelo WhatsApp",
+   "procedimentos": [],
+   "publicado_em": "2026-11-17",
+   "origem": "Simulação"
+  },
+  {
+   "chave": "sim:pub:2",
+   "titulo": "[TESTE] Comece pela pele",
+   "status": "Publicado",
+   "formato": "Carrossel",
+   "pilar": "Autoridade",
+   "objetivo": "Educação",
+   "tema": [
+    "Pele",
+    "Associação de procedimentos"
+   ],
+   "argumento": "começar pela pele faz mais sentido do que fazer tudo de uma vez",
+   "gancho": "Antes de qualquer seringa, eu olho a pele.",
+   "cta": "",
+   "procedimentos": [
+    "Peeling"
+   ],
+   "publicado_em": "2026-11-05",
+   "origem": "Simulação"
+  },
+  {
+   "chave": "sim:pub:3",
+   "titulo": "[TESTE] Café antes da primeira paciente",
+   "status": "Publicado",
+   "formato": "Sequência de stories",
+   "pilar": "Conexão",
+   "objetivo": "Engajamento",
+   "tema": [
+    "Rotina"
+   ],
+   "argumento": "a rotina real começa antes do consultório abrir",
+   "gancho": "Meu ritual antes de abrir a agenda.",
+   "cta": "",
+   "procedimentos": [],
+   "publicado_em": "2026-11-21",
+   "origem": "Simulação"
+  }
+ ],
+ "pendencias": [
+  {
+   "codigo": "P-00",
+   "pendencia": "Exportar do Trello o texto integral dos roteiros e os links das referências",
+   "status": "Aberta",
+   "quem_responde": "Gestão",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-01",
+    "trello:C-06",
+    "trello:C-07",
+    "trello:C-09"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-01",
+   "pendencia": "O que significa cada letra do Método ERA?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-13"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-02",
+   "pendencia": "Como cada etapa do ERA acontece na prática e o que o diferencia de um protocolo comum?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-13"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-03",
+   "pendencia": "\"10 anos de profissão e mais de 30 cursos\" segue correto?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-04",
+   "pendencia": "Quais momentos da sua história você quer contar?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-03"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-05",
+   "pendencia": "Mounjaro: o que contar sobre o seu emagrecimento e o que não expor?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-05"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-06",
+   "pendencia": "\"Mais presença entre 30 e 45\" vem do Insights, das pacientes ou é percepção?",
+   "status": "Aberta",
+   "quem_responde": "Gestão",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-07",
+   "pendencia": "O que as pacientes dizem querer quando chegam?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-08",
+   "pendencia": "Uso de \"HOF\" e \"harmonização\"",
+   "status": "Respondida",
+   "quem_responde": "Larissa",
+   "prioridade": "Média",
+   "resposta": "HOF em contexto informal (caixinhas). Na comunicação clínica, nome do procedimento. \"Harmonização\" segue evitado.",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-09",
+   "pendencia": "Expressões que você usa muito e que nunca usaria",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-10",
+   "pendencia": "O Método ERA tem registro de marca? Usar ™ ou ®?",
+   "status": "Aberta",
+   "quem_responde": "Gestão",
+   "prioridade": "Baixa",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-11",
+   "pendencia": "Tratar Venda e Topo de funil como objetivos, mantendo os 3 pilares?",
+   "status": "Aberta",
+   "quem_responde": "Gestão",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-12",
+   "pendencia": "Prioridades comerciais de dez/2026 e jan/2027",
+   "status": "Parcial",
+   "quem_responde": "Gestão",
+   "prioridade": "Alta",
+   "resposta": "Nov/2026 tratado como inventário histórico, sem presumir publicação. Prioridades comerciais ainda abertas.",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-13",
+   "pendencia": "Datas importantes (aniversário da clínica, campanhas, férias, feriados)",
+   "status": "Aberta",
+   "quem_responde": "Gestão",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-14",
+   "pendencia": "Como funcionam os planejamentos anual, concentrado e em etapas? Quais tecnologias a clínica tem?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:I-01"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-15",
+   "pendencia": "Peptídeos: para que você usa e o que considera hype?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-08"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-16",
+   "pendencia": "Plasma IQ nas pálpebras: benefícios e para quem não indica",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-14"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-17",
+   "pendencia": "A Clínica Stimma é citada pelo nome no Instagram?",
+   "status": "Aberta",
+   "quem_responde": "Gestão",
+   "prioridade": "Baixa",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-18",
+   "pendencia": "Stories: 5 a 6 por dia é mínimo ou referência?",
+   "status": "Respondida",
+   "quem_responde": "Larissa",
+   "prioridade": "Média",
+   "resposta": "Meta operacional flexível, conforme relevância e disponibilidade da Larissa.",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-19",
+   "pendencia": "\"Depois dos 30\": quantos episódios publicados? O da mãe é o 5º ou o 6º?",
+   "status": "Aberta",
+   "quem_responde": "Social media",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-12"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-20",
+   "pendencia": "Onde e como você prefere gravar, e quando costuma ter tempo?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-21",
+   "pendencia": "Os @ das referências e o que você admira em cada uma",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Média",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-22",
+   "pendencia": "Quem é a Lara? O que pode ser mostrado da filha, do marido e da mãe?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-11",
+    "trello:I-05"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-23",
+   "pendencia": "Quem revisa as normas de publicidade do CFO?",
+   "status": "Aberta",
+   "quem_responde": "Gestão",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-24",
+   "pendencia": "Onde fica registrada a autorização de imagem das pacientes?",
+   "status": "Aberta",
+   "quem_responde": "Gestão",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-04",
+    "trello:C-10",
+    "trello:C-15",
+    "trello:C-16"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-25",
+   "pendencia": "Qual caso de paciente +35 entra? É o mesmo nas semanas 1 e 3?",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-04",
+    "trello:C-10"
+   ],
+   "origem": "Trello"
+  },
+  {
+   "codigo": "P-26",
+   "pendencia": "Preencher as lacunas do roteiro \"Depois dos 30: minha mãe\"",
+   "status": "Aberta",
+   "quem_responde": "Larissa",
+   "prioridade": "Alta",
+   "resposta": "",
+   "conteudos_afetados": [
+    "trello:C-12"
+   ],
+   "origem": "Trello"
+  }
+ ],
+ "semanas": [
+  {
+   "chave": "sim:semana:2026-W49",
+   "inicio": "2026-11-30",
+   "fim": "2026-12-06",
+   "capacidade": "Normal",
+   "restricoes": "",
+   "intencao": "",
+   "status_plano": null,
+   "origem": "Simulação"
+  }
+ ],
+ "dias": [],
+ "prioridades": [],
+ "recomendacoes": [],
+ "metricas": [],
+ "referencias": [],
+ "aprendizados": [
+  {
+   "chave": "base:A-001",
+   "texto": "Explicar uma decisão clínica durante a consulta gera identificação e mostra autoridade com naturalidade",
+   "status": "Hipótese",
+   "area": "Formato",
+   "origem": "Gestão"
+  },
+  {
+   "chave": "base:A-002",
+   "texto": "Conteúdos com a Lara apresentam sinais de maior engajamento",
+   "status": "Hipótese",
+   "area": "Tema",
+   "origem": "Gestão"
+  },
+  {
+   "chave": "base:A-003",
+   "texto": "Gerenciamento do envelhecimento é estratégico, mas precisa variar histórias para não desgastar",
+   "status": "Hipótese",
+   "area": "Tema",
+   "origem": "Gestão"
+  }
+ ],
+ "historias": [
+  {
+   "chave": "sim:his:1",
+   "titulo": "[TESTE] Paciente que voltou depois de 4 anos para o retorno",
+   "tipo": "Percepção de consulta",
+   "relato": "(teste) Uma paciente que eu acompanho desde 2020 voltou para o retorno anual e comentou que ninguém percebe que ela fez algo, só que está bem.",
+   "status": "Pronta para usar",
+   "envolve": [
+    "Paciente"
+   ],
+   "autorizacao": "Não necessária",
+   "identificacao": "Sem identificação",
+   "vezes_usada": 0,
+   "origem": "Simulação"
+  },
+  {
+   "chave": "sim:his:2",
+   "titulo": "[TESTE] A pergunta que mais chega na caixinha",
+   "tipo": "Pergunta recebida",
+   "relato": "(teste) Toda terça chega alguma versão de \"dá para fazer só um pouquinho para ninguém perceber?\".",
+   "status": "Nova",
+   "envolve": [
+    "Ninguém além dela"
+   ],
+   "autorizacao": "Não necessária",
+   "identificacao": "Sem identificação",
+   "vezes_usada": 0,
+   "origem": "Simulação"
+  }
+ ],
+ "captacao": [
+  {
+   "chave": "sim:cap:drive:1",
+   "pedido": "[TESTE] Takes do consultório vazio pela manhã",
+   "tipo": "Imagem de apoio",
+   "status": "No Drive",
+   "conteudos": [],
+   "origem": "Simulação"
+  }
+ ],
+ "datas": [
+  {
+   "data": "2026-12-25",
+   "nome": "Natal"
+  }
+ ]
+}

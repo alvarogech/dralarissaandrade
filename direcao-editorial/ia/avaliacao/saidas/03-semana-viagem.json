@@ -1,0 +1,221 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "03-semana-viagem",
+  "saida": {
+    "semana": "sim:semana:2026-W49",
+    "intencao": "Semana curta de consultório, com a Larissa em congresso de quarta a sexta: publicar pouco, bem feito, e mostrar a viagem como bastidor de quem continua estudando.",
+    "objetivos": [
+      "Construção de confiança",
+      "Engajamento"
+    ],
+    "narrativas": [
+      {
+        "titulo": "Quem cuida continua estudando",
+        "fato_real": "Congresso em São Paulo de quarta a sexta, informado nas restrições da semana.",
+        "fontes": [
+          "sim:semana:2026-W49"
+        ]
+      },
+      {
+        "titulo": "Antes de indicar, eu olho o rosto inteiro",
+        "fato_real": "Objeção do procedimento isolado registrada na persona e no carrossel já roteirizado.",
+        "fontes": [
+          "trello:C-06"
+        ]
+      }
+    ],
+    "feed": [
+      {
+        "origem": "concluir",
+        "chave": "trello:C-06",
+        "titulo": "Pior erro ao tratar o rosto depois dos 40",
+        "pilar": "Autoridade",
+        "objetivo": "Quebra de objeção",
+        "formato": "Carrossel",
+        "dia": "Terça 01/12",
+        "com_quem": "Social media",
+        "bloqueado_por": [
+          "P-00"
+        ],
+        "nivel": "A",
+        "justificativa": "Roteiro completo já existe no Trello e não depende de gravação."
+      },
+      {
+        "origem": "concluir",
+        "chave": "trello:C-07",
+        "titulo": "Deus sempre me empurrou pra fora",
+        "pilar": "Conexão",
+        "objetivo": "Engajamento",
+        "formato": "Reels",
+        "dia": "Sábado 05/12",
+        "com_quem": "Larissa",
+        "bloqueado_por": [
+          "P-00"
+        ],
+        "nivel": "A",
+        "justificativa": "Roteiro pronto; dá para gravar na segunda, antes da viagem."
+      }
+    ],
+    "stories": [
+      {
+        "dia": "Segunda",
+        "direcao": "Sem caso clínico autorizado: bastidor da preparação para o congresso.",
+        "intencao": "Avisar a ausência com naturalidade."
+      },
+      {
+        "dia": "Terça",
+        "direcao": "Objeção do procedimento isolado mais a caixinha Tudo sobre HOF.",
+        "intencao": "Puxar o carrossel do dia."
+      },
+      {
+        "dia": "Quarta",
+        "direcao": "Chegada a São Paulo e o tema que ela foi buscar.",
+        "intencao": "Mostrar atualização sem vender."
+      },
+      {
+        "dia": "Quinta",
+        "direcao": "Uma anotação do congresso que mudou ou confirmou algo na prática dela, se houver.",
+        "intencao": "Raciocínio clínico real."
+      },
+      {
+        "dia": "Sexta",
+        "direcao": "Volta para casa, leve.",
+        "intencao": "Conexão."
+      },
+      {
+        "dia": "Sábado",
+        "direcao": "Reels de fé no feed; stories de família, se ela quiser.",
+        "intencao": "Conexão."
+      },
+      {
+        "dia": "Domingo",
+        "direcao": "Caixinha Tudo menos HOF por volta das 16h.",
+        "intencao": "Interação."
+      }
+    ],
+    "captacao": [
+      {
+        "pedido": "Gravar o Reels \"Deus sempre me empurrou pra fora\" com o roteiro do Trello",
+        "tipo": "Vídeo falado",
+        "quem_capta": "Juntas",
+        "quando": "2026-11-30",
+        "duracao": "até 1 minuto",
+        "onde": "A combinar com a Larissa (P-20)",
+        "como_gravar": "Ler o roteiro uma vez antes e gravar em 2 ou 3 blocos, celular na vertical.",
+        "conteudos": [
+          "trello:C-07"
+        ],
+        "requer_autorizacao": false
+      },
+      {
+        "pedido": "Takes curtos da viagem: mala, credencial do congresso, anotações",
+        "tipo": "Take espontâneo",
+        "quem_capta": "Larissa sozinha",
+        "quando": "2026-12-02",
+        "duracao": "5 a 8 segundos cada",
+        "onde": "São Paulo",
+        "como_gravar": "Só o que aparecer naturalmente, sem pressão.",
+        "conteudos": [],
+        "requer_autorizacao": false
+      }
+    ],
+    "reaproveitamento": [
+      {
+        "chave": "sim:cap:drive:1",
+        "como": "Takes do consultório vazio abrem os stories de segunda e terça."
+      }
+    ],
+    "impedimentos": [
+      {
+        "descricao": "Textos completos do Trello fora da central",
+        "pendencia": "P-00",
+        "quem_destrava": "Gestão"
+      },
+      {
+        "descricao": "Casos clínicos sem autorização de imagem",
+        "pendencia": "P-24",
+        "quem_destrava": "Gestão"
+      }
+    ],
+    "prioridades_producao": [
+      {
+        "ordem": 1,
+        "chave": "trello:C-06",
+        "o_que_fazer": "Trazer o texto do Trello e diagramar até terça."
+      },
+      {
+        "ordem": 2,
+        "chave": "trello:C-07",
+        "o_que_fazer": "Gravar na segunda, editar na quinta, publicar no sábado."
+      }
+    ],
+    "acoes": [
+      {
+        "nivel": "A",
+        "tipo": "atualizar_semana",
+        "base": "semanas",
+        "chave": "sim:semana:2026-W49",
+        "campos": [
+          {
+            "campo": "Intenção editorial",
+            "valor": "Semana curta, Larissa em congresso: publicar pouco, bem feito, e mostrar a viagem como bastidor de quem continua estudando."
+          },
+          {
+            "campo": "Narrativas",
+            "valor": "Quem cuida continua estudando; antes de indicar, eu olho o rosto inteiro."
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Plano preliminar (nível A).",
+        "fontes": [
+          "sim:semana:2026-W49"
+        ]
+      },
+      {
+        "nivel": "A",
+        "tipo": "priorizar",
+        "base": "conteudos",
+        "chave": "trello:C-06",
+        "campos": [
+          {
+            "campo": "Semana",
+            "valor": "sim:semana:2026-W49"
+          },
+          {
+            "campo": "Prioridade",
+            "valor": "Alta"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Não depende de gravação.",
+        "fontes": [
+          "trello:C-06"
+        ]
+      },
+      {
+        "nivel": "A",
+        "tipo": "priorizar",
+        "base": "conteudos",
+        "chave": "trello:C-07",
+        "campos": [
+          {
+            "campo": "Semana",
+            "valor": "sim:semana:2026-W49"
+          },
+          {
+            "campo": "Prioridade",
+            "valor": "Média"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Gravação cabe na segunda.",
+        "fontes": [
+          "trello:C-07"
+        ]
+      }
+    ],
+    "alertas": [
+      "Capacidade mínima: 2 publicações de feed nesta semana."
+    ]
+  }
+}

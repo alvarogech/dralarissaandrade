@@ -1,0 +1,179 @@
+{
+  "$comment": "Contrato de saída do workflow aprendizado. Gerado por ia/lib/contratos.mjs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "aprendizados",
+    "expressoes_preferidas",
+    "abordagens_evitar",
+    "acoes"
+  ],
+  "properties": {
+    "aprendizados": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "texto",
+          "classe",
+          "area",
+          "fonte",
+          "ocorrencias",
+          "exemplos"
+        ],
+        "properties": {
+          "texto": {
+            "type": "string"
+          },
+          "classe": {
+            "type": "string",
+            "enum": [
+              "hipotese",
+              "preferencia",
+              "evidencia",
+              "diretriz_proposta"
+            ]
+          },
+          "area": {
+            "type": "string"
+          },
+          "fonte": {
+            "type": "string",
+            "enum": [
+              "Escolha humana",
+              "Métrica",
+              "Pesquisa",
+              "Decisão da gestão"
+            ]
+          },
+          "ocorrencias": {
+            "type": "integer"
+          },
+          "exemplos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "expressoes_preferidas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "abordagens_evitar": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "acoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nivel",
+          "tipo",
+          "base",
+          "chave",
+          "campos",
+          "quem_decide",
+          "motivo",
+          "fontes"
+        ],
+        "properties": {
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "criar_conteudo",
+              "atualizar_rascunho",
+              "priorizar",
+              "mover_data",
+              "criar_captacao",
+              "criar_pendencia",
+              "marcar_validacao",
+              "atualizar_dia",
+              "atualizar_semana",
+              "criar_historia",
+              "criar_aprendizado",
+              "criar_referencia",
+              "recomendar"
+            ]
+          },
+          "base": {
+            "type": "string",
+            "enum": [
+              "conteudos",
+              "semanas",
+              "dias",
+              "captacao",
+              "pendencias",
+              "referencias",
+              "aprendizados",
+              "prioridades",
+              "recomendacoes",
+              "historias"
+            ]
+          },
+          "chave": {
+            "type": "string",
+            "description": "Chave estável do alvo (ex.: trello:C-04) ou nova chave agente:<workflow>:<data>:<n>"
+          },
+          "campos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "campo",
+                "valor"
+              ],
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "valor": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "quem_decide": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Larissa",
+              "Social media",
+              "Gestão",
+              null
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "fontes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

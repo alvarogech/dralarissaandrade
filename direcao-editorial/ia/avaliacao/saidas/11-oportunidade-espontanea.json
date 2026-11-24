@@ -1,0 +1,212 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "11-oportunidade-espontanea",
+  "saida": {
+    "dia": "2026-12-04",
+    "rotina_informada": true,
+    "social": {
+      "intencao": "A história de hoje é a melhor peça da semana: a paciente que pediu o rosto de outra pessoa e saiu com um planejamento só dela.",
+      "prioridades": [
+        {
+          "ordem": 1,
+          "chave": "agente:direcionamento-diario:2026-12-04:2",
+          "titulo": "Ela trouxe a foto de outra pessoa",
+          "o_que_fazer": "Montar os stories de hoje e guardar a ideia de Reels."
+        },
+        {
+          "ordem": 2,
+          "chave": "trello:C-06",
+          "titulo": "Pior erro ao tratar o rosto depois dos 40",
+          "o_que_fazer": "Seguir o carrossel."
+        },
+        {
+          "ordem": 3,
+          "chave": "trello:C-01",
+          "titulo": "Não indico protocolo Ctrl C, Ctrl V",
+          "o_que_fazer": "A história de hoje reforça este carrossel; usar como exemplo na legenda."
+        }
+      ],
+      "publicar": [],
+      "produzir": [
+        {
+          "chave": "agente:direcionamento-diario:2026-12-04:2",
+          "o_que_fazer": "Sequência de 4 stories com a fala da Larissa."
+        }
+      ],
+      "pedir_larissa": [
+        {
+          "pedido": "Contar a história de hoje em uma fala, sem detalhes da paciente",
+          "duracao": "40 segundos",
+          "como": "No fim do expediente, celular na vertical, como você contaria para uma amiga."
+        }
+      ],
+      "acompanhar": [
+        "História registrada como Nova no banco; confirmar com a Larissa antes de virar Reels."
+      ]
+    },
+    "larissa": {
+      "registrar": [
+        {
+          "o_que": "O que você respondeu quando ela mostrou a foto",
+          "por_que": "É a frase que vai abrir o conteúdo."
+        }
+      ],
+      "gravar": [
+        {
+          "pedido": "A história de hoje em 40 segundos",
+          "duracao": "40 segundos",
+          "onde": "Consultório, depois da última paciente",
+          "como": "Sem citar quem era a famosa nem detalhes da paciente."
+        },
+        {
+          "pedido": "Três takes curtos da mesa de planejamento",
+          "duracao": "5 segundos cada",
+          "onde": "Consultório",
+          "como": "Papel, caneta, suas mãos. Nada com dados."
+        }
+      ],
+      "stories": [
+        {
+          "titulo": "Ela trouxe a foto de outra pessoa",
+          "abertura": "\"Hoje uma paciente chegou com a foto de outra pessoa e me pediu aquele rosto.\"",
+          "meio": "\"Eu expliquei que não é assim que funciona, e por quê.\" Conte o porquê com as suas palavras.",
+          "fechamento": "\"Ela saiu com um planejamento em etapas, feito para o rosto dela.\"",
+          "objetivo": "Quebra de objeção"
+        }
+      ],
+      "perguntas": [
+        {
+          "codigo": "P-14",
+          "pergunta": "Como funciona o planejamento em etapas, para eu contar sem errar?"
+        }
+      ],
+      "oportunidades": [
+        {
+          "acontecimento": "Paciente pediu o rosto de outra pessoa e saiu com planejamento em etapas",
+          "ideia": "Stories hoje e Reels \"Ela trouxe a foto de outra pessoa\" na próxima semana.",
+          "nivel": "A",
+          "cuidado": "Sem nome da referência, sem imagem e sem detalhes que identifiquem a paciente."
+        }
+      ]
+    },
+    "acoes": [
+      {
+        "nivel": "A",
+        "tipo": "criar_historia",
+        "base": "historias",
+        "chave": "agente:direcionamento-diario:2026-12-04:1",
+        "campos": [
+          {
+            "campo": "História",
+            "valor": "Pediu o rosto de outra pessoa e saiu com um planejamento só dela"
+          },
+          {
+            "campo": "Tipo",
+            "valor": "Percepção de consulta"
+          },
+          {
+            "campo": "Relato",
+            "valor": "Uma paciente nova chegou com uma foto de famosa pedindo o mesmo rosto. Expliquei que não é assim que funciona e ela acabou saindo com um planejamento em etapas."
+          },
+          {
+            "campo": "Status",
+            "valor": "Nova"
+          },
+          {
+            "campo": "Envolve",
+            "valor": "Paciente"
+          },
+          {
+            "campo": "Identificação",
+            "valor": "Sem identificação"
+          },
+          {
+            "campo": "Potencial",
+            "valor": "Alto"
+          },
+          {
+            "campo": "Dia de origem",
+            "valor": "sim:dia:2026-12-04"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Acontecimento real com potencial alto; relato literal.",
+        "fontes": [
+          "sim:dia:2026-12-04"
+        ]
+      },
+      {
+        "nivel": "A",
+        "tipo": "criar_conteudo",
+        "base": "conteudos",
+        "chave": "agente:direcionamento-diario:2026-12-04:2",
+        "campos": [
+          {
+            "campo": "Título",
+            "valor": "Ela trouxe a foto de outra pessoa"
+          },
+          {
+            "campo": "Status",
+            "valor": "Ideia"
+          },
+          {
+            "campo": "Formato",
+            "valor": "Reels"
+          },
+          {
+            "campo": "Pilar",
+            "valor": "Autoridade"
+          },
+          {
+            "campo": "Objetivo",
+            "valor": "Quebra de objeção"
+          },
+          {
+            "campo": "Tema",
+            "valor": "Planejamento individual"
+          },
+          {
+            "campo": "Argumento central",
+            "valor": "o rosto de outra pessoa não serve de referência para o seu planejamento"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Ideia nova a partir de fato real; radar sem repetição.",
+        "fontes": [
+          "sim:dia:2026-12-04",
+          "01-DNA-da-marca.md"
+        ]
+      },
+      {
+        "nivel": "A",
+        "tipo": "atualizar_dia",
+        "base": "dias",
+        "chave": "sim:dia:2026-12-04",
+        "campos": [
+          {
+            "campo": "Intenção do dia",
+            "valor": "Contar a paciente que pediu o rosto de outra pessoa."
+          },
+          {
+            "campo": "Prioridade 2",
+            "valor": "trello:C-06"
+          },
+          {
+            "campo": "Prioridade 3",
+            "valor": "trello:C-01"
+          },
+          {
+            "campo": "Direcionamento",
+            "valor": "Gerado pelo agente"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Direcionamento diário.",
+        "fontes": [
+          "sim:dia:2026-12-04"
+        ]
+      }
+    ],
+    "alertas": []
+  }
+}

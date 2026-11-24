@@ -1,0 +1,89 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "09-mudanca-prioridade",
+  "saida": {
+    "gatilho": "A gestão ativou a prioridade comercial \"Planejamento anual para janeiro\" a partir de hoje.",
+    "ajustes": [
+      {
+        "descricao": "Manter \"Prefiro peeling a full face\" na sexta. Se a social media quiser, a legenda pode citar o planejamento em etapas.",
+        "chave": "trello:C-09",
+        "de": "Agendado para 04/12",
+        "para": "Agendado para 04/12, com ajuste opcional de legenda",
+        "nivel": "B",
+        "quem_decide": "Social media",
+        "motivo": "Conteúdo já agendado: qualquer mudança é decisão de quem agendou."
+      },
+      {
+        "descricao": "Trazer \"Não indico protocolo Ctrl C, Ctrl V\" para a semana que vem como primeira peça da campanha",
+        "chave": "trello:C-01",
+        "de": "Planejado, sem data",
+        "para": "Planejado para 08/12",
+        "nivel": "A",
+        "quem_decide": null,
+        "motivo": "Sem aprovação nem data definida por humano; o tema do planejamento individual sustenta o planejamento anual."
+      }
+    ],
+    "sai_do_plano": [],
+    "acoes": [
+      {
+        "nivel": "A",
+        "tipo": "mover_data",
+        "base": "conteudos",
+        "chave": "trello:C-01",
+        "campos": [
+          {
+            "campo": "Publicação prevista",
+            "valor": "2026-12-08"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Primeira peça da campanha de planejamento anual.",
+        "fontes": [
+          "trello:C-01",
+          "sim:pri:1"
+        ]
+      },
+      {
+        "nivel": "B",
+        "tipo": "recomendar",
+        "base": "recomendacoes",
+        "chave": "agente:replanejamento:2026-12-01:1",
+        "campos": [
+          {
+            "campo": "Recomendação",
+            "valor": "Citar o planejamento em etapas na legenda de \"Prefiro peeling a full face\""
+          },
+          {
+            "campo": "Tipo",
+            "valor": "Revisão de roteiro"
+          },
+          {
+            "campo": "Nível",
+            "valor": "B · Precisa de aprovação"
+          },
+          {
+            "campo": "Quem decide",
+            "valor": "Social media"
+          },
+          {
+            "campo": "Proposta",
+            "valor": "Acrescentar uma frase sobre planejar o ano em etapas, sem preço nem promessa."
+          },
+          {
+            "campo": "Por quê",
+            "valor": "Prioridade comercial ativa; o conteúdo já está agendado."
+          }
+        ],
+        "quem_decide": "Social media",
+        "motivo": "Mudança em conteúdo agendado.",
+        "fontes": [
+          "trello:C-09",
+          "sim:pri:1"
+        ]
+      }
+    ],
+    "alertas": [
+      "Para falar do planejamento anual com segurança falta P-14 (como ele funciona). Até lá, os conteúdos tratam do princípio do planejamento individual, sem detalhar o serviço."
+    ]
+  }
+}

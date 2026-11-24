@@ -1,0 +1,393 @@
+{
+  "$comment": "Contrato de saída do workflow direcionamento-diario. Gerado por ia/lib/contratos.mjs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dia",
+    "rotina_informada",
+    "social",
+    "larissa",
+    "acoes",
+    "alertas"
+  ],
+  "properties": {
+    "dia": {
+      "type": "string"
+    },
+    "rotina_informada": {
+      "type": "boolean"
+    },
+    "social": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intencao",
+        "prioridades",
+        "publicar",
+        "produzir",
+        "pedir_larissa",
+        "acompanhar"
+      ],
+      "properties": {
+        "intencao": {
+          "type": "string"
+        },
+        "prioridades": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ordem",
+              "chave",
+              "titulo",
+              "o_que_fazer"
+            ],
+            "properties": {
+              "ordem": {
+                "type": "integer"
+              },
+              "chave": {
+                "type": "string"
+              },
+              "titulo": {
+                "type": "string"
+              },
+              "o_que_fazer": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "publicar": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "chave",
+              "titulo"
+            ],
+            "properties": {
+              "chave": {
+                "type": "string"
+              },
+              "titulo": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "produzir": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "chave",
+              "o_que_fazer"
+            ],
+            "properties": {
+              "chave": {
+                "type": "string"
+              },
+              "o_que_fazer": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "pedir_larissa": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pedido",
+              "duracao",
+              "como"
+            ],
+            "properties": {
+              "pedido": {
+                "type": "string"
+              },
+              "duracao": {
+                "type": "string"
+              },
+              "como": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "acompanhar": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "larissa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registrar",
+        "gravar",
+        "stories",
+        "perguntas",
+        "oportunidades"
+      ],
+      "properties": {
+        "registrar": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "o_que",
+              "por_que"
+            ],
+            "properties": {
+              "o_que": {
+                "type": "string"
+              },
+              "por_que": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "gravar": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pedido",
+              "duracao",
+              "onde",
+              "como"
+            ],
+            "properties": {
+              "pedido": {
+                "type": "string"
+              },
+              "duracao": {
+                "type": "string"
+              },
+              "onde": {
+                "type": "string"
+              },
+              "como": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "stories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "titulo",
+              "abertura",
+              "meio",
+              "fechamento",
+              "objetivo"
+            ],
+            "properties": {
+              "titulo": {
+                "type": "string"
+              },
+              "abertura": {
+                "type": "string"
+              },
+              "meio": {
+                "type": "string"
+              },
+              "fechamento": {
+                "type": "string"
+              },
+              "objetivo": {
+                "type": "string",
+                "enum": [
+                  "Descoberta",
+                  "Engajamento",
+                  "Educação",
+                  "Construção de confiança",
+                  "Quebra de objeção",
+                  "Geração de desejo",
+                  "Conversão",
+                  "Fidelização"
+                ]
+              }
+            }
+          }
+        },
+        "perguntas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "codigo",
+              "pergunta"
+            ],
+            "properties": {
+              "codigo": {
+                "type": "string"
+              },
+              "pergunta": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "oportunidades": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "acontecimento",
+              "ideia",
+              "nivel",
+              "cuidado"
+            ],
+            "properties": {
+              "acontecimento": {
+                "type": "string"
+              },
+              "ideia": {
+                "type": "string"
+              },
+              "nivel": {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B",
+                  "C"
+                ]
+              },
+              "cuidado": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "acoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nivel",
+          "tipo",
+          "base",
+          "chave",
+          "campos",
+          "quem_decide",
+          "motivo",
+          "fontes"
+        ],
+        "properties": {
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "criar_conteudo",
+              "atualizar_rascunho",
+              "priorizar",
+              "mover_data",
+              "criar_captacao",
+              "criar_pendencia",
+              "marcar_validacao",
+              "atualizar_dia",
+              "atualizar_semana",
+              "criar_historia",
+              "criar_aprendizado",
+              "criar_referencia",
+              "recomendar"
+            ]
+          },
+          "base": {
+            "type": "string",
+            "enum": [
+              "conteudos",
+              "semanas",
+              "dias",
+              "captacao",
+              "pendencias",
+              "referencias",
+              "aprendizados",
+              "prioridades",
+              "recomendacoes",
+              "historias"
+            ]
+          },
+          "chave": {
+            "type": "string",
+            "description": "Chave estável do alvo (ex.: trello:C-04) ou nova chave agente:<workflow>:<data>:<n>"
+          },
+          "campos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "campo",
+                "valor"
+              ],
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "valor": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "quem_decide": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Larissa",
+              "Social media",
+              "Gestão",
+              null
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "fontes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "alertas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

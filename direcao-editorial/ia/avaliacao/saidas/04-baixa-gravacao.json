@@ -1,0 +1,111 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "04-baixa-gravacao",
+  "saida": {
+    "dia": "2026-12-03",
+    "rotina_informada": true,
+    "social": {
+      "intencao": "Dia sem brecha para a Larissa: produzir só com material que já está no Drive e no banco de histórias.",
+      "prioridades": [
+        {
+          "ordem": 1,
+          "chave": "trello:C-06",
+          "titulo": "Pior erro ao tratar o rosto depois dos 40",
+          "o_que_fazer": "Finalizar o carrossel; não precisa de nada dela."
+        },
+        {
+          "ordem": 2,
+          "chave": "trello:C-01",
+          "titulo": "Não indico protocolo Ctrl C, Ctrl V",
+          "o_que_fazer": "Montar a versão escolhida com o texto do Trello."
+        }
+      ],
+      "publicar": [],
+      "produzir": [
+        {
+          "chave": "trello:C-06",
+          "o_que_fazer": "Revisão final e agendamento."
+        }
+      ],
+      "pedir_larissa": [],
+      "acompanhar": [
+        "Quinta seria dia de caso clínico, mas não há caso com autorização registrada (P-24)."
+      ]
+    },
+    "larissa": {
+      "registrar": [
+        {
+          "o_que": "Se alguma paciente disser uma frase marcante hoje, anote só a frase",
+          "por_que": "Vira história para quando você tiver tempo."
+        }
+      ],
+      "gravar": [
+        {
+          "pedido": "Se sobrar um minuto, um áudio com a frase da paciente do retorno: ninguém percebe que ela fez algo, só que está bem",
+          "duracao": "15 segundos",
+          "onde": "Onde estiver",
+          "como": "Áudio no WhatsApp para a social media. Se não der, tudo bem."
+        }
+      ],
+      "stories": [
+        {
+          "titulo": "Quinta de acompanhamento, sem caso",
+          "abertura": "Takes do consultório vazio que já estão no Drive.",
+          "meio": "Texto na tela: \"Uma paciente que eu acompanho desde 2020 me disse que ninguém percebe que ela fez algo, só que ela está bem.\"",
+          "fechamento": "\"Esse é o elogio que eu mais gosto de ouvir.\"",
+          "objetivo": "Construção de confiança"
+        }
+      ],
+      "perguntas": [
+        {
+          "codigo": "P-25",
+          "pergunta": "Qual caso de paciente +35 entra no carrossel?"
+        }
+      ],
+      "oportunidades": [
+        {
+          "acontecimento": "Agenda cheia o dia todo",
+          "ideia": "Nenhuma captação hoje; o dia rende pelo que já existe.",
+          "nivel": "A",
+          "cuidado": "Não cobrar stories nem gravações."
+        }
+      ]
+    },
+    "acoes": [
+      {
+        "nivel": "A",
+        "tipo": "atualizar_dia",
+        "base": "dias",
+        "chave": "sim:dia:2026-12-03",
+        "campos": [
+          {
+            "campo": "Intenção do dia",
+            "valor": "Produzir com material existente; a Larissa está sem tempo."
+          },
+          {
+            "campo": "Prioridade 1",
+            "valor": "trello:C-06"
+          },
+          {
+            "campo": "Prioridade 2",
+            "valor": "trello:C-01"
+          },
+          {
+            "campo": "Direcionamento",
+            "valor": "Gerado pelo agente"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Disponibilidade: sem tempo.",
+        "fontes": [
+          "sim:dia:2026-12-03",
+          "sim:cap:drive:1",
+          "sim:his:1"
+        ]
+      }
+    ],
+    "alertas": [
+      "Sem tempo: no máximo um pedido opcional de 15 segundos."
+    ]
+  }
+}

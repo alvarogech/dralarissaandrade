@@ -54,6 +54,10 @@
     "execucoes": {
       "database": "42216ed63a2681fcb832e089a99b2340",
       "data_source": "42216ed6-3a26-8176-8090-000b4b7585e3"
+    },
+    "historias": {
+      "database": "42216ed63a26816a9316f983b0a1a5ed",
+      "data_source": "42216ed6-3a26-811f-b861-000bb3a52e61"
     }
   },
   "importados": {
@@ -190,5 +194,6 @@
       "42216ed6-3a26-81cc-bc12-f45a1a1cea98",
       "42216ed6-3a26-8107-9a67-c1139532b57d"
     ]
-  }
+  },
+  "fase3_alteracoes": "2026-11-24: base Histórias; Conteúdos +Tema, Argumento central, Procedimentos citados, História; Referências +7 campos de pesquisa; Aprendizados status Hipótese/Em teste/Preferência/Evidência/Diretriz aprovada/Refutado, +Fonte do aprendizado, Ocorrências, Área +Linguagem/Abordagem."
 }

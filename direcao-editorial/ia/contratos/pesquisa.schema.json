@@ -1,0 +1,183 @@
+{
+  "$comment": "Contrato de saída do workflow pesquisa. Gerado por ia/lib/contratos.mjs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "referencias",
+    "acoes",
+    "alertas"
+  ],
+  "properties": {
+    "referencias": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fonte",
+          "data",
+          "formato",
+          "gancho",
+          "estrutura",
+          "por_que_interessa",
+          "adaptacao",
+          "adequacao",
+          "limitacoes",
+          "duracao"
+        ],
+        "properties": {
+          "fonte": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "formato": {
+            "type": "string"
+          },
+          "gancho": {
+            "type": "string"
+          },
+          "estrutura": {
+            "type": "string"
+          },
+          "por_que_interessa": {
+            "type": "string"
+          },
+          "adaptacao": {
+            "type": "string"
+          },
+          "adequacao": {
+            "type": "string",
+            "enum": [
+              "Alta",
+              "Média",
+              "Baixa",
+              "Não adequada"
+            ]
+          },
+          "limitacoes": {
+            "type": "string"
+          },
+          "duracao": {
+            "type": "string",
+            "enum": [
+              "Formato duradouro",
+              "Tendência passageira"
+            ]
+          }
+        }
+      }
+    },
+    "acoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nivel",
+          "tipo",
+          "base",
+          "chave",
+          "campos",
+          "quem_decide",
+          "motivo",
+          "fontes"
+        ],
+        "properties": {
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "criar_conteudo",
+              "atualizar_rascunho",
+              "priorizar",
+              "mover_data",
+              "criar_captacao",
+              "criar_pendencia",
+              "marcar_validacao",
+              "atualizar_dia",
+              "atualizar_semana",
+              "criar_historia",
+              "criar_aprendizado",
+              "criar_referencia",
+              "recomendar"
+            ]
+          },
+          "base": {
+            "type": "string",
+            "enum": [
+              "conteudos",
+              "semanas",
+              "dias",
+              "captacao",
+              "pendencias",
+              "referencias",
+              "aprendizados",
+              "prioridades",
+              "recomendacoes",
+              "historias"
+            ]
+          },
+          "chave": {
+            "type": "string",
+            "description": "Chave estável do alvo (ex.: trello:C-04) ou nova chave agente:<workflow>:<data>:<n>"
+          },
+          "campos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "campo",
+                "valor"
+              ],
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "valor": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "quem_decide": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Larissa",
+              "Social media",
+              "Gestão",
+              null
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "fontes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "alertas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

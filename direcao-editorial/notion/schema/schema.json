@@ -1,23 +1,95 @@
 {
   "$comment": "Fonte única da estrutura da Central Editorial no Notion. Lido por scripts/setup.mjs, scripts/importar.mjs e scripts/validar.mjs. Documentado em notion/02-Modelo-de-dados.md. owner: quem é dono do campo (larissa | social | gestao | equipe | agente | sistema). O agente só escreve em campos 'agente' ou 'sistema'; mudanças em campos humanos viram Recomendações.",
   "notion_version": "2026-03-11",
-  "origens": ["Trello", "Larissa", "Social media", "Gestão", "Agente", "Instagram", "Sistema", "Simulação"],
+  "origens": [
+    "Trello",
+    "Larissa",
+    "Social media",
+    "Gestão",
+    "Agente",
+    "Instagram",
+    "Sistema",
+    "Simulação"
+  ],
   "common_properties": {
-    "ID": { "type": "unique_id", "owner": "sistema", "desc": "Identificador estável legível (prefixo por base). Nunca muda." },
-    "Chave": { "type": "rich_text", "owner": "sistema", "desc": "Chave externa estável e de idempotência. Ex.: trello:C-01, pendencia:P-01, agente:planejamento-semanal:2026-W49:3. Única por base." },
-    "Origem": { "type": "select", "options_from": "origens", "owner": "sistema", "desc": "Quem originou a informação (autoria lógica). Created by mostra a integração quando o n8n cria; Origem mostra de onde veio." },
-    "Criado por": { "type": "created_by", "owner": "sistema" },
-    "Criado em": { "type": "created_time", "owner": "sistema" },
-    "Atualizado por": { "type": "last_edited_by", "owner": "sistema" },
-    "Atualizado em": { "type": "last_edited_time", "owner": "sistema" }
+    "ID": {
+      "type": "unique_id",
+      "owner": "sistema",
+      "desc": "Identificador estável legível (prefixo por base). Nunca muda."
+    },
+    "Chave": {
+      "type": "rich_text",
+      "owner": "sistema",
+      "desc": "Chave externa estável e de idempotência. Ex.: trello:C-01, pendencia:P-01, agente:planejamento-semanal:2026-W49:3. Única por base."
+    },
+    "Origem": {
+      "type": "select",
+      "options_from": "origens",
+      "owner": "sistema",
+      "desc": "Quem originou a informação (autoria lógica). Created by mostra a integração quando o n8n cria; Origem mostra de onde veio."
+    },
+    "Criado por": {
+      "type": "created_by",
+      "owner": "sistema"
+    },
+    "Criado em": {
+      "type": "created_time",
+      "owner": "sistema"
+    },
+    "Atualizado por": {
+      "type": "last_edited_by",
+      "owner": "sistema"
+    },
+    "Atualizado em": {
+      "type": "last_edited_time",
+      "owner": "sistema"
+    }
   },
   "sync_properties": {
     "$comment": "Campos técnicos para preservar edição humana e rastrear o agente. Ficam ocultos em todas as views da equipe.",
-    "Versão": { "type": "number", "owner": "sistema", "desc": "Incrementada a cada escrita do agente aplicada." },
-    "Hash do agente": { "type": "rich_text", "owner": "sistema", "desc": "SHA-256 dos campos do agente na última escrita dele. Se o hash atual diferir, houve edição humana: o agente não sobrescreve." },
-    "Última escrita do agente": { "type": "date", "owner": "sistema" },
-    "Sincronização": { "type": "select", "owner": "sistema", "options": [["OK", "green"], ["Editado pela equipe", "blue"], ["Conflito", "orange"], ["Erro", "red"]] },
-    "Execução": { "type": "relation", "target": "execucoes", "single": true, "owner": "sistema", "desc": "Última execução do n8n que escreveu nesta página." }
+    "Versão": {
+      "type": "number",
+      "owner": "sistema",
+      "desc": "Incrementada a cada escrita do agente aplicada."
+    },
+    "Hash do agente": {
+      "type": "rich_text",
+      "owner": "sistema",
+      "desc": "SHA-256 dos campos do agente na última escrita dele. Se o hash atual diferir, houve edição humana: o agente não sobrescreve."
+    },
+    "Última escrita do agente": {
+      "type": "date",
+      "owner": "sistema"
+    },
+    "Sincronização": {
+      "type": "select",
+      "owner": "sistema",
+      "options": [
+        [
+          "OK",
+          "green"
+        ],
+        [
+          "Editado pela equipe",
+          "blue"
+        ],
+        [
+          "Conflito",
+          "orange"
+        ],
+        [
+          "Erro",
+          "red"
+        ]
+      ]
+    },
+    "Execução": {
+      "type": "relation",
+      "target": "execucoes",
+      "single": true,
+      "owner": "sistema",
+      "desc": "Última execução do n8n que escreveu nesta página."
+    }
   },
   "databases": [
     {
@@ -28,76 +100,548 @@
       "sync": true,
       "desc": "Fonte única de cada peça de conteúdo, inclusive ideias (Status = Ideia) e sequências de stories.",
       "properties": {
-        "Título": { "type": "title", "owner": "equipe" },
+        "Título": {
+          "type": "title",
+          "owner": "equipe"
+        },
         "Status": {
-          "type": "status", "owner": "equipe",
+          "type": "status",
+          "owner": "equipe",
           "options": [
-            ["Ideia", "gray", "To-do"],
-            ["Planejado", "default", "To-do"],
-            ["Aguardando informação", "red", "To-do"],
-            ["Aguardando captação", "orange", "To-do"],
-            ["Em produção", "yellow", "In progress"],
-            ["Aguardando aprovação", "purple", "In progress"],
-            ["Aprovado", "blue", "In progress"],
-            ["Agendado", "green", "In progress"],
-            ["Publicado", "green", "Complete"],
-            ["Analisado", "brown", "Complete"],
-            ["Arquivado", "gray", "Complete"]
+            [
+              "Ideia",
+              "gray",
+              "To-do"
+            ],
+            [
+              "Planejado",
+              "default",
+              "To-do"
+            ],
+            [
+              "Aguardando informação",
+              "red",
+              "To-do"
+            ],
+            [
+              "Aguardando captação",
+              "orange",
+              "To-do"
+            ],
+            [
+              "Em produção",
+              "yellow",
+              "In progress"
+            ],
+            [
+              "Aguardando aprovação",
+              "purple",
+              "In progress"
+            ],
+            [
+              "Aprovado",
+              "blue",
+              "In progress"
+            ],
+            [
+              "Agendado",
+              "green",
+              "In progress"
+            ],
+            [
+              "Publicado",
+              "green",
+              "Complete"
+            ],
+            [
+              "Analisado",
+              "brown",
+              "Complete"
+            ],
+            [
+              "Arquivado",
+              "gray",
+              "Complete"
+            ]
           ]
         },
-        "Formato": { "type": "select", "owner": "equipe", "options": [["Reels", "pink"], ["Carrossel", "blue"], ["Sequência de stories", "orange"], ["Foto", "green"], ["A definir", "gray"]] },
-        "Pilar": { "type": "select", "owner": "equipe", "options": [["Autoridade", "blue"], ["Desejo e prova social", "pink"], ["Conexão", "green"]] },
-        "Objetivo": { "type": "select", "owner": "equipe", "options": [["Descoberta", "purple"], ["Engajamento", "yellow"], ["Educação", "blue"], ["Construção de confiança", "green"], ["Quebra de objeção", "orange"], ["Geração de desejo", "pink"], ["Conversão", "red"], ["Fidelização", "brown"]] },
-        "Prioridade": { "type": "select", "owner": "equipe", "options": [["Alta", "red"], ["Média", "yellow"], ["Baixa", "gray"]] },
-        "Com quem está": { "type": "select", "owner": "equipe", "options": [["Larissa", "pink"], ["Social media", "blue"], ["Gestão", "gray"]], "desc": "Quem precisa agir agora. Select (e não pessoa) para o n8n conseguir preencher sem IDs de usuário." },
-        "Responsável": { "type": "people", "owner": "equipe", "desc": "Opcional. Pessoa no Notion, para notificações e 'Minhas tarefas'." },
-        "Prazo de produção": { "type": "date", "owner": "equipe" },
-        "Publicação prevista": { "type": "date", "owner": "equipe" },
-        "Publicado em": { "type": "date", "owner": "social" },
-        "Link da publicação": { "type": "url", "owner": "social" },
-        "Gancho": { "type": "rich_text", "owner": "equipe", "desc": "Abertura curta. Roteiro, direção criativa e legenda ficam no corpo da página (limite de 2000 caracteres por campo de texto da API)." },
-        "CTA": { "type": "rich_text", "owner": "equipe" },
-        "Bloqueio": { "type": "rich_text", "owner": "equipe", "desc": "O que falta para avançar, em uma frase." },
-        "Informação clínica pendente": { "type": "checkbox", "owner": "equipe" },
-        "Autorização de imagem": { "type": "select", "owner": "equipe", "options": [["Não se aplica", "gray"], ["Pendente", "red"], ["Registrada", "green"]] },
-        "Já publicado? (Trello)": { "type": "select", "owner": "social", "options": [["A confirmar", "yellow"], ["Sim", "green"], ["Não", "gray"]], "desc": "Só para o inventário de nov/2026. Nunca presumido." },
-        "Notas de origem": { "type": "rich_text", "owner": "sistema", "desc": "De onde veio (lista, semana, cartão do Trello; ou mensagem da Larissa)." },
-        "Cartão do Trello": { "type": "url", "owner": "sistema", "desc": "Link do cartão de origem. O Trello continua como fonte histórica até a migração ser confirmada." },
-        "ID do cartão Trello": { "type": "rich_text", "owner": "sistema", "desc": "ID do cartão no export JSON. Usado para casar a importação integral sem duplicar." },
-        "Relato": { "type": "rich_text", "owner": "equipe", "desc": "Texto livre de quem trouxe a ideia (formulário da Larissa ou da social media). Nunca reescrito pelo agente." },
-        "Dificuldades": { "type": "rich_text", "owner": "social", "desc": "Social media registra o que travou a produção." },
-        "Pedir revisão ao agente": { "type": "checkbox", "owner": "equipe", "desc": "Marcar dispara a revisão sob demanda. O n8n desmarca ao concluir." },
-        "O que revisar": { "type": "rich_text", "owner": "equipe" },
-        "Travar para o agente": { "type": "checkbox", "owner": "equipe", "desc": "Marcado: o agente nunca altera nem sugere mudanças nesta página." },
-        "Validação da Larissa": { "type": "select", "owner": "larissa", "options": [["Não necessária", "gray"], ["Necessária", "red"], ["Validado", "green"]], "desc": "Nível C. Necessária só quando há afirmação clínica inédita, caso clínico, imagem de paciente ou posicionamento inédito. Conteúdo rotineiro dentro das diretrizes não passa pela Larissa." },
-        "Motivo da validação": { "type": "multi_select", "owner": "agente", "options": [["Afirmação clínica inédita", "red"], ["Caso clínico", "pink"], ["Imagem de paciente", "orange"], ["Posicionamento inédito", "purple"]], "desc": "O agente ou a equipe marcam; só um humano desmarca." },
-        "Validado por": { "type": "people", "owner": "larissa" },
-        "Validado em": { "type": "date", "owner": "larissa" },
-        "Semana": { "type": "relation", "target": "semanas", "dual": "Conteúdos", "owner": "equipe" },
-        "Dia": { "type": "relation", "target": "dias", "dual": "Conteúdos do dia", "owner": "equipe", "desc": "Dia de produção ou de stories." },
-        "Prioridade comercial": { "type": "relation", "target": "prioridades", "dual": "Conteúdos", "owner": "gestao" },
-        "Captação": { "type": "relation", "target": "captacao", "dual": "Conteúdos", "owner": "equipe" },
-        "Pendências": { "type": "relation", "target": "pendencias", "dual": "Conteúdos afetados", "owner": "equipe" },
-        "Referências": { "type": "relation", "target": "referencias", "dual": "Conteúdos", "owner": "equipe" },
-        "Métricas": { "type": "relation", "target": "metricas", "dual": "Conteúdo", "owner": "sistema" },
-        "Aprendizados": { "type": "relation", "target": "aprendizados", "dual": "Evidências", "owner": "agente" },
-        "Recomendações": { "type": "relation", "target": "recomendacoes", "dual": "Conteúdo", "owner": "sistema" },
+        "Formato": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Reels",
+              "pink"
+            ],
+            [
+              "Carrossel",
+              "blue"
+            ],
+            [
+              "Sequência de stories",
+              "orange"
+            ],
+            [
+              "Foto",
+              "green"
+            ],
+            [
+              "A definir",
+              "gray"
+            ]
+          ]
+        },
+        "Pilar": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Autoridade",
+              "blue"
+            ],
+            [
+              "Desejo e prova social",
+              "pink"
+            ],
+            [
+              "Conexão",
+              "green"
+            ]
+          ]
+        },
+        "Objetivo": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Descoberta",
+              "purple"
+            ],
+            [
+              "Engajamento",
+              "yellow"
+            ],
+            [
+              "Educação",
+              "blue"
+            ],
+            [
+              "Construção de confiança",
+              "green"
+            ],
+            [
+              "Quebra de objeção",
+              "orange"
+            ],
+            [
+              "Geração de desejo",
+              "pink"
+            ],
+            [
+              "Conversão",
+              "red"
+            ],
+            [
+              "Fidelização",
+              "brown"
+            ]
+          ]
+        },
+        "Prioridade": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Alta",
+              "red"
+            ],
+            [
+              "Média",
+              "yellow"
+            ],
+            [
+              "Baixa",
+              "gray"
+            ]
+          ]
+        },
+        "Com quem está": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Larissa",
+              "pink"
+            ],
+            [
+              "Social media",
+              "blue"
+            ],
+            [
+              "Gestão",
+              "gray"
+            ]
+          ],
+          "desc": "Quem precisa agir agora. Select (e não pessoa) para o n8n conseguir preencher sem IDs de usuário."
+        },
+        "Responsável": {
+          "type": "people",
+          "owner": "equipe",
+          "desc": "Opcional. Pessoa no Notion, para notificações e 'Minhas tarefas'."
+        },
+        "Prazo de produção": {
+          "type": "date",
+          "owner": "equipe"
+        },
+        "Publicação prevista": {
+          "type": "date",
+          "owner": "equipe"
+        },
+        "Publicado em": {
+          "type": "date",
+          "owner": "social"
+        },
+        "Link da publicação": {
+          "type": "url",
+          "owner": "social"
+        },
+        "Tema": {
+          "type": "multi_select",
+          "owner": "equipe",
+          "desc": "Fase 3 (radar de repetição). Tema editorial; vocabulário controlado.",
+          "options": [
+            [
+              "Planejamento individual",
+              "default"
+            ],
+            [
+              "Associação de procedimentos",
+              "default"
+            ],
+            [
+              "Acompanhamento ao longo dos anos",
+              "default"
+            ],
+            [
+              "Naturalidade",
+              "default"
+            ],
+            [
+              "Procedimento isolado",
+              "default"
+            ],
+            [
+              "Envelhecimento",
+              "default"
+            ],
+            [
+              "Método ERA",
+              "default"
+            ],
+            [
+              "Primeira consulta",
+              "default"
+            ],
+            [
+              "Pele",
+              "default"
+            ],
+            [
+              "Fé",
+              "default"
+            ],
+            [
+              "Maternidade",
+              "default"
+            ],
+            [
+              "Família",
+              "default"
+            ],
+            [
+              "Vida empresarial",
+              "default"
+            ],
+            [
+              "Emagrecimento",
+              "default"
+            ],
+            [
+              "Rotina",
+              "default"
+            ]
+          ]
+        },
+        "Argumento central": {
+          "type": "rich_text",
+          "owner": "equipe",
+          "desc": "Fase 3 (radar). A ideia principal em uma frase. O agente preenche ao criar; depois é da equipe."
+        },
+        "Procedimentos citados": {
+          "type": "multi_select",
+          "owner": "equipe",
+          "desc": "Fase 3 (radar). Só procedimentos já citados na base.",
+          "options": [
+            [
+              "Peeling",
+              "default"
+            ],
+            [
+              "Full face",
+              "default"
+            ],
+            [
+              "Peptídeos",
+              "default"
+            ],
+            [
+              "Plasma IQ",
+              "default"
+            ]
+          ]
+        },
+        "História": {
+          "type": "relation",
+          "target": "historias",
+          "dual": "Conteúdos",
+          "owner": "equipe",
+          "desc": "Fase 3. História real que originou o conteúdo."
+        },
+        "Gancho": {
+          "type": "rich_text",
+          "owner": "equipe",
+          "desc": "Abertura curta. Roteiro, direção criativa e legenda ficam no corpo da página (limite de 2000 caracteres por campo de texto da API)."
+        },
+        "CTA": {
+          "type": "rich_text",
+          "owner": "equipe"
+        },
+        "Bloqueio": {
+          "type": "rich_text",
+          "owner": "equipe",
+          "desc": "O que falta para avançar, em uma frase."
+        },
+        "Informação clínica pendente": {
+          "type": "checkbox",
+          "owner": "equipe"
+        },
+        "Autorização de imagem": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Não se aplica",
+              "gray"
+            ],
+            [
+              "Pendente",
+              "red"
+            ],
+            [
+              "Registrada",
+              "green"
+            ]
+          ]
+        },
+        "Já publicado? (Trello)": {
+          "type": "select",
+          "owner": "social",
+          "options": [
+            [
+              "A confirmar",
+              "yellow"
+            ],
+            [
+              "Sim",
+              "green"
+            ],
+            [
+              "Não",
+              "gray"
+            ]
+          ],
+          "desc": "Só para o inventário de nov/2026. Nunca presumido."
+        },
+        "Notas de origem": {
+          "type": "rich_text",
+          "owner": "sistema",
+          "desc": "De onde veio (lista, semana, cartão do Trello; ou mensagem da Larissa)."
+        },
+        "Cartão do Trello": {
+          "type": "url",
+          "owner": "sistema",
+          "desc": "Link do cartão de origem. O Trello continua como fonte histórica até a migração ser confirmada."
+        },
+        "ID do cartão Trello": {
+          "type": "rich_text",
+          "owner": "sistema",
+          "desc": "ID do cartão no export JSON. Usado para casar a importação integral sem duplicar."
+        },
+        "Relato": {
+          "type": "rich_text",
+          "owner": "equipe",
+          "desc": "Texto livre de quem trouxe a ideia (formulário da Larissa ou da social media). Nunca reescrito pelo agente."
+        },
+        "Dificuldades": {
+          "type": "rich_text",
+          "owner": "social",
+          "desc": "Social media registra o que travou a produção."
+        },
+        "Pedir revisão ao agente": {
+          "type": "checkbox",
+          "owner": "equipe",
+          "desc": "Marcar dispara a revisão sob demanda. O n8n desmarca ao concluir."
+        },
+        "O que revisar": {
+          "type": "rich_text",
+          "owner": "equipe"
+        },
+        "Travar para o agente": {
+          "type": "checkbox",
+          "owner": "equipe",
+          "desc": "Marcado: o agente nunca altera nem sugere mudanças nesta página."
+        },
+        "Validação da Larissa": {
+          "type": "select",
+          "owner": "larissa",
+          "options": [
+            [
+              "Não necessária",
+              "gray"
+            ],
+            [
+              "Necessária",
+              "red"
+            ],
+            [
+              "Validado",
+              "green"
+            ]
+          ],
+          "desc": "Nível C. Necessária só quando há afirmação clínica inédita, caso clínico, imagem de paciente ou posicionamento inédito. Conteúdo rotineiro dentro das diretrizes não passa pela Larissa."
+        },
+        "Motivo da validação": {
+          "type": "multi_select",
+          "owner": "agente",
+          "options": [
+            [
+              "Afirmação clínica inédita",
+              "red"
+            ],
+            [
+              "Caso clínico",
+              "pink"
+            ],
+            [
+              "Imagem de paciente",
+              "orange"
+            ],
+            [
+              "Posicionamento inédito",
+              "purple"
+            ]
+          ],
+          "desc": "O agente ou a equipe marcam; só um humano desmarca."
+        },
+        "Validado por": {
+          "type": "people",
+          "owner": "larissa"
+        },
+        "Validado em": {
+          "type": "date",
+          "owner": "larissa"
+        },
+        "Semana": {
+          "type": "relation",
+          "target": "semanas",
+          "dual": "Conteúdos",
+          "owner": "equipe"
+        },
+        "Dia": {
+          "type": "relation",
+          "target": "dias",
+          "dual": "Conteúdos do dia",
+          "owner": "equipe",
+          "desc": "Dia de produção ou de stories."
+        },
+        "Prioridade comercial": {
+          "type": "relation",
+          "target": "prioridades",
+          "dual": "Conteúdos",
+          "owner": "gestao"
+        },
+        "Captação": {
+          "type": "relation",
+          "target": "captacao",
+          "dual": "Conteúdos",
+          "owner": "equipe"
+        },
+        "Pendências": {
+          "type": "relation",
+          "target": "pendencias",
+          "dual": "Conteúdos afetados",
+          "owner": "equipe"
+        },
+        "Referências": {
+          "type": "relation",
+          "target": "referencias",
+          "dual": "Conteúdos",
+          "owner": "equipe"
+        },
+        "Métricas": {
+          "type": "relation",
+          "target": "metricas",
+          "dual": "Conteúdo",
+          "owner": "sistema"
+        },
+        "Aprendizados": {
+          "type": "relation",
+          "target": "aprendizados",
+          "dual": "Evidências",
+          "owner": "agente"
+        },
+        "Recomendações": {
+          "type": "relation",
+          "target": "recomendacoes",
+          "dual": "Conteúdo",
+          "owner": "sistema"
+        },
         "Etapa": {
-          "type": "formula", "owner": "sistema", "desc": "Status simplificado para a social media.",
+          "type": "formula",
+          "owner": "sistema",
+          "desc": "Status simplificado para a social media.",
           "expression": "ifs(prop(\"Status\") == \"Ideia\", \"Ideia\", [\"Planejado\", \"Aguardando informação\", \"Aguardando captação\"].includes(prop(\"Status\")), \"A fazer\", prop(\"Status\") == \"Em produção\", \"Produzindo\", prop(\"Status\") == \"Aguardando aprovação\", \"Com a Larissa\", [\"Aprovado\", \"Agendado\"].includes(prop(\"Status\")), \"Pronto\", [\"Publicado\", \"Analisado\"].includes(prop(\"Status\")), \"Publicado\", \"Arquivado\")"
         },
         "Atrasado": {
-          "type": "formula", "owner": "sistema",
+          "type": "formula",
+          "owner": "sistema",
           "expression": "or(and(!empty(prop(\"Prazo de produção\")), dateBetween(today(), prop(\"Prazo de produção\"), \"days\") > 0, ![\"Aprovado\", \"Agendado\", \"Publicado\", \"Analisado\", \"Arquivado\"].includes(prop(\"Status\"))), and(!empty(prop(\"Publicação prevista\")), dateBetween(today(), prop(\"Publicação prevista\"), \"days\") > 0, ![\"Publicado\", \"Analisado\", \"Arquivado\"].includes(prop(\"Status\"))))"
         },
         "Dias até publicar": {
-          "type": "formula", "owner": "sistema",
+          "type": "formula",
+          "owner": "sistema",
           "expression": "dateBetween(prop(\"Publicação prevista\"), today(), \"days\")"
         },
-        "Conta: planejado": { "type": "formula", "owner": "sistema", "desc": "Auxiliar oculto para o rollup Planejados de Semanas.", "expression": "![\"Ideia\", \"Arquivado\"].includes(prop(\"Status\"))" },
-        "Conta: publicado": { "type": "formula", "owner": "sistema", "desc": "Auxiliar oculto para o rollup Publicados de Semanas.", "expression": "[\"Publicado\", \"Analisado\"].includes(prop(\"Status\"))" }
+        "Conta: planejado": {
+          "type": "formula",
+          "owner": "sistema",
+          "desc": "Auxiliar oculto para o rollup Planejados de Semanas.",
+          "expression": "![\"Ideia\", \"Arquivado\"].includes(prop(\"Status\"))"
+        },
+        "Conta: publicado": {
+          "type": "formula",
+          "owner": "sistema",
+          "desc": "Auxiliar oculto para o rollup Publicados de Semanas.",
+          "expression": "[\"Publicado\", \"Analisado\"].includes(prop(\"Status\"))"
+        }
       },
-      "body_template": ["Rascunho do agente", "Roteiro", "Direção criativa", "Legenda", "Notas da equipe"]
+      "body_template": [
+        "Rascunho do agente",
+        "Roteiro",
+        "Direção criativa",
+        "Legenda",
+        "Notas da equipe"
+      ]
     },
     {
       "key": "semanas",
@@ -107,18 +651,94 @@
       "sync": true,
       "desc": "Planejamento semanal: intenção, narrativas, capacidade real e prioridades comerciais da semana.",
       "properties": {
-        "Semana": { "type": "title", "owner": "sistema", "desc": "Ex.: 2026-W49 · 30/11 a 06/12" },
-        "Período": { "type": "date", "owner": "sistema" },
-        "Status do plano": { "type": "select", "owner": "equipe", "options": [["Preliminar do agente", "purple"], ["Ajustado pela equipe", "blue"], ["Encerrado", "brown"]], "desc": "Nível A: o plano preliminar entra em uso direto. Mudança estratégica relevante vira Recomendação nível B para a gestão." },
-        "Intenção editorial": { "type": "rich_text", "owner": "agente" },
-        "Narrativas": { "type": "rich_text", "owner": "agente" },
-        "Capacidade de produção": { "type": "select", "owner": "gestao", "options": [["Normal", "green"], ["Reduzida", "yellow"], ["Mínima", "red"]] },
-        "Restrições da semana": { "type": "rich_text", "owner": "gestao", "desc": "Viagem, agenda cheia, feriado, campanha." },
-        "Revisão de sexta": { "type": "rich_text", "owner": "agente" },
-        "Prioridades comerciais": { "type": "relation", "target": "prioridades", "dual": "Semanas", "owner": "gestao" },
-        "Vigente": { "type": "formula", "owner": "sistema", "expression": "and(formatDate(dateStart(prop(\"Período\")), \"YYYY-MM-DD\") <= formatDate(today(), \"YYYY-MM-DD\"), formatDate(dateEnd(prop(\"Período\")), \"YYYY-MM-DD\") >= formatDate(today(), \"YYYY-MM-DD\"))" },
-        "Planejados": { "type": "rollup", "owner": "sistema", "relation": "Conteúdos", "target_property": "Conta: planejado", "function": "checked" },
-        "Publicados": { "type": "rollup", "owner": "sistema", "relation": "Conteúdos", "target_property": "Conta: publicado", "function": "checked" }
+        "Semana": {
+          "type": "title",
+          "owner": "sistema",
+          "desc": "Ex.: 2026-W49 · 30/11 a 06/12"
+        },
+        "Período": {
+          "type": "date",
+          "owner": "sistema"
+        },
+        "Status do plano": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Preliminar do agente",
+              "purple"
+            ],
+            [
+              "Ajustado pela equipe",
+              "blue"
+            ],
+            [
+              "Encerrado",
+              "brown"
+            ]
+          ],
+          "desc": "Nível A: o plano preliminar entra em uso direto. Mudança estratégica relevante vira Recomendação nível B para a gestão."
+        },
+        "Intenção editorial": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Narrativas": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Capacidade de produção": {
+          "type": "select",
+          "owner": "gestao",
+          "options": [
+            [
+              "Normal",
+              "green"
+            ],
+            [
+              "Reduzida",
+              "yellow"
+            ],
+            [
+              "Mínima",
+              "red"
+            ]
+          ]
+        },
+        "Restrições da semana": {
+          "type": "rich_text",
+          "owner": "gestao",
+          "desc": "Viagem, agenda cheia, feriado, campanha."
+        },
+        "Revisão de sexta": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Prioridades comerciais": {
+          "type": "relation",
+          "target": "prioridades",
+          "dual": "Semanas",
+          "owner": "gestao"
+        },
+        "Vigente": {
+          "type": "formula",
+          "owner": "sistema",
+          "expression": "and(formatDate(dateStart(prop(\"Período\")), \"YYYY-MM-DD\") <= formatDate(today(), \"YYYY-MM-DD\"), formatDate(dateEnd(prop(\"Período\")), \"YYYY-MM-DD\") >= formatDate(today(), \"YYYY-MM-DD\"))"
+        },
+        "Planejados": {
+          "type": "rollup",
+          "owner": "sistema",
+          "relation": "Conteúdos",
+          "target_property": "Conta: planejado",
+          "function": "checked"
+        },
+        "Publicados": {
+          "type": "rollup",
+          "owner": "sistema",
+          "relation": "Conteúdos",
+          "target_property": "Conta: publicado",
+          "function": "checked"
+        }
       }
     },
     {
@@ -129,20 +749,104 @@
       "sync": true,
       "desc": "Uma página por dia: a rotina contada pela Larissa (dela) e o direcionamento do agente (dele), lado a lado. Substitui uma base separada de rotina.",
       "properties": {
-        "Dia": { "type": "title", "owner": "sistema", "desc": "Ex.: Ter 01/12" },
-        "Data": { "type": "date", "owner": "sistema" },
-        "Semana": { "type": "relation", "target": "semanas", "dual": "Dias", "owner": "sistema" },
-        "Minha rotina": { "type": "rich_text", "owner": "larissa", "desc": "A Larissa conta o dia em texto livre. O agente nunca escreve aqui." },
-        "Disponibilidade para gravar": { "type": "select", "owner": "larissa", "options": [["Tenho tempo", "green"], ["Pouco tempo", "yellow"], ["Sem tempo", "red"]] },
-        "Intenção do dia": { "type": "rich_text", "owner": "agente" },
-        "Prioridade 1": { "type": "relation", "target": "conteudos", "single": true, "owner": "agente" },
-        "Prioridade 2": { "type": "relation", "target": "conteudos", "single": true, "owner": "agente" },
-        "Prioridade 3": { "type": "relation", "target": "conteudos", "single": true, "owner": "agente" },
-        "Direcionamento": { "type": "select", "owner": "sistema", "options": [["Aguardando rotina", "gray"], ["Gerado pelo agente", "purple"], ["Ajustado pela equipe", "blue"], ["Sem direcionamento", "red"]] },
-        "Observações da social media": { "type": "rich_text", "owner": "social" },
-        "É hoje": { "type": "formula", "owner": "sistema", "expression": "formatDate(prop(\"Data\"), \"YYYY-MM-DD\") == formatDate(today(), \"YYYY-MM-DD\")" }
+        "Dia": {
+          "type": "title",
+          "owner": "sistema",
+          "desc": "Ex.: Ter 01/12"
+        },
+        "Data": {
+          "type": "date",
+          "owner": "sistema"
+        },
+        "Semana": {
+          "type": "relation",
+          "target": "semanas",
+          "dual": "Dias",
+          "owner": "sistema"
+        },
+        "Minha rotina": {
+          "type": "rich_text",
+          "owner": "larissa",
+          "desc": "A Larissa conta o dia em texto livre. O agente nunca escreve aqui."
+        },
+        "Disponibilidade para gravar": {
+          "type": "select",
+          "owner": "larissa",
+          "options": [
+            [
+              "Tenho tempo",
+              "green"
+            ],
+            [
+              "Pouco tempo",
+              "yellow"
+            ],
+            [
+              "Sem tempo",
+              "red"
+            ]
+          ]
+        },
+        "Intenção do dia": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Prioridade 1": {
+          "type": "relation",
+          "target": "conteudos",
+          "single": true,
+          "owner": "agente"
+        },
+        "Prioridade 2": {
+          "type": "relation",
+          "target": "conteudos",
+          "single": true,
+          "owner": "agente"
+        },
+        "Prioridade 3": {
+          "type": "relation",
+          "target": "conteudos",
+          "single": true,
+          "owner": "agente"
+        },
+        "Direcionamento": {
+          "type": "select",
+          "owner": "sistema",
+          "options": [
+            [
+              "Aguardando rotina",
+              "gray"
+            ],
+            [
+              "Gerado pelo agente",
+              "purple"
+            ],
+            [
+              "Ajustado pela equipe",
+              "blue"
+            ],
+            [
+              "Sem direcionamento",
+              "red"
+            ]
+          ]
+        },
+        "Observações da social media": {
+          "type": "rich_text",
+          "owner": "social"
+        },
+        "É hoje": {
+          "type": "formula",
+          "owner": "sistema",
+          "expression": "formatDate(prop(\"Data\"), \"YYYY-MM-DD\") == formatDate(today(), \"YYYY-MM-DD\")"
+        }
       },
-      "body_template": ["Direcionamento do agente", "Stories sugeridos", "Captação do dia", "Avisos"]
+      "body_template": [
+        "Direcionamento do agente",
+        "Stories sugeridos",
+        "Captação do dia",
+        "Avisos"
+      ]
     },
     {
       "key": "captacao",
@@ -152,15 +856,109 @@
       "sync": true,
       "desc": "Pedidos de foto, vídeo e áudio. Um pedido pode servir a vários conteúdos (mesma sessão de gravação).",
       "properties": {
-        "Pedido": { "type": "title", "owner": "equipe" },
-        "Status": { "type": "select", "owner": "equipe", "options": [["A solicitar", "gray"], ["Solicitado à Larissa", "orange"], ["Agendado", "yellow"], ["Captado", "blue"], ["No Drive", "green"], ["Cancelado", "brown"]] },
-        "Tipo": { "type": "select", "owner": "equipe", "options": [["Vídeo falado", "pink"], ["Take espontâneo", "orange"], ["Imagem de apoio", "blue"], ["Foto", "green"], ["Antes e depois", "red"], ["Áudio", "purple"]] },
-        "Quem capta": { "type": "select", "owner": "equipe", "options": [["Larissa sozinha", "pink"], ["Social media", "blue"], ["Juntas", "purple"]] },
-        "Como gravar": { "type": "rich_text", "owner": "agente", "desc": "Orientação rápida: enquadramento, fala, duração." },
-        "Onde": { "type": "rich_text", "owner": "equipe" },
-        "Quando": { "type": "date", "owner": "equipe" },
-        "Requer autorização de paciente": { "type": "checkbox", "owner": "equipe" },
-        "Link no Drive": { "type": "url", "owner": "social" }
+        "Pedido": {
+          "type": "title",
+          "owner": "equipe"
+        },
+        "Status": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "A solicitar",
+              "gray"
+            ],
+            [
+              "Solicitado à Larissa",
+              "orange"
+            ],
+            [
+              "Agendado",
+              "yellow"
+            ],
+            [
+              "Captado",
+              "blue"
+            ],
+            [
+              "No Drive",
+              "green"
+            ],
+            [
+              "Cancelado",
+              "brown"
+            ]
+          ]
+        },
+        "Tipo": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Vídeo falado",
+              "pink"
+            ],
+            [
+              "Take espontâneo",
+              "orange"
+            ],
+            [
+              "Imagem de apoio",
+              "blue"
+            ],
+            [
+              "Foto",
+              "green"
+            ],
+            [
+              "Antes e depois",
+              "red"
+            ],
+            [
+              "Áudio",
+              "purple"
+            ]
+          ]
+        },
+        "Quem capta": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Larissa sozinha",
+              "pink"
+            ],
+            [
+              "Social media",
+              "blue"
+            ],
+            [
+              "Juntas",
+              "purple"
+            ]
+          ]
+        },
+        "Como gravar": {
+          "type": "rich_text",
+          "owner": "agente",
+          "desc": "Orientação rápida: enquadramento, fala, duração."
+        },
+        "Onde": {
+          "type": "rich_text",
+          "owner": "equipe"
+        },
+        "Quando": {
+          "type": "date",
+          "owner": "equipe"
+        },
+        "Requer autorização de paciente": {
+          "type": "checkbox",
+          "owner": "equipe"
+        },
+        "Link no Drive": {
+          "type": "url",
+          "owner": "social"
+        }
       }
     },
     {
@@ -171,16 +969,346 @@
       "sync": true,
       "desc": "Perguntas para a Larissa, decisões da gestão e impedimentos. Fonte única das perguntas P-xx.",
       "properties": {
-        "Pendência": { "type": "title", "owner": "equipe" },
-        "Tipo": { "type": "select", "owner": "equipe", "options": [["Pergunta para a Larissa", "pink"], ["Decisão da gestão", "gray"], ["Pergunta para a social media", "blue"], ["Impedimento", "red"]] },
-        "Status": { "type": "select", "owner": "equipe", "options": [["Aberta", "red"], ["Parcial", "yellow"], ["Respondida", "green"], ["Cancelada", "gray"]] },
-        "Quem responde": { "type": "select", "owner": "equipe", "options": [["Larissa", "pink"], ["Gestão", "gray"], ["Social media", "blue"]] },
-        "Prioridade": { "type": "select", "owner": "equipe", "options": [["Alta", "red"], ["Média", "yellow"], ["Baixa", "gray"]] },
-        "Bloco do questionário": { "type": "select", "owner": "sistema", "options": [["1. Método ERA", "purple"], ["2. Casos e pacientes", "pink"], ["3. Família e exposição", "brown"], ["4. Rotina e gravação", "orange"], ["5. Procedimentos", "blue"], ["6. Minha história", "green"], ["7. Meu jeito de falar", "yellow"]] },
-        "Resposta": { "type": "rich_text", "owner": "equipe", "desc": "Resposta humana. O agente nunca escreve aqui; ele pode sugerir uma transcrição via Recomendação." },
-        "Respondida em": { "type": "date", "owner": "equipe" },
-        "Documento da base": { "type": "rich_text", "owner": "sistema" },
-        "Código": { "type": "rich_text", "owner": "sistema", "desc": "P-xx herdado de base-de-conhecimento/00-Perguntas-pendentes.md." }
+        "Pendência": {
+          "type": "title",
+          "owner": "equipe"
+        },
+        "Tipo": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Pergunta para a Larissa",
+              "pink"
+            ],
+            [
+              "Decisão da gestão",
+              "gray"
+            ],
+            [
+              "Pergunta para a social media",
+              "blue"
+            ],
+            [
+              "Impedimento",
+              "red"
+            ]
+          ]
+        },
+        "Status": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Aberta",
+              "red"
+            ],
+            [
+              "Parcial",
+              "yellow"
+            ],
+            [
+              "Respondida",
+              "green"
+            ],
+            [
+              "Cancelada",
+              "gray"
+            ]
+          ]
+        },
+        "Quem responde": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Larissa",
+              "pink"
+            ],
+            [
+              "Gestão",
+              "gray"
+            ],
+            [
+              "Social media",
+              "blue"
+            ]
+          ]
+        },
+        "Prioridade": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Alta",
+              "red"
+            ],
+            [
+              "Média",
+              "yellow"
+            ],
+            [
+              "Baixa",
+              "gray"
+            ]
+          ]
+        },
+        "Bloco do questionário": {
+          "type": "select",
+          "owner": "sistema",
+          "options": [
+            [
+              "1. Método ERA",
+              "purple"
+            ],
+            [
+              "2. Casos e pacientes",
+              "pink"
+            ],
+            [
+              "3. Família e exposição",
+              "brown"
+            ],
+            [
+              "4. Rotina e gravação",
+              "orange"
+            ],
+            [
+              "5. Procedimentos",
+              "blue"
+            ],
+            [
+              "6. Minha história",
+              "green"
+            ],
+            [
+              "7. Meu jeito de falar",
+              "yellow"
+            ]
+          ]
+        },
+        "Resposta": {
+          "type": "rich_text",
+          "owner": "equipe",
+          "desc": "Resposta humana. O agente nunca escreve aqui; ele pode sugerir uma transcrição via Recomendação."
+        },
+        "Respondida em": {
+          "type": "date",
+          "owner": "equipe"
+        },
+        "Documento da base": {
+          "type": "rich_text",
+          "owner": "sistema"
+        },
+        "Código": {
+          "type": "rich_text",
+          "owner": "sistema",
+          "desc": "P-xx herdado de base-de-conhecimento/00-Perguntas-pendentes.md."
+        }
+      }
+    },
+    {
+      "key": "historias",
+      "title": "Histórias",
+      "icon": "📖",
+      "prefix": "HIS",
+      "sync": true,
+      "desc": "Banco de histórias reais com potencial editorial. Uma história pode originar vários conteúdos ao longo do tempo. Nunca inventada: o relato é da Larissa ou da equipe.",
+      "properties": {
+        "História": {
+          "type": "title",
+          "owner": "equipe"
+        },
+        "Tipo": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "História profissional",
+              "blue"
+            ],
+            [
+              "Percepção de consulta",
+              "purple"
+            ],
+            [
+              "Pergunta recebida",
+              "yellow"
+            ],
+            [
+              "Maternidade",
+              "pink"
+            ],
+            [
+              "Vida empresarial",
+              "gray"
+            ],
+            [
+              "Fé e família",
+              "green"
+            ],
+            [
+              "Aprendizado pessoal",
+              "orange"
+            ],
+            [
+              "Mudança de opinião",
+              "brown"
+            ],
+            [
+              "Experiência clínica autorizada",
+              "red"
+            ]
+          ]
+        },
+        "Relato": {
+          "type": "rich_text",
+          "owner": "larissa",
+          "desc": "Como aconteceu, nas palavras de quem viveu. O agente pode copiar literalmente da rotina, nunca reescrever nem completar."
+        },
+        "Data do acontecimento": {
+          "type": "date",
+          "owner": "equipe"
+        },
+        "Envolve": {
+          "type": "multi_select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Paciente",
+              "default"
+            ],
+            [
+              "Filha",
+              "default"
+            ],
+            [
+              "Marido",
+              "default"
+            ],
+            [
+              "Mãe",
+              "default"
+            ],
+            [
+              "Equipe",
+              "default"
+            ],
+            [
+              "Ninguém além dela",
+              "default"
+            ]
+          ]
+        },
+        "Identificação": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Sem identificação",
+              "green"
+            ],
+            [
+              "Identificável",
+              "red"
+            ]
+          ],
+          "desc": "Identificável exige autorização registrada."
+        },
+        "Autorização": {
+          "type": "select",
+          "owner": "gestao",
+          "options": [
+            [
+              "Não necessária",
+              "gray"
+            ],
+            [
+              "Pendente",
+              "red"
+            ],
+            [
+              "Registrada",
+              "green"
+            ]
+          ]
+        },
+        "Status": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Nova",
+              "yellow"
+            ],
+            [
+              "Pronta para usar",
+              "green"
+            ],
+            [
+              "Usada",
+              "blue"
+            ],
+            [
+              "Não usar",
+              "red"
+            ],
+            [
+              "Arquivada",
+              "gray"
+            ]
+          ],
+          "desc": "Só 'Pronta para usar' entra em roteiro. 'Nova' aparece para a equipe confirmar."
+        },
+        "Potencial": {
+          "type": "select",
+          "owner": "agente",
+          "options": [
+            [
+              "Alto",
+              "green"
+            ],
+            [
+              "Médio",
+              "yellow"
+            ],
+            [
+              "Baixo",
+              "gray"
+            ]
+          ]
+        },
+        "Pilares": {
+          "type": "multi_select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Autoridade",
+              "blue"
+            ],
+            [
+              "Desejo e prova social",
+              "pink"
+            ],
+            [
+              "Conexão",
+              "green"
+            ]
+          ]
+        },
+        "Dia de origem": {
+          "type": "relation",
+          "target": "dias",
+          "single": true,
+          "owner": "sistema"
+        },
+        "Vezes usada": {
+          "type": "rollup",
+          "owner": "sistema",
+          "relation": "Conteúdos",
+          "target_property": "Título",
+          "function": "count"
+        }
       }
     },
     {
@@ -191,14 +1319,166 @@
       "sync": false,
       "desc": "Perfis, posts e técnicas de comunicação. Estudo de formato, nunca cópia.",
       "properties": {
-        "Referência": { "type": "title", "owner": "equipe" },
-        "Link": { "type": "url", "owner": "equipe" },
-        "Tipo": { "type": "select", "owner": "equipe", "options": [["Perfil", "blue"], ["Post", "green"], ["Reels", "pink"], ["Tendência", "orange"], ["Técnica", "purple"]] },
-        "Por que é útil": { "type": "rich_text", "owner": "equipe" },
-        "Pilar": { "type": "multi_select", "owner": "equipe", "options": [["Autoridade", "blue"], ["Desejo e prova social", "pink"], ["Conexão", "green"]] },
-        "Duração": { "type": "select", "owner": "equipe", "options": [["Formato duradouro", "green"], ["Tendência passageira", "orange"]] },
-        "Status": { "type": "select", "owner": "equipe", "options": [["Nova", "yellow"], ["Aprovada", "green"], ["Descartada", "gray"], ["A confirmar", "red"]] },
-        "Arquivo": { "type": "files", "owner": "equipe" }
+        "Referência": {
+          "type": "title",
+          "owner": "equipe"
+        },
+        "Link": {
+          "type": "url",
+          "owner": "equipe"
+        },
+        "Tipo": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Perfil",
+              "blue"
+            ],
+            [
+              "Post",
+              "green"
+            ],
+            [
+              "Reels",
+              "pink"
+            ],
+            [
+              "Tendência",
+              "orange"
+            ],
+            [
+              "Técnica",
+              "purple"
+            ]
+          ]
+        },
+        "Por que é útil": {
+          "type": "rich_text",
+          "owner": "equipe"
+        },
+        "Pilar": {
+          "type": "multi_select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Autoridade",
+              "blue"
+            ],
+            [
+              "Desejo e prova social",
+              "pink"
+            ],
+            [
+              "Conexão",
+              "green"
+            ]
+          ]
+        },
+        "Duração": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Formato duradouro",
+              "green"
+            ],
+            [
+              "Tendência passageira",
+              "orange"
+            ]
+          ]
+        },
+        "Status": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Nova",
+              "yellow"
+            ],
+            [
+              "Aprovada",
+              "green"
+            ],
+            [
+              "Descartada",
+              "gray"
+            ],
+            [
+              "A confirmar",
+              "red"
+            ]
+          ]
+        },
+        "Arquivo": {
+          "type": "files",
+          "owner": "equipe"
+        },
+        "Data da referência": {
+          "type": "date",
+          "owner": "equipe"
+        },
+        "Formato observado": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Reels",
+              "pink"
+            ],
+            [
+              "Carrossel",
+              "blue"
+            ],
+            [
+              "Stories",
+              "orange"
+            ],
+            [
+              "Foto",
+              "green"
+            ]
+          ]
+        },
+        "Gancho observado": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Estrutura narrativa": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Possibilidade de adaptação": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Adequação à marca": {
+          "type": "select",
+          "owner": "agente",
+          "options": [
+            [
+              "Alta",
+              "green"
+            ],
+            [
+              "Média",
+              "yellow"
+            ],
+            [
+              "Baixa",
+              "orange"
+            ],
+            [
+              "Não adequada",
+              "red"
+            ]
+          ]
+        },
+        "Limitações éticas ou clínicas": {
+          "type": "rich_text",
+          "owner": "agente"
+        }
       }
     },
     {
@@ -209,22 +1489,99 @@
       "sync": false,
       "desc": "Uma leitura por conteúdo por janela (D+1, D+7, D+30). Várias leituras por conteúdo, por isso base própria.",
       "properties": {
-        "Leitura": { "type": "title", "owner": "sistema", "desc": "Ex.: CON-12 · D+7" },
-        "Janela": { "type": "select", "owner": "sistema", "options": [["D+1", "gray"], ["D+7", "blue"], ["D+30", "green"]] },
-        "Data da leitura": { "type": "date", "owner": "sistema" },
-        "Fonte": { "type": "select", "owner": "sistema", "options": [["Instagram Insights (manual)", "yellow"], ["API do Instagram", "blue"], ["CRM STIMMA OS", "purple"]] },
-        "Alcance": { "type": "number", "owner": "sistema" },
-        "Alcance de não seguidores": { "type": "number", "owner": "sistema" },
-        "Visualizações": { "type": "number", "owner": "sistema" },
-        "Retenção média (%)": { "type": "number", "owner": "sistema" },
-        "Tempo médio (s)": { "type": "number", "owner": "sistema" },
-        "Salvamentos": { "type": "number", "owner": "sistema" },
-        "Compartilhamentos": { "type": "number", "owner": "sistema" },
-        "Comentários": { "type": "number", "owner": "sistema" },
-        "Respostas": { "type": "number", "owner": "sistema" },
-        "Novos seguidores": { "type": "number", "owner": "sistema" },
-        "Conversas qualificadas": { "type": "number", "owner": "gestao" },
-        "Agendamentos atribuídos": { "type": "number", "owner": "gestao" }
+        "Leitura": {
+          "type": "title",
+          "owner": "sistema",
+          "desc": "Ex.: CON-12 · D+7"
+        },
+        "Janela": {
+          "type": "select",
+          "owner": "sistema",
+          "options": [
+            [
+              "D+1",
+              "gray"
+            ],
+            [
+              "D+7",
+              "blue"
+            ],
+            [
+              "D+30",
+              "green"
+            ]
+          ]
+        },
+        "Data da leitura": {
+          "type": "date",
+          "owner": "sistema"
+        },
+        "Fonte": {
+          "type": "select",
+          "owner": "sistema",
+          "options": [
+            [
+              "Instagram Insights (manual)",
+              "yellow"
+            ],
+            [
+              "API do Instagram",
+              "blue"
+            ],
+            [
+              "CRM STIMMA OS",
+              "purple"
+            ]
+          ]
+        },
+        "Alcance": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Alcance de não seguidores": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Visualizações": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Retenção média (%)": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Tempo médio (s)": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Salvamentos": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Compartilhamentos": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Comentários": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Respostas": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Novos seguidores": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Conversas qualificadas": {
+          "type": "number",
+          "owner": "gestao"
+        },
+        "Agendamentos atribuídos": {
+          "type": "number",
+          "owner": "gestao"
+        }
       }
     },
     {
@@ -235,11 +1592,117 @@
       "sync": true,
       "desc": "Memória editorial. Separa percepção de evidência.",
       "properties": {
-        "Aprendizado": { "type": "title", "owner": "agente" },
-        "Status": { "type": "select", "owner": "gestao", "options": [["Hipótese", "yellow"], ["Em teste", "blue"], ["Validado por dados", "green"], ["Refutado", "red"]], "desc": "Só a gestão promove para 'Validado por dados', depois de ver a evidência." },
-        "Área": { "type": "select", "owner": "agente", "options": [["Tema", "blue"], ["Gancho", "pink"], ["Formato", "purple"], ["Pilar", "green"], ["Horário", "orange"], ["Comercial", "red"], ["Operação", "gray"]] },
-        "Evidência": { "type": "rich_text", "owner": "agente" },
-        "Próxima verificação": { "type": "date", "owner": "agente" }
+        "Aprendizado": {
+          "type": "title",
+          "owner": "agente"
+        },
+        "Status": {
+          "type": "select",
+          "owner": "gestao",
+          "options": [
+            [
+              "Hipótese",
+              "yellow"
+            ],
+            [
+              "Em teste",
+              "blue"
+            ],
+            [
+              "Preferência",
+              "purple"
+            ],
+            [
+              "Evidência",
+              "green"
+            ],
+            [
+              "Diretriz aprovada",
+              "brown"
+            ],
+            [
+              "Refutado",
+              "red"
+            ]
+          ],
+          "desc": "Fase 3: hipótese (1 ocorrência), preferência (escolha humana repetida), evidência (métrica em 3+ publicações), diretriz aprovada (só a gestão)."
+        },
+        "Área": {
+          "type": "select",
+          "owner": "agente",
+          "options": [
+            [
+              "Tema",
+              "blue"
+            ],
+            [
+              "Gancho",
+              "pink"
+            ],
+            [
+              "Formato",
+              "purple"
+            ],
+            [
+              "Pilar",
+              "green"
+            ],
+            [
+              "Horário",
+              "orange"
+            ],
+            [
+              "Comercial",
+              "red"
+            ],
+            [
+              "Operação",
+              "gray"
+            ],
+            [
+              "Linguagem",
+              "pink"
+            ],
+            [
+              "Abordagem",
+              "blue"
+            ]
+          ]
+        },
+        "Evidência": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Próxima verificação": {
+          "type": "date",
+          "owner": "agente"
+        },
+        "Fonte do aprendizado": {
+          "type": "select",
+          "owner": "agente",
+          "options": [
+            [
+              "Escolha humana",
+              "pink"
+            ],
+            [
+              "Métrica",
+              "green"
+            ],
+            [
+              "Pesquisa",
+              "blue"
+            ],
+            [
+              "Decisão da gestão",
+              "gray"
+            ]
+          ]
+        },
+        "Ocorrências": {
+          "type": "number",
+          "owner": "agente"
+        }
       }
     },
     {
@@ -250,12 +1713,63 @@
       "sync": false,
       "desc": "O que a clínica precisa vender ou ocupar em cada período. Definido pela gestão, consultado pelo agente.",
       "properties": {
-        "Prioridade": { "type": "title", "owner": "gestao" },
-        "Período": { "type": "date", "owner": "gestao" },
-        "Status": { "type": "select", "owner": "gestao", "options": [["Proposta do agente", "purple"], ["Planejada", "gray"], ["Ativa", "green"], ["Encerrada", "brown"]], "desc": "Nível B: campanhas só ficam Planejadas ou Ativas por decisão da gestão." },
-        "Procedimento ou serviço": { "type": "rich_text", "owner": "gestao" },
-        "Meta": { "type": "rich_text", "owner": "gestao" },
-        "Peso": { "type": "select", "owner": "gestao", "options": [["Alta", "red"], ["Média", "yellow"], ["Baixa", "gray"]] }
+        "Prioridade": {
+          "type": "title",
+          "owner": "gestao"
+        },
+        "Período": {
+          "type": "date",
+          "owner": "gestao"
+        },
+        "Status": {
+          "type": "select",
+          "owner": "gestao",
+          "options": [
+            [
+              "Proposta do agente",
+              "purple"
+            ],
+            [
+              "Planejada",
+              "gray"
+            ],
+            [
+              "Ativa",
+              "green"
+            ],
+            [
+              "Encerrada",
+              "brown"
+            ]
+          ],
+          "desc": "Nível B: campanhas só ficam Planejadas ou Ativas por decisão da gestão."
+        },
+        "Procedimento ou serviço": {
+          "type": "rich_text",
+          "owner": "gestao"
+        },
+        "Meta": {
+          "type": "rich_text",
+          "owner": "gestao"
+        },
+        "Peso": {
+          "type": "select",
+          "owner": "gestao",
+          "options": [
+            [
+              "Alta",
+              "red"
+            ],
+            [
+              "Média",
+              "yellow"
+            ],
+            [
+              "Baixa",
+              "gray"
+            ]
+          ]
+        }
       }
     },
     {
@@ -266,21 +1780,173 @@
       "sync": false,
       "desc": "Tudo o que a IA propõe e ainda não é decisão humana. Separação explícita entre sugestão e decisão.",
       "properties": {
-        "Recomendação": { "type": "title", "owner": "agente" },
-        "Tipo": { "type": "select", "owner": "agente", "options": [["Novo conteúdo", "green"], ["Revisão de roteiro", "blue"], ["Mudança de data", "yellow"], ["Plano semanal", "purple"], ["Direcionamento diário", "orange"], ["Nova pendência", "red"], ["Novo aprendizado", "brown"], ["Possível duplicidade", "pink"]] },
-        "Nível": { "type": "select", "owner": "agente", "options": [["A · Automático", "gray"], ["B · Precisa de aprovação", "yellow"], ["C · Validação humana", "red"]], "desc": "Ver schema/autonomia.json. A: já aplicada, registrada para histórico e reversão. B e C: só aplicam depois da decisão." },
-        "Quem decide": { "type": "select", "owner": "agente", "options": [["Social media", "blue"], ["Larissa", "pink"], ["Gestão", "gray"]] },
-        "Decisão": { "type": "select", "owner": "equipe", "options": [["Aguardando decisão", "yellow"], ["Aplicada automaticamente", "gray"], ["Aceita", "green"], ["Aceita com ajustes", "blue"], ["Recusada", "red"], ["Revertida", "orange"], ["Aplicada", "brown"], ["Obsoleta", "gray"]] },
-        "Proposta": { "type": "rich_text", "owner": "agente", "desc": "Resumo legível. O payload completo (JSON) fica no corpo da página." },
-        "Por quê": { "type": "rich_text", "owner": "agente" },
-        "Fontes consultadas": { "type": "rich_text", "owner": "agente", "desc": "IDs de conteúdos, aprendizados e documentos da base usados." },
-        "Comentário da decisão": { "type": "rich_text", "owner": "equipe" },
-        "Decidido por": { "type": "people", "owner": "equipe" },
-        "Decidido em": { "type": "date", "owner": "equipe" },
-        "Semana": { "type": "relation", "target": "semanas", "single": true, "owner": "agente" },
-        "Dia": { "type": "relation", "target": "dias", "single": true, "owner": "agente" },
-        "Possível duplicata de": { "type": "relation", "target": "conteudos", "single": true, "owner": "agente" },
-        "Execução": { "type": "relation", "target": "execucoes", "single": true, "owner": "sistema" }
+        "Recomendação": {
+          "type": "title",
+          "owner": "agente"
+        },
+        "Tipo": {
+          "type": "select",
+          "owner": "agente",
+          "options": [
+            [
+              "Novo conteúdo",
+              "green"
+            ],
+            [
+              "Revisão de roteiro",
+              "blue"
+            ],
+            [
+              "Mudança de data",
+              "yellow"
+            ],
+            [
+              "Plano semanal",
+              "purple"
+            ],
+            [
+              "Direcionamento diário",
+              "orange"
+            ],
+            [
+              "Nova pendência",
+              "red"
+            ],
+            [
+              "Novo aprendizado",
+              "brown"
+            ],
+            [
+              "Possível duplicidade",
+              "pink"
+            ]
+          ]
+        },
+        "Nível": {
+          "type": "select",
+          "owner": "agente",
+          "options": [
+            [
+              "A · Automático",
+              "gray"
+            ],
+            [
+              "B · Precisa de aprovação",
+              "yellow"
+            ],
+            [
+              "C · Validação humana",
+              "red"
+            ]
+          ],
+          "desc": "Ver schema/autonomia.json. A: já aplicada, registrada para histórico e reversão. B e C: só aplicam depois da decisão."
+        },
+        "Quem decide": {
+          "type": "select",
+          "owner": "agente",
+          "options": [
+            [
+              "Social media",
+              "blue"
+            ],
+            [
+              "Larissa",
+              "pink"
+            ],
+            [
+              "Gestão",
+              "gray"
+            ]
+          ]
+        },
+        "Decisão": {
+          "type": "select",
+          "owner": "equipe",
+          "options": [
+            [
+              "Aguardando decisão",
+              "yellow"
+            ],
+            [
+              "Aplicada automaticamente",
+              "gray"
+            ],
+            [
+              "Aceita",
+              "green"
+            ],
+            [
+              "Aceita com ajustes",
+              "blue"
+            ],
+            [
+              "Recusada",
+              "red"
+            ],
+            [
+              "Revertida",
+              "orange"
+            ],
+            [
+              "Aplicada",
+              "brown"
+            ],
+            [
+              "Obsoleta",
+              "gray"
+            ]
+          ]
+        },
+        "Proposta": {
+          "type": "rich_text",
+          "owner": "agente",
+          "desc": "Resumo legível. O payload completo (JSON) fica no corpo da página."
+        },
+        "Por quê": {
+          "type": "rich_text",
+          "owner": "agente"
+        },
+        "Fontes consultadas": {
+          "type": "rich_text",
+          "owner": "agente",
+          "desc": "IDs de conteúdos, aprendizados e documentos da base usados."
+        },
+        "Comentário da decisão": {
+          "type": "rich_text",
+          "owner": "equipe"
+        },
+        "Decidido por": {
+          "type": "people",
+          "owner": "equipe"
+        },
+        "Decidido em": {
+          "type": "date",
+          "owner": "equipe"
+        },
+        "Semana": {
+          "type": "relation",
+          "target": "semanas",
+          "single": true,
+          "owner": "agente"
+        },
+        "Dia": {
+          "type": "relation",
+          "target": "dias",
+          "single": true,
+          "owner": "agente"
+        },
+        "Possível duplicata de": {
+          "type": "relation",
+          "target": "conteudos",
+          "single": true,
+          "owner": "agente"
+        },
+        "Execução": {
+          "type": "relation",
+          "target": "execucoes",
+          "single": true,
+          "owner": "sistema"
+        }
       }
     },
     {
@@ -292,24 +1958,172 @@
       "common": "minimal",
       "desc": "Log técnico de cada execução do n8n: idempotência, custo, erro e reprocessamento. Só gestão.",
       "properties": {
-        "Execução": { "type": "title", "owner": "sistema" },
-        "Workflow": { "type": "select", "owner": "sistema", "options": [["planejamento-semanal", "purple"], ["direcionamento-diario", "orange"], ["processar-ideia", "green"], ["revisao-sob-demanda", "blue"], ["pendencias-diarias", "red"], ["revisao-sexta", "yellow"], ["analise-desempenho", "pink"], ["revisao-mensal", "brown"], ["setup", "gray"], ["importacao", "gray"]] },
-        "Status": { "type": "select", "owner": "sistema", "options": [["Em andamento", "yellow"], ["Sucesso", "green"], ["Sucesso parcial", "blue"], ["Erro", "red"], ["Reprocessar", "orange"], ["Reprocessada", "brown"], ["Ignorada (duplicada)", "gray"]] },
-        "Chave de idempotência": { "type": "rich_text", "owner": "sistema", "desc": "Ex.: planejamento-semanal:2026-W49. Duas execuções com a mesma chave e Sucesso não podem coexistir." },
-        "Tentativa": { "type": "number", "owner": "sistema" },
-        "Início": { "type": "date", "owner": "sistema" },
-        "Fim": { "type": "date", "owner": "sistema" },
-        "Modelo": { "type": "select", "owner": "sistema", "options": [["claude-opus-5-5", "purple"], ["claude-sonnet-5-5", "blue"], ["claude-haiku-5-5", "green"], ["sem IA", "gray"]] },
-        "Versão do prompt": { "type": "rich_text", "owner": "sistema" },
-        "Tokens de entrada": { "type": "number", "owner": "sistema" },
-        "Tokens de saída": { "type": "number", "owner": "sistema" },
-        "Tokens em cache": { "type": "number", "owner": "sistema" },
-        "Custo estimado (US$)": { "type": "number", "owner": "sistema" },
-        "Itens criados": { "type": "number", "owner": "sistema" },
-        "Itens preservados": { "type": "number", "owner": "sistema", "desc": "Escritas puladas porque a equipe editou ou travou a página." },
-        "Erro": { "type": "rich_text", "owner": "sistema", "desc": "Mensagem sanitizada. Nunca contém chave, token ou dado clínico." },
-        "Reprocessar": { "type": "checkbox", "owner": "gestao", "desc": "Gestão marca para o n8n tentar de novo com a mesma chave." },
-        "Execução no n8n": { "type": "url", "owner": "sistema" }
+        "Execução": {
+          "type": "title",
+          "owner": "sistema"
+        },
+        "Workflow": {
+          "type": "select",
+          "owner": "sistema",
+          "options": [
+            [
+              "planejamento-semanal",
+              "purple"
+            ],
+            [
+              "direcionamento-diario",
+              "orange"
+            ],
+            [
+              "processar-ideia",
+              "green"
+            ],
+            [
+              "revisao-sob-demanda",
+              "blue"
+            ],
+            [
+              "pendencias-diarias",
+              "red"
+            ],
+            [
+              "revisao-sexta",
+              "yellow"
+            ],
+            [
+              "analise-desempenho",
+              "pink"
+            ],
+            [
+              "revisao-mensal",
+              "brown"
+            ],
+            [
+              "setup",
+              "gray"
+            ],
+            [
+              "importacao",
+              "gray"
+            ]
+          ]
+        },
+        "Status": {
+          "type": "select",
+          "owner": "sistema",
+          "options": [
+            [
+              "Em andamento",
+              "yellow"
+            ],
+            [
+              "Sucesso",
+              "green"
+            ],
+            [
+              "Sucesso parcial",
+              "blue"
+            ],
+            [
+              "Erro",
+              "red"
+            ],
+            [
+              "Reprocessar",
+              "orange"
+            ],
+            [
+              "Reprocessada",
+              "brown"
+            ],
+            [
+              "Ignorada (duplicada)",
+              "gray"
+            ]
+          ]
+        },
+        "Chave de idempotência": {
+          "type": "rich_text",
+          "owner": "sistema",
+          "desc": "Ex.: planejamento-semanal:2026-W49. Duas execuções com a mesma chave e Sucesso não podem coexistir."
+        },
+        "Tentativa": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Início": {
+          "type": "date",
+          "owner": "sistema"
+        },
+        "Fim": {
+          "type": "date",
+          "owner": "sistema"
+        },
+        "Modelo": {
+          "type": "select",
+          "owner": "sistema",
+          "options": [
+            [
+              "claude-opus-5-5",
+              "purple"
+            ],
+            [
+              "claude-sonnet-5-5",
+              "blue"
+            ],
+            [
+              "claude-haiku-5-5",
+              "green"
+            ],
+            [
+              "sem IA",
+              "gray"
+            ]
+          ]
+        },
+        "Versão do prompt": {
+          "type": "rich_text",
+          "owner": "sistema"
+        },
+        "Tokens de entrada": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Tokens de saída": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Tokens em cache": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Custo estimado (US$)": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Itens criados": {
+          "type": "number",
+          "owner": "sistema"
+        },
+        "Itens preservados": {
+          "type": "number",
+          "owner": "sistema",
+          "desc": "Escritas puladas porque a equipe editou ou travou a página."
+        },
+        "Erro": {
+          "type": "rich_text",
+          "owner": "sistema",
+          "desc": "Mensagem sanitizada. Nunca contém chave, token ou dado clínico."
+        },
+        "Reprocessar": {
+          "type": "checkbox",
+          "owner": "gestao",
+          "desc": "Gestão marca para o n8n tentar de novo com a mesma chave."
+        },
+        "Execução no n8n": {
+          "type": "url",
+          "owner": "sistema"
+        }
       }
     }
   ]

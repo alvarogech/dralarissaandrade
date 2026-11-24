@@ -1,0 +1,13 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "10-alteracao-humana",
+  "saida": {
+    "gatilho": "A social media reescreveu o roteiro de \"Pior erro ao tratar o rosto depois dos 40\" e travou a página.",
+    "ajustes": [],
+    "sai_do_plano": [],
+    "acoes": [],
+    "alertas": [
+      "\"Pior erro ao tratar o rosto depois dos 40\" está travado e foi editado pela equipe: a troca de gancho que o agente queria propor foi descartada. Nenhuma sugestão será feita nesse conteúdo enquanto ele estiver travado."
+    ]
+  }
+}

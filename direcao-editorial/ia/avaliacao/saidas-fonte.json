@@ -1,0 +1,431 @@
+{
+  "$comment": "Saídas dos 12 cenários, escritas pelo Claude Opus 5.5 nesta sessão de desenvolvimento aplicando ia/prompts/00-instrucao-mestra.md + o módulo de cada workflow sobre o pacote de contexto do cenário. NÃO são chamadas à API de produção. Dados de TESTE. Separadas em saidas/*.json por separar-saidas.mjs.",
+  "01-dia-normal": {
+    "dia": "2026-12-01",
+    "rotina_informada": true,
+    "social": {
+      "intencao": "Usar o pedido de hoje por um ponto só para mostrar, sem expor ninguém, por que a Larissa olha o rosto inteiro antes de indicar.",
+      "prioridades": [
+        { "ordem": 1, "chave": "trello:C-06", "titulo": "Pior erro ao tratar o rosto depois dos 40", "o_que_fazer": "Diagramar o carrossel com o texto do Trello. Ele conversa com a caixinha de hoje." },
+        { "ordem": 2, "chave": "trello:C-02", "titulo": "Momento consulta", "o_que_fazer": "Combinar com a Larissa um take da explicação dela sem a paciente na cena." },
+        { "ordem": 3, "chave": "trello:C-01", "titulo": "Não indico protocolo Ctrl C, Ctrl V", "o_que_fazer": "Escolher entre a versão A e a B para a próxima semana." }
+      ],
+      "publicar": [],
+      "produzir": [
+        { "chave": "trello:C-06", "o_que_fazer": "Copiar o texto do cartão do Trello (P-00) e montar as 6 páginas." }
+      ],
+      "pedir_larissa": [
+        { "pedido": "Uma fala explicando por que você prefere olhar o rosto todo antes de indicar algo num ponto só", "duracao": "30 segundos", "como": "Depois da avaliação, no consultório, celular na vertical. Sem paciente na cena." }
+      ],
+      "acompanhar": [
+        "P-24 (autorização de imagem) segura 4 conteúdos de prova social.",
+        "P-00: os textos completos do Trello ainda não estão na central."
+      ]
+    },
+    "larissa": {
+      "registrar": [
+        { "o_que": "A frase que a paciente usou para pedir o preenchimento, sem nome", "por_que": "Pergunta real vira caixinha e gancho; é melhor que qualquer tema inventado." },
+        { "o_que": "O que você reparou no retorno da paciente de 2021, só para você contar depois", "por_que": "Acompanhamento ao longo dos anos é um dos seus diferenciais confirmados." }
+      ],
+      "gravar": [
+        { "pedido": "Explicar como você responde quando alguém pede para tratar um ponto só", "duracao": "30 segundos", "onde": "Consultório, entre as avaliações da manhã", "como": "Sentada, celular na vertical, falando como você falou com ela. Sem citar a paciente." }
+      ],
+      "stories": [
+        { "titulo": "Terça de objeção: o pedido de hoje", "abertura": "\"Hoje uma paciente me pediu para mexer só aqui.\" Aponte o bigode chinês em você.", "meio": "Conte o que você olhou antes de responder, sem detalhes dela.", "fechamento": "Caixinha Tudo sobre HOF: \"Qual ponto você já quis mudar sozinho?\"", "objetivo": "Quebra de objeção" },
+        { "titulo": "Quem eu acompanho há anos", "abertura": "\"Tem paciente que eu vejo uma vez por ano desde 2021.\"", "meio": "Imagem da sala ou das suas mãos no prontuário, sem a paciente.", "fechamento": "\"O cuidado continua depois do primeiro resultado.\"", "objetivo": "Construção de confiança" }
+      ],
+      "perguntas": [
+        { "codigo": "P-22", "pergunta": "O que pode ser mostrado da sua filha, do seu marido e da sua mãe?" },
+        { "codigo": "P-25", "pergunta": "Qual caso de paciente +35 entra no carrossel?" },
+        { "codigo": "P-01", "pergunta": "O que significa cada letra do Método ERA?" }
+      ],
+      "oportunidades": [
+        { "acontecimento": "Pedido para preencher só o bigode chinês", "ideia": "Stories de terça e ponte para o carrossel \"Pior erro depois dos 40\".", "nivel": "A", "cuidado": "Nada que identifique a paciente." },
+        { "acontecimento": "Retorno da paciente acompanhada desde 2021", "ideia": "Guardar no banco de histórias para um conteúdo de acompanhamento.", "nivel": "A", "cuidado": "Imagem dela só com autorização registrada (P-24)." },
+        { "acontecimento": "Saída às 18h para buscar a filha", "ideia": "Se você quiser, um story de fim de expediente.", "nivel": "B", "cuidado": "Mostrar a filha depende da sua decisão (P-22)." }
+      ]
+    },
+    "acoes": [
+      { "nivel": "A", "tipo": "atualizar_dia", "base": "dias", "chave": "sim:dia:2026-12-01", "campos": [ { "campo": "Intenção do dia", "valor": "Mostrar por que a Larissa olha o rosto inteiro antes de indicar." }, { "campo": "Prioridade 1", "valor": "trello:C-06" }, { "campo": "Prioridade 2", "valor": "trello:C-02" }, { "campo": "Prioridade 3", "valor": "trello:C-01" }, { "campo": "Direcionamento", "valor": "Gerado pelo agente" } ], "quem_decide": null, "motivo": "Direcionamento diário (nível A).", "fontes": ["sim:dia:2026-12-01", "trello:C-06", "trello:C-02", "trello:C-01"] },
+      { "nivel": "A", "tipo": "criar_historia", "base": "historias", "chave": "agente:direcionamento-diario:2026-12-01:1", "campos": [ { "campo": "História", "valor": "Pedido para preencher só o bigode chinês" }, { "campo": "Tipo", "valor": "Percepção de consulta" }, { "campo": "Relato", "valor": "Duas avaliações novas de manhã, uma delas querendo só preencher o bigode chinês." }, { "campo": "Status", "valor": "Nova" }, { "campo": "Envolve", "valor": "Paciente" }, { "campo": "Identificação", "valor": "Sem identificação" }, { "campo": "Dia de origem", "valor": "sim:dia:2026-12-01" } ], "quem_decide": null, "motivo": "Acontecimento real contado na rotina; relato copiado literalmente.", "fontes": ["sim:dia:2026-12-01"] },
+      { "nivel": "A", "tipo": "criar_captacao", "base": "captacao", "chave": "agente:direcionamento-diario:2026-12-01:2", "campos": [ { "campo": "Pedido", "valor": "Fala de 30s: por que olhar o rosto todo antes de tratar um ponto só" }, { "campo": "Tipo", "valor": "Vídeo falado" }, { "campo": "Quem capta", "valor": "Larissa sozinha" }, { "campo": "Como gravar", "valor": "Sentada, celular na vertical, sem paciente na cena." }, { "campo": "Onde", "valor": "Consultório" }, { "campo": "Quando", "valor": "2026-12-01" }, { "campo": "Conteúdos", "valor": "trello:C-06" } ], "quem_decide": null, "motivo": "Sugestão de captação (nível A); a social media decide se pede.", "fontes": ["sim:dia:2026-12-01", "trello:C-06"] }
+    ],
+    "alertas": ["Dia com pouco tempo: um pedido de gravação só."]
+  },
+  "02-dia-sem-rotina": {
+    "dia": "2026-12-02",
+    "rotina_informada": false,
+    "social": {
+      "intencao": "Quarta de respostas: trabalhar com o que já existe e pedir à Larissa que conte o dia em uma frase.",
+      "prioridades": [
+        { "ordem": 1, "chave": "trello:C-06", "titulo": "Pior erro ao tratar o rosto depois dos 40", "o_que_fazer": "Seguir com o carrossel a partir do texto do Trello." },
+        { "ordem": 2, "chave": "trello:C-07", "titulo": "Deus sempre me empurrou pra fora", "o_que_fazer": "Separar o roteiro do Trello e montar a direção de cena para gravar na semana." },
+        { "ordem": 3, "chave": "trello:C-01", "titulo": "Não indico protocolo Ctrl C, Ctrl V", "o_que_fazer": "Escolher a versão A ou B." }
+      ],
+      "publicar": [],
+      "produzir": [
+        { "chave": "trello:C-07", "o_que_fazer": "Direção de cena: local calmo, luz natural, até 1 minuto." }
+      ],
+      "pedir_larissa": [
+        { "pedido": "Contar o dia de hoje em uma frase no campo Minha rotina", "duracao": "1 minuto", "como": "Pelo celular, na página Larissa." }
+      ],
+      "acompanhar": [
+        "\"Prefiro peeling a full face\" fala quase o mesmo que o carrossel \"Comece pela pele\" de 05/11. Sugestão: segurar ou mudar o ângulo.",
+        "P-00: textos do Trello ainda fora da central."
+      ]
+    },
+    "larissa": {
+      "registrar": [
+        { "o_que": "Uma frase sobre o seu dia", "por_que": "Sem a rotina, o direcionamento usa só o que já está na central." },
+        { "o_que": "Alguma pergunta que chegou repetida no WhatsApp ou na caixinha", "por_que": "Quarta é dia de responder perguntas." }
+      ],
+      "gravar": [
+        { "pedido": "Responder a pergunta \"dá para fazer só um pouquinho para ninguém perceber?\", se for assim que ela chega para você", "duracao": "40 segundos", "onde": "Onde for mais fácil", "como": "Leia a pergunta em voz alta e responda olhando para a câmera." }
+      ],
+      "stories": [
+        { "titulo": "Quarta de respostas", "abertura": "\"Essa pergunta chega toda semana.\"", "meio": "Leia a pergunta e responda em 3 stories curtos.", "fechamento": "Caixinha aberta para a próxima quarta.", "objetivo": "Quebra de objeção" },
+        { "titulo": "Bastidor da manhã", "abertura": "Takes do consultório vazio pela manhã, que já estão no Drive.", "meio": "Uma frase sua sobre como você prepara o dia, se quiser gravar.", "fechamento": "Sem convite, só presença.", "objetivo": "Engajamento" }
+      ],
+      "perguntas": [
+        { "codigo": "P-22", "pergunta": "O que pode ser mostrado da sua filha, do seu marido e da sua mãe?" },
+        { "codigo": "P-25", "pergunta": "Qual caso de paciente +35 entra no carrossel?" },
+        { "codigo": "P-01", "pergunta": "O que significa cada letra do Método ERA?" }
+      ],
+      "oportunidades": []
+    },
+    "acoes": [
+      { "nivel": "A", "tipo": "atualizar_dia", "base": "dias", "chave": "dia:2026-12-02", "campos": [ { "campo": "Intenção do dia", "valor": "Quarta de respostas com o material que já existe." }, { "campo": "Prioridade 1", "valor": "trello:C-06" }, { "campo": "Prioridade 2", "valor": "trello:C-07" }, { "campo": "Prioridade 3", "valor": "trello:C-01" }, { "campo": "Direcionamento", "valor": "Gerado pelo agente" } ], "quem_decide": null, "motivo": "Direcionamento diário sem rotina informada.", "fontes": ["trello:C-06", "trello:C-07", "trello:C-01", "sim:cap:drive:1", "sim:his:2"] },
+      { "nivel": "B", "tipo": "recomendar", "base": "recomendacoes", "chave": "agente:direcionamento-diario:2026-12-02:1", "campos": [ { "campo": "Recomendação", "valor": "\"Prefiro peeling a full face\" repete o argumento de \"Comece pela pele\"" }, { "campo": "Tipo", "valor": "Possível duplicidade" }, { "campo": "Nível", "valor": "B · Precisa de aprovação" }, { "campo": "Quem decide", "valor": "Social media" }, { "campo": "Proposta", "valor": "Publicar a partir de janeiro ou trocar o ângulo para a decisão de recusar o full face." }, { "campo": "Por quê", "valor": "Mesmo argumento central publicado em 05/11, dentro da janela de 60 dias." }, { "campo": "Possível duplicata de", "valor": "sim:pub:2" } ], "quem_decide": "Social media", "motivo": "Radar de repetição.", "fontes": ["trello:C-09", "sim:pub:2"] }
+    ],
+    "alertas": ["Rotina não informada: nenhum acontecimento do dia foi presumido."]
+  },
+  "03-semana-viagem": {
+    "semana": "sim:semana:2026-W49",
+    "intencao": "Semana curta de consultório, com a Larissa em congresso de quarta a sexta: publicar pouco, bem feito, e mostrar a viagem como bastidor de quem continua estudando.",
+    "objetivos": ["Construção de confiança", "Engajamento"],
+    "narrativas": [
+      { "titulo": "Quem cuida continua estudando", "fato_real": "Congresso em São Paulo de quarta a sexta, informado nas restrições da semana.", "fontes": ["sim:semana:2026-W49"] },
+      { "titulo": "Antes de indicar, eu olho o rosto inteiro", "fato_real": "Objeção do procedimento isolado registrada na persona e no carrossel já roteirizado.", "fontes": ["trello:C-06"] }
+    ],
+    "feed": [
+      { "origem": "concluir", "chave": "trello:C-06", "titulo": "Pior erro ao tratar o rosto depois dos 40", "pilar": "Autoridade", "objetivo": "Quebra de objeção", "formato": "Carrossel", "dia": "Terça 01/12", "com_quem": "Social media", "bloqueado_por": ["P-00"], "nivel": "A", "justificativa": "Roteiro completo já existe no Trello e não depende de gravação." },
+      { "origem": "concluir", "chave": "trello:C-07", "titulo": "Deus sempre me empurrou pra fora", "pilar": "Conexão", "objetivo": "Engajamento", "formato": "Reels", "dia": "Sábado 05/12", "com_quem": "Larissa", "bloqueado_por": ["P-00"], "nivel": "A", "justificativa": "Roteiro pronto; dá para gravar na segunda, antes da viagem." }
+    ],
+    "stories": [
+      { "dia": "Segunda", "direcao": "Sem caso clínico autorizado: bastidor da preparação para o congresso.", "intencao": "Avisar a ausência com naturalidade." },
+      { "dia": "Terça", "direcao": "Objeção do procedimento isolado mais a caixinha Tudo sobre HOF.", "intencao": "Puxar o carrossel do dia." },
+      { "dia": "Quarta", "direcao": "Chegada a São Paulo e o tema que ela foi buscar.", "intencao": "Mostrar atualização sem vender." },
+      { "dia": "Quinta", "direcao": "Uma anotação do congresso que mudou ou confirmou algo na prática dela, se houver.", "intencao": "Raciocínio clínico real." },
+      { "dia": "Sexta", "direcao": "Volta para casa, leve.", "intencao": "Conexão." },
+      { "dia": "Sábado", "direcao": "Reels de fé no feed; stories de família, se ela quiser.", "intencao": "Conexão." },
+      { "dia": "Domingo", "direcao": "Caixinha Tudo menos HOF por volta das 16h.", "intencao": "Interação." }
+    ],
+    "captacao": [
+      { "pedido": "Gravar o Reels \"Deus sempre me empurrou pra fora\" com o roteiro do Trello", "tipo": "Vídeo falado", "quem_capta": "Juntas", "quando": "2026-11-30", "duracao": "até 1 minuto", "onde": "A combinar com a Larissa (P-20)", "como_gravar": "Ler o roteiro uma vez antes e gravar em 2 ou 3 blocos, celular na vertical.", "conteudos": ["trello:C-07"], "requer_autorizacao": false },
+      { "pedido": "Takes curtos da viagem: mala, credencial do congresso, anotações", "tipo": "Take espontâneo", "quem_capta": "Larissa sozinha", "quando": "2026-12-02", "duracao": "5 a 8 segundos cada", "onde": "São Paulo", "como_gravar": "Só o que aparecer naturalmente, sem pressão.", "conteudos": [], "requer_autorizacao": false }
+    ],
+    "reaproveitamento": [
+      { "chave": "sim:cap:drive:1", "como": "Takes do consultório vazio abrem os stories de segunda e terça." }
+    ],
+    "impedimentos": [
+      { "descricao": "Textos completos do Trello fora da central", "pendencia": "P-00", "quem_destrava": "Gestão" },
+      { "descricao": "Casos clínicos sem autorização de imagem", "pendencia": "P-24", "quem_destrava": "Gestão" }
+    ],
+    "prioridades_producao": [
+      { "ordem": 1, "chave": "trello:C-06", "o_que_fazer": "Trazer o texto do Trello e diagramar até terça." },
+      { "ordem": 2, "chave": "trello:C-07", "o_que_fazer": "Gravar na segunda, editar na quinta, publicar no sábado." }
+    ],
+    "acoes": [
+      { "nivel": "A", "tipo": "atualizar_semana", "base": "semanas", "chave": "sim:semana:2026-W49", "campos": [ { "campo": "Intenção editorial", "valor": "Semana curta, Larissa em congresso: publicar pouco, bem feito, e mostrar a viagem como bastidor de quem continua estudando." }, { "campo": "Narrativas", "valor": "Quem cuida continua estudando; antes de indicar, eu olho o rosto inteiro." } ], "quem_decide": null, "motivo": "Plano preliminar (nível A).", "fontes": ["sim:semana:2026-W49"] },
+      { "nivel": "A", "tipo": "priorizar", "base": "conteudos", "chave": "trello:C-06", "campos": [ { "campo": "Semana", "valor": "sim:semana:2026-W49" }, { "campo": "Prioridade", "valor": "Alta" } ], "quem_decide": null, "motivo": "Não depende de gravação.", "fontes": ["trello:C-06"] },
+      { "nivel": "A", "tipo": "priorizar", "base": "conteudos", "chave": "trello:C-07", "campos": [ { "campo": "Semana", "valor": "sim:semana:2026-W49" }, { "campo": "Prioridade", "valor": "Média" } ], "quem_decide": null, "motivo": "Gravação cabe na segunda.", "fontes": ["trello:C-07"] }
+    ],
+    "alertas": ["Capacidade mínima: 2 publicações de feed nesta semana."]
+  },
+  "04-baixa-gravacao": {
+    "dia": "2026-12-03",
+    "rotina_informada": true,
+    "social": {
+      "intencao": "Dia sem brecha para a Larissa: produzir só com material que já está no Drive e no banco de histórias.",
+      "prioridades": [
+        { "ordem": 1, "chave": "trello:C-06", "titulo": "Pior erro ao tratar o rosto depois dos 40", "o_que_fazer": "Finalizar o carrossel; não precisa de nada dela." },
+        { "ordem": 2, "chave": "trello:C-01", "titulo": "Não indico protocolo Ctrl C, Ctrl V", "o_que_fazer": "Montar a versão escolhida com o texto do Trello." }
+      ],
+      "publicar": [],
+      "produzir": [
+        { "chave": "trello:C-06", "o_que_fazer": "Revisão final e agendamento." }
+      ],
+      "pedir_larissa": [],
+      "acompanhar": [
+        "Quinta seria dia de caso clínico, mas não há caso com autorização registrada (P-24)."
+      ]
+    },
+    "larissa": {
+      "registrar": [
+        { "o_que": "Se alguma paciente disser uma frase marcante hoje, anote só a frase", "por_que": "Vira história para quando você tiver tempo." }
+      ],
+      "gravar": [
+        { "pedido": "Se sobrar um minuto, um áudio com a frase da paciente do retorno: ninguém percebe que ela fez algo, só que está bem", "duracao": "15 segundos", "onde": "Onde estiver", "como": "Áudio no WhatsApp para a social media. Se não der, tudo bem." }
+      ],
+      "stories": [
+        { "titulo": "Quinta de acompanhamento, sem caso", "abertura": "Takes do consultório vazio que já estão no Drive.", "meio": "Texto na tela: \"Uma paciente que eu acompanho desde 2020 me disse que ninguém percebe que ela fez algo, só que ela está bem.\"", "fechamento": "\"Esse é o elogio que eu mais gosto de ouvir.\"", "objetivo": "Construção de confiança" }
+      ],
+      "perguntas": [
+        { "codigo": "P-25", "pergunta": "Qual caso de paciente +35 entra no carrossel?" }
+      ],
+      "oportunidades": [
+        { "acontecimento": "Agenda cheia o dia todo", "ideia": "Nenhuma captação hoje; o dia rende pelo que já existe.", "nivel": "A", "cuidado": "Não cobrar stories nem gravações." }
+      ]
+    },
+    "acoes": [
+      { "nivel": "A", "tipo": "atualizar_dia", "base": "dias", "chave": "sim:dia:2026-12-03", "campos": [ { "campo": "Intenção do dia", "valor": "Produzir com material existente; a Larissa está sem tempo." }, { "campo": "Prioridade 1", "valor": "trello:C-06" }, { "campo": "Prioridade 2", "valor": "trello:C-01" }, { "campo": "Direcionamento", "valor": "Gerado pelo agente" } ], "quem_decide": null, "motivo": "Disponibilidade: sem tempo.", "fontes": ["sim:dia:2026-12-03", "sim:cap:drive:1", "sim:his:1"] }
+    ],
+    "alertas": ["Sem tempo: no máximo um pedido opcional de 15 segundos."]
+  },
+  "05-excesso-demandas": {
+    "semana": "sim:semana:2026-W49",
+    "intencao": "Semana de terminar o que já começou: com a social media em meia carga, nada novo entra no feed.",
+    "objetivos": ["Quebra de objeção", "Construção de confiança"],
+    "narrativas": [
+      { "titulo": "Planejamento individual", "fato_real": "Dois roteiros completos no Trello sobre protocolo pronto e procedimento isolado.", "fontes": ["trello:C-01", "trello:C-06"] },
+      { "titulo": "Acompanhamento ao longo dos anos", "fato_real": "História pronta da paciente acompanhada desde 2020 que voltou para o retorno.", "fontes": ["sim:his:1"] }
+    ],
+    "feed": [
+      { "origem": "concluir", "chave": "trello:C-06", "titulo": "Pior erro ao tratar o rosto depois dos 40", "pilar": "Autoridade", "objetivo": "Quebra de objeção", "formato": "Carrossel", "dia": "Terça 01/12", "com_quem": "Social media", "bloqueado_por": ["P-00"], "nivel": "A", "justificativa": "Texto pronto no Trello, sem gravação." },
+      { "origem": "concluir", "chave": "trello:C-01", "titulo": "Não indico protocolo Ctrl C, Ctrl V", "pilar": "Autoridade", "objetivo": "Quebra de objeção", "formato": "Carrossel", "dia": "Sexta 04/12", "com_quem": "Social media", "bloqueado_por": ["P-00"], "nivel": "A", "justificativa": "Versão B (\"minha amiga fez\") dispensa caso clínico e autorização." }
+    ],
+    "stories": [
+      { "dia": "Segunda", "direcao": "Bastidor do consultório com os takes do Drive.", "intencao": "Presença sem esforço." },
+      { "dia": "Terça", "direcao": "Objeção do procedimento isolado mais caixinha.", "intencao": "Apoiar o carrossel." },
+      { "dia": "Quarta", "direcao": "Respostas da caixinha de terça.", "intencao": "Conversa." },
+      { "dia": "Quinta", "direcao": "História pronta da paciente de longa data, em texto sobre imagem.", "intencao": "Confiança sem expor ninguém." },
+      { "dia": "Sexta", "direcao": "Leve, sobre a rotina de gestão.", "intencao": "Conexão." },
+      { "dia": "Fim de semana", "direcao": "Pessoal, se a Larissa quiser.", "intencao": "Conexão." }
+    ],
+    "captacao": [],
+    "reaproveitamento": [
+      { "chave": "sim:his:1", "como": "Stories de quinta em texto sobre imagem, sem gravação nova." },
+      { "chave": "sim:cap:drive:1", "como": "Fundo para os stories de segunda e quinta." }
+    ],
+    "impedimentos": [
+      { "descricao": "Textos completos do Trello fora da central", "pendencia": "P-00", "quem_destrava": "Gestão" },
+      { "descricao": "8 conteúdos esperando respostas clínicas ou de caso", "pendencia": "P-25", "quem_destrava": "Larissa" }
+    ],
+    "prioridades_producao": [
+      { "ordem": 1, "chave": "trello:C-06", "o_que_fazer": "Diagramar e agendar." },
+      { "ordem": 2, "chave": "trello:C-01", "o_que_fazer": "Montar a versão B." }
+    ],
+    "acoes": [
+      { "nivel": "A", "tipo": "atualizar_semana", "base": "semanas", "chave": "sim:semana:2026-W49", "campos": [ { "campo": "Intenção editorial", "valor": "Terminar o que já começou; nada novo no feed." } ], "quem_decide": null, "motivo": "Capacidade reduzida.", "fontes": ["sim:semana:2026-W49"] },
+      { "nivel": "B", "tipo": "recomendar", "base": "recomendacoes", "chave": "agente:plano-semanal:2026-W49:1", "campos": [ { "campo": "Recomendação", "valor": "Adiar para janeiro as ideias I-02 e I-03" }, { "campo": "Tipo", "valor": "Mudança de data" }, { "campo": "Nível", "valor": "B · Precisa de aprovação" }, { "campo": "Quem decide", "valor": "Social media" }, { "campo": "Proposta", "valor": "Tirar do radar desta semana duas ideias sem relação com a narrativa." }, { "campo": "Por quê", "valor": "21 conteúdos abertos com metade da capacidade." } ], "quem_decide": "Social media", "motivo": "Reduzir a carga visível sem apagar nada.", "fontes": ["trello:I-02", "trello:I-03"] }
+    ],
+    "alertas": ["Capacidade reduzida: 2 feeds, nenhum novo."]
+  },
+  "06-repetitivo": {
+    "chave": "trello:C-06",
+    "formato": "Carrossel",
+    "nivel": "A",
+    "ganchos": [
+      { "texto": "Depois dos 40, o rosto não muda em um ponto só.", "tecnica": "Constatação que contraria a queixa pontual" },
+      { "texto": "Quase toda paciente chega apontando um lugar. Eu olho o rosto inteiro.", "tecnica": "Bastidor de consultório" },
+      { "texto": "O que eu observo antes de você me mostrar onde incomoda.", "tecnica": "Curiosidade" }
+    ],
+    "roteiro": [
+      { "parte": "Página 1", "fala": "Depois dos 40, o rosto não muda em um ponto só.", "visual": "Larissa no consultório, olhando para a câmera." },
+      { "parte": "Página 2", "fala": "Flacidez, contorno, linhas de marionete, cansaço. Quase sempre aparecem juntos.", "visual": "Texto sobre fundo claro." },
+      { "parte": "Página 3", "fala": "Quando a gente trata só o ponto que incomoda hoje, o resto continua mudando.", "visual": "Texto curto, letra grande." },
+      { "parte": "Página 4", "fala": "Por isso a primeira consulta comigo leva cerca de 2 horas. Eu preciso olhar o rosto inteiro antes de indicar qualquer coisa.", "visual": "Foto da sala de consulta." },
+      { "parte": "Página 5", "fala": "Às vezes o planejamento associa procedimentos. Às vezes é em etapas, ao longo do ano.", "visual": "Linha do tempo simples." },
+      { "parte": "Página 6", "fala": "Se você está pensando em tratar um ponto só, conversa comigo antes.", "visual": "Larissa sorrindo, convite." }
+    ],
+    "legenda": "Muita gente chega no consultório apontando um ponto. É natural. Mas depois dos 40 o rosto muda como um todo, e tratar só uma parte costuma deixar o resto para trás. Por isso eu começo olhando o rosto inteiro.",
+    "cta": "Para conversar sobre o seu caso, me chama no WhatsApp.",
+    "variacoes": [
+      { "abordagem": "Pergunta da caixinha", "resumo": "Abrir com a pergunta real que chegar na terça sobre tratar um ponto só." },
+      { "abordagem": "Linha do tempo", "resumo": "Mostrar como um planejamento em etapas se distribui ao longo de um ano, sem caso real." }
+    ],
+    "direcao_criativa": "Carrossel de 6 páginas, padrão da casa. Fotos da Larissa no consultório nas páginas 1 e 6; texto limpo no meio. Observação: o roteiro original está no Trello (P-00). Este rascunho propõe um ângulo diferente do Reels de 17/11, que já usou o pedido recusado.",
+    "pontos_de_validacao": [
+      { "trecho": "Página 4: \"cerca de 2 horas\"", "pendencia": null }
+    ],
+    "acoes": [
+      { "nivel": "A", "tipo": "atualizar_rascunho", "base": "conteudos", "chave": "trello:C-06", "campos": [ { "campo": "corpo:Rascunho do agente", "valor": "Roteiro de 6 páginas acima." } ], "quem_decide": null, "motivo": "Rascunho do agente; a seção Roteiro da equipe não foi tocada.", "fontes": ["trello:C-06", "sim:pub:1", "02-Persona.md", "01-DNA-da-marca.md"] }
+    ]
+  },
+  "07-caso-sem-autorizacao": {
+    "semana": "sim:semana:2026-W49",
+    "intencao": "Mostrar acompanhamento e critério sem nenhum caso clínico enquanto a autorização de imagem não estiver resolvida.",
+    "objetivos": ["Construção de confiança", "Quebra de objeção"],
+    "narrativas": [
+      { "titulo": "Acompanhamento sem mostrar paciente", "fato_real": "História pronta: paciente acompanhada desde 2020 que voltou para o retorno.", "fontes": ["sim:his:1"] },
+      { "titulo": "Antes de indicar, eu avalio", "fato_real": "Roteiros completos no Trello contra protocolo pronto e procedimento isolado.", "fontes": ["trello:C-01", "trello:C-06"] }
+    ],
+    "feed": [
+      { "origem": "concluir", "chave": "trello:C-06", "titulo": "Pior erro ao tratar o rosto depois dos 40", "pilar": "Autoridade", "objetivo": "Quebra de objeção", "formato": "Carrossel", "dia": "Terça 01/12", "com_quem": "Social media", "bloqueado_por": ["P-00"], "nivel": "A", "justificativa": "Não envolve paciente." },
+      { "origem": "concluir", "chave": "trello:C-01", "titulo": "Não indico protocolo Ctrl C, Ctrl V", "pilar": "Autoridade", "objetivo": "Quebra de objeção", "formato": "Carrossel", "dia": "Quinta 03/12", "com_quem": "Social media", "bloqueado_por": ["P-00"], "nivel": "A", "justificativa": "Versão B dispensa caso clínico." },
+      { "origem": "concluir", "chave": "trello:C-07", "titulo": "Deus sempre me empurrou pra fora", "pilar": "Conexão", "objetivo": "Engajamento", "formato": "Reels", "dia": "Sábado 05/12", "com_quem": "Larissa", "bloqueado_por": ["P-00"], "nivel": "A", "justificativa": "Equilibra a semana com conexão." },
+      { "origem": "concluir", "chave": "trello:C-15", "titulo": "Caso em tela dividida: paciente de longa data", "pilar": "Desejo e prova social", "objetivo": "Construção de confiança", "formato": "Reels", "dia": "Só depois da autorização", "com_quem": "Gestão", "bloqueado_por": ["P-24"], "nivel": "C", "justificativa": "Entra na semana apenas se a autorização for registrada; caso contrário, fica para a próxima." }
+    ],
+    "stories": [
+      { "dia": "Segunda", "direcao": "No lugar do caso clínico: como você conduz um retorno anual, com imagens da sala e sem paciente.", "intencao": "Confiança." },
+      { "dia": "Terça", "direcao": "Objeção do protocolo pronto mais caixinha.", "intencao": "Apoiar o carrossel." },
+      { "dia": "Quarta", "direcao": "Respostas.", "intencao": "Conversa." },
+      { "dia": "Quinta", "direcao": "No lugar do caso: a frase da paciente de longa data, em texto, sem identificação.", "intencao": "Prova social sem imagem." },
+      { "dia": "Sexta", "direcao": "Leve, gestão do consultório.", "intencao": "Conexão." },
+      { "dia": "Fim de semana", "direcao": "Pessoal, se ela quiser.", "intencao": "Conexão." }
+    ],
+    "captacao": [
+      { "pedido": "Imagens da sala de consulta e das suas mãos no prontuário, sem paciente", "tipo": "Imagem de apoio", "quem_capta": "Social media", "quando": "2026-11-30", "duracao": "10 minutos", "onde": "Consultório", "como_gravar": "Antes da primeira paciente. Nada de tela de computador com dados.", "conteudos": [], "requer_autorizacao": false }
+    ],
+    "reaproveitamento": [
+      { "chave": "sim:his:1", "como": "Stories de quinta no lugar do caso clínico." }
+    ],
+    "impedimentos": [
+      { "descricao": "Nenhum caso clínico tem autorização de imagem registrada; 4 conteúdos de prova social esperam", "pendencia": "P-24", "quem_destrava": "Gestão" },
+      { "descricao": "Definir qual caso +35 entra", "pendencia": "P-25", "quem_destrava": "Larissa" }
+    ],
+    "prioridades_producao": [
+      { "ordem": 1, "chave": "trello:C-06", "o_que_fazer": "Diagramar." },
+      { "ordem": 2, "chave": "trello:C-01", "o_que_fazer": "Montar a versão B." },
+      { "ordem": 3, "chave": "trello:C-07", "o_que_fazer": "Gravar e editar." }
+    ],
+    "acoes": [
+      { "nivel": "C", "tipo": "marcar_validacao", "base": "conteudos", "chave": "trello:C-15", "campos": [ { "campo": "Validação da Larissa", "valor": "Necessária" }, { "campo": "Motivo da validação", "valor": "Imagem de paciente" } ], "quem_decide": "Gestão", "motivo": "Caso clínico só com autorização registrada.", "fontes": ["trello:C-15", "P-24"] }
+    ],
+    "alertas": ["Nenhum caso clínico no feed sem autorização de imagem registrada."]
+  },
+  "08-info-clinica-incompleta": {
+    "chave": "trello:C-14",
+    "formato": "Carrossel",
+    "nivel": "C",
+    "ganchos": [
+      { "texto": "O que ninguém te contou sobre o Plasma IQ nas pálpebras…", "tecnica": "Capa sugerida no Trello" },
+      { "texto": "Antes de falar de pálpebra, eu preciso te contar como eu avalio.", "tecnica": "Raciocínio clínico" },
+      { "texto": "Nem toda pálpebra pede o mesmo tratamento.", "tecnica": "Contraste" }
+    ],
+    "roteiro": [
+      { "parte": "Página 1", "fala": "O que ninguém te contou sobre o Plasma IQ nas pálpebras…", "visual": "Capa com a Larissa." },
+      { "parte": "Página 2", "fala": "[PENDENTE P-16: o que o Plasma IQ faz, nas suas palavras]", "visual": "Texto." },
+      { "parte": "Página 3", "fala": "[PENDENTE P-16: para quem você indica]", "visual": "Texto." },
+      { "parte": "Página 4", "fala": "[PENDENTE P-16: para quem você não indica]", "visual": "Texto." },
+      { "parte": "Página 5", "fala": "Por isso a indicação sai da avaliação, e não do que funcionou em outra pessoa.", "visual": "Foto da sala de consulta." },
+      { "parte": "Página 6", "fala": "Se você tem dúvida sobre as suas pálpebras, conversa comigo antes de decidir.", "visual": "Convite." }
+    ],
+    "legenda": "[PENDENTE P-16: legenda depende da explicação da Larissa sobre o tratamento]",
+    "cta": "Me chama no WhatsApp para conversar sobre o seu caso.",
+    "variacoes": [
+      { "abordagem": "Perguntas da caixinha", "resumo": "Responder as dúvidas reais sobre pálpebra que chegarem, depois que a Larissa validar o conteúdo." }
+    ],
+    "direcao_criativa": "Carrossel de 6 páginas. Só pode ser finalizado depois que a Larissa responder P-16. Nenhum benefício foi escrito por suposição.",
+    "pontos_de_validacao": [
+      { "trecho": "Páginas 2, 3 e 4", "pendencia": "P-16" },
+      { "trecho": "Legenda", "pendencia": "P-16" }
+    ],
+    "acoes": [
+      { "nivel": "C", "tipo": "marcar_validacao", "base": "conteudos", "chave": "trello:C-14", "campos": [ { "campo": "Validação da Larissa", "valor": "Necessária" }, { "campo": "Motivo da validação", "valor": "Afirmação clínica inédita" } ], "quem_decide": "Larissa", "motivo": "Benefícios e indicação do Plasma IQ não estão validados na base.", "fontes": ["trello:C-14", "P-16", "06-Produtos-e-servicos.md"] },
+      { "nivel": "A", "tipo": "atualizar_rascunho", "base": "conteudos", "chave": "trello:C-14", "campos": [ { "campo": "corpo:Rascunho do agente", "valor": "Estrutura com 3 trechos pendentes de P-16." } ], "quem_decide": null, "motivo": "Estrutura pronta para a Larissa completar.", "fontes": ["trello:C-14"] }
+    ]
+  },
+  "09-mudanca-prioridade": {
+    "gatilho": "A gestão ativou a prioridade comercial \"Planejamento anual para janeiro\" a partir de hoje.",
+    "ajustes": [
+      { "descricao": "Manter \"Prefiro peeling a full face\" na sexta. Se a social media quiser, a legenda pode citar o planejamento em etapas.", "chave": "trello:C-09", "de": "Agendado para 04/12", "para": "Agendado para 04/12, com ajuste opcional de legenda", "nivel": "B", "quem_decide": "Social media", "motivo": "Conteúdo já agendado: qualquer mudança é decisão de quem agendou." },
+      { "descricao": "Trazer \"Não indico protocolo Ctrl C, Ctrl V\" para a semana que vem como primeira peça da campanha", "chave": "trello:C-01", "de": "Planejado, sem data", "para": "Planejado para 08/12", "nivel": "A", "quem_decide": null, "motivo": "Sem aprovação nem data definida por humano; o tema do planejamento individual sustenta o planejamento anual." }
+    ],
+    "sai_do_plano": [],
+    "acoes": [
+      { "nivel": "A", "tipo": "mover_data", "base": "conteudos", "chave": "trello:C-01", "campos": [ { "campo": "Publicação prevista", "valor": "2026-12-08" } ], "quem_decide": null, "motivo": "Primeira peça da campanha de planejamento anual.", "fontes": ["trello:C-01", "sim:pri:1"] },
+      { "nivel": "B", "tipo": "recomendar", "base": "recomendacoes", "chave": "agente:replanejamento:2026-12-01:1", "campos": [ { "campo": "Recomendação", "valor": "Citar o planejamento em etapas na legenda de \"Prefiro peeling a full face\"" }, { "campo": "Tipo", "valor": "Revisão de roteiro" }, { "campo": "Nível", "valor": "B · Precisa de aprovação" }, { "campo": "Quem decide", "valor": "Social media" }, { "campo": "Proposta", "valor": "Acrescentar uma frase sobre planejar o ano em etapas, sem preço nem promessa." }, { "campo": "Por quê", "valor": "Prioridade comercial ativa; o conteúdo já está agendado." } ], "quem_decide": "Social media", "motivo": "Mudança em conteúdo agendado.", "fontes": ["trello:C-09", "sim:pri:1"] }
+    ],
+    "alertas": ["Para falar do planejamento anual com segurança falta P-14 (como ele funciona). Até lá, os conteúdos tratam do princípio do planejamento individual, sem detalhar o serviço."]
+  },
+  "10-alteracao-humana": {
+    "gatilho": "A social media reescreveu o roteiro de \"Pior erro ao tratar o rosto depois dos 40\" e travou a página.",
+    "ajustes": [],
+    "sai_do_plano": [],
+    "acoes": [],
+    "alertas": ["\"Pior erro ao tratar o rosto depois dos 40\" está travado e foi editado pela equipe: a troca de gancho que o agente queria propor foi descartada. Nenhuma sugestão será feita nesse conteúdo enquanto ele estiver travado."]
+  },
+  "11-oportunidade-espontanea": {
+    "dia": "2026-12-04",
+    "rotina_informada": true,
+    "social": {
+      "intencao": "A história de hoje é a melhor peça da semana: a paciente que pediu o rosto de outra pessoa e saiu com um planejamento só dela.",
+      "prioridades": [
+        { "ordem": 1, "chave": "agente:direcionamento-diario:2026-12-04:2", "titulo": "Ela trouxe a foto de outra pessoa", "o_que_fazer": "Montar os stories de hoje e guardar a ideia de Reels." },
+        { "ordem": 2, "chave": "trello:C-06", "titulo": "Pior erro ao tratar o rosto depois dos 40", "o_que_fazer": "Seguir o carrossel." },
+        { "ordem": 3, "chave": "trello:C-01", "titulo": "Não indico protocolo Ctrl C, Ctrl V", "o_que_fazer": "A história de hoje reforça este carrossel; usar como exemplo na legenda." }
+      ],
+      "publicar": [],
+      "produzir": [
+        { "chave": "agente:direcionamento-diario:2026-12-04:2", "o_que_fazer": "Sequência de 4 stories com a fala da Larissa." }
+      ],
+      "pedir_larissa": [
+        { "pedido": "Contar a história de hoje em uma fala, sem detalhes da paciente", "duracao": "40 segundos", "como": "No fim do expediente, celular na vertical, como você contaria para uma amiga." }
+      ],
+      "acompanhar": ["História registrada como Nova no banco; confirmar com a Larissa antes de virar Reels."]
+    },
+    "larissa": {
+      "registrar": [
+        { "o_que": "O que você respondeu quando ela mostrou a foto", "por_que": "É a frase que vai abrir o conteúdo." }
+      ],
+      "gravar": [
+        { "pedido": "A história de hoje em 40 segundos", "duracao": "40 segundos", "onde": "Consultório, depois da última paciente", "como": "Sem citar quem era a famosa nem detalhes da paciente." },
+        { "pedido": "Três takes curtos da mesa de planejamento", "duracao": "5 segundos cada", "onde": "Consultório", "como": "Papel, caneta, suas mãos. Nada com dados." }
+      ],
+      "stories": [
+        { "titulo": "Ela trouxe a foto de outra pessoa", "abertura": "\"Hoje uma paciente chegou com a foto de outra pessoa e me pediu aquele rosto.\"", "meio": "\"Eu expliquei que não é assim que funciona, e por quê.\" Conte o porquê com as suas palavras.", "fechamento": "\"Ela saiu com um planejamento em etapas, feito para o rosto dela.\"", "objetivo": "Quebra de objeção" }
+      ],
+      "perguntas": [
+        { "codigo": "P-14", "pergunta": "Como funciona o planejamento em etapas, para eu contar sem errar?" }
+      ],
+      "oportunidades": [
+        { "acontecimento": "Paciente pediu o rosto de outra pessoa e saiu com planejamento em etapas", "ideia": "Stories hoje e Reels \"Ela trouxe a foto de outra pessoa\" na próxima semana.", "nivel": "A", "cuidado": "Sem nome da referência, sem imagem e sem detalhes que identifiquem a paciente." }
+      ]
+    },
+    "acoes": [
+      { "nivel": "A", "tipo": "criar_historia", "base": "historias", "chave": "agente:direcionamento-diario:2026-12-04:1", "campos": [ { "campo": "História", "valor": "Pediu o rosto de outra pessoa e saiu com um planejamento só dela" }, { "campo": "Tipo", "valor": "Percepção de consulta" }, { "campo": "Relato", "valor": "Uma paciente nova chegou com uma foto de famosa pedindo o mesmo rosto. Expliquei que não é assim que funciona e ela acabou saindo com um planejamento em etapas." }, { "campo": "Status", "valor": "Nova" }, { "campo": "Envolve", "valor": "Paciente" }, { "campo": "Identificação", "valor": "Sem identificação" }, { "campo": "Potencial", "valor": "Alto" }, { "campo": "Dia de origem", "valor": "sim:dia:2026-12-04" } ], "quem_decide": null, "motivo": "Acontecimento real com potencial alto; relato literal.", "fontes": ["sim:dia:2026-12-04"] },
+      { "nivel": "A", "tipo": "criar_conteudo", "base": "conteudos", "chave": "agente:direcionamento-diario:2026-12-04:2", "campos": [ { "campo": "Título", "valor": "Ela trouxe a foto de outra pessoa" }, { "campo": "Status", "valor": "Ideia" }, { "campo": "Formato", "valor": "Reels" }, { "campo": "Pilar", "valor": "Autoridade" }, { "campo": "Objetivo", "valor": "Quebra de objeção" }, { "campo": "Tema", "valor": "Planejamento individual" }, { "campo": "Argumento central", "valor": "o rosto de outra pessoa não serve de referência para o seu planejamento" } ], "quem_decide": null, "motivo": "Ideia nova a partir de fato real; radar sem repetição.", "fontes": ["sim:dia:2026-12-04", "01-DNA-da-marca.md"] },
+      { "nivel": "A", "tipo": "atualizar_dia", "base": "dias", "chave": "sim:dia:2026-12-04", "campos": [ { "campo": "Intenção do dia", "valor": "Contar a paciente que pediu o rosto de outra pessoa." }, { "campo": "Prioridade 2", "valor": "trello:C-06" }, { "campo": "Prioridade 3", "valor": "trello:C-01" }, { "campo": "Direcionamento", "valor": "Gerado pelo agente" } ], "quem_decide": null, "motivo": "Direcionamento diário.", "fontes": ["sim:dia:2026-12-04"] }
+    ],
+    "alertas": []
+  },
+  "12-conteudo-pessoal": {
+    "dia": "2026-12-05",
+    "rotina_informada": true,
+    "social": {
+      "intencao": "Sábado de conexão: um momento de mãe, contado do jeito que a Larissa decidir.",
+      "prioridades": [
+        { "ordem": 1, "chave": "trello:C-07", "titulo": "Deus sempre me empurrou pra fora", "o_que_fazer": "Publicar se já estiver editado; combina com o tom do dia." }
+      ],
+      "publicar": [],
+      "produzir": [],
+      "pedir_larissa": [
+        { "pedido": "Dizer se quer contar a apresentação da sua filha, e como", "duracao": "1 minuto", "como": "Resposta rápida na página Larissa ou por mensagem." }
+      ],
+      "acompanhar": ["P-22 ainda aberta: nada da filha sai sem a decisão da Larissa."]
+    },
+    "larissa": {
+      "registrar": [
+        { "o_que": "Uma frase sobre o que você sentiu", "por_que": "Se você quiser contar, a frase é o story inteiro." }
+      ],
+      "gravar": [
+        { "pedido": "Se quiser, um story falado de você contando que chorou a apresentação inteira", "duracao": "20 segundos", "onde": "Onde estiver", "como": "Só você na câmera. A filha aparece apenas se você decidir." }
+      ],
+      "stories": [
+        { "titulo": "A primeira apresentação de Natal", "abertura": "\"Hoje teve a primeira apresentação de Natal da escola.\"", "meio": "\"E eu chorei do começo ao fim.\" Pode ser só você, ou o palco de longe, sem rostos.", "fechamento": "Uma caixinha leve: \"Qual foi a apresentação que te fez chorar?\"", "objetivo": "Engajamento" }
+      ],
+      "perguntas": [
+        { "codigo": "P-22", "pergunta": "O que pode ser mostrado da sua filha?" }
+      ],
+      "oportunidades": [
+        { "acontecimento": "Primeira apresentação de Natal da filha", "ideia": "Story de conexão, sem nenhum convite comercial.", "nivel": "B", "cuidado": "A decisão de mostrar a filha é sua (P-22)." }
+      ]
+    },
+    "acoes": [
+      { "nivel": "B", "tipo": "recomendar", "base": "recomendacoes", "chave": "agente:direcionamento-diario:2026-12-05:1", "campos": [ { "campo": "Recomendação", "valor": "Contar a primeira apresentação de Natal da filha" }, { "campo": "Tipo", "valor": "Novo conteúdo" }, { "campo": "Nível", "valor": "B · Precisa de aprovação" }, { "campo": "Quem decide", "valor": "Larissa" }, { "campo": "Proposta", "valor": "Story com a Larissa contando que chorou; a filha só aparece se ela quiser." }, { "campo": "Por quê", "valor": "Momento real de conexão; envolve terceiros e P-22 está aberta." } ], "quem_decide": "Larissa", "motivo": "Exposição de terceiros depende da Larissa.", "fontes": ["sim:dia:2026-12-05", "P-22"] },
+      { "nivel": "A", "tipo": "criar_historia", "base": "historias", "chave": "agente:direcionamento-diario:2026-12-05:2", "campos": [ { "campo": "História", "valor": "Primeira apresentação de Natal da filha" }, { "campo": "Tipo", "valor": "Maternidade" }, { "campo": "Relato", "valor": "Sábado. Minha filha fez a primeira apresentação de Natal da escola e eu chorei a apresentação inteira." }, { "campo": "Status", "valor": "Nova" }, { "campo": "Envolve", "valor": "Filha" }, { "campo": "Identificação", "valor": "Identificável" }, { "campo": "Dia de origem", "valor": "sim:dia:2026-12-05" } ], "quem_decide": null, "motivo": "Registrar o momento no banco privado; uso público depende de P-22.", "fontes": ["sim:dia:2026-12-05"] }
+    ],
+    "alertas": ["Conteúdo pessoal: sem gancho comercial."]
+  }
+}

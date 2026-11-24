@@ -7,26 +7,167 @@
     "Toda ação A também gera uma Recomendação com Decisão 'Aplicada automaticamente', para histórico e reversão."
   ],
   "acoes": [
-    { "id": "plano-semanal-preliminar", "nivel": "A", "acao": "Gerar planejamento editorial preliminar da semana", "limites": "Cria ou atualiza a Semana com Status do plano 'Preliminar do agente'. Se a equipe já ajustou ('Ajustado pela equipe'), só propõe (B).", "aprovador": null },
-    { "id": "direcionamento-diario", "nivel": "A", "acao": "Atualizar direcionamento diário (intenção, Prioridade 1 a 3, corpo do Dia)", "limites": "Se Direcionamento = 'Ajustado pela equipe', não sobrescreve; propõe.", "aprovador": null },
-    { "id": "priorizar", "nivel": "A", "acao": "Priorizar demandas (campo Prioridade e Prioridade 1 a 3 do Dia)", "limites": "Só em conteúdos com Status antes de 'Aprovado' e sem edição humana na Prioridade.", "aprovador": null },
-    { "id": "roteiro-preliminar", "nivel": "A", "acao": "Criar roteiro preliminar", "limites": "Escreve só na seção 'Rascunho do agente' do corpo. Nunca na seção 'Roteiro', que é da equipe.", "aprovador": null },
-    { "id": "nova-ideia", "nivel": "A", "acao": "Adicionar ideias ao banco editorial", "limites": "Cria Conteúdo com Status 'Ideia' e Origem 'Agente'. No máximo 5 por semana. Antes, verifica duplicidade (90 dias).", "aprovador": null },
-    { "id": "sugerir-captacao", "nivel": "A", "acao": "Sugerir captações", "limites": "Cria pedido em Captação com Status 'A solicitar'. Não marca 'Solicitado à Larissa'; quem pede é a social media.", "aprovador": null },
-    { "id": "impedimentos", "nivel": "A", "acao": "Identificar impedimentos", "limites": "Preenche Bloqueio, liga Pendências e muda para 'Aguardando informação' só se o conteúdo não foi editado pela equipe; caso contrário, cria Pendência e avisa.", "aprovador": null },
-    { "id": "reorganizar", "nivel": "A", "acao": "Reorganizar conteúdos ainda não aprovados", "limites": "Só Status em Ideia, Planejado, Aguardando informação ou Aguardando captação, sem edição humana nas datas. Move a Publicação prevista em no máximo 7 dias e nunca para trás de hoje. Máximo de 3 movimentos por dia.", "aprovador": null },
-    { "id": "marcar-validacao", "nivel": "A", "acao": "Marcar 'Validação da Larissa = Necessária' e o motivo", "limites": "Só escala. Desmarcar é sempre humano.", "aprovador": null },
-
-    { "id": "alterar-aprovado", "nivel": "B", "acao": "Alterar conteúdo Aprovado, Agendado ou Publicado", "limites": "Sempre Recomendação.", "aprovador": "Social media" },
-    { "id": "alterar-compromisso", "nivel": "B", "acao": "Alterar compromisso assumido pela equipe (data, prazo ou captação definidos por humano)", "limites": "Sempre Recomendação para quem definiu.", "aprovador": "Social media" },
-    { "id": "campanha", "nivel": "B", "acao": "Criar ou modificar campanha ou prioridade comercial", "limites": "Prioridade fica 'Proposta do agente' até a gestão decidir.", "aprovador": "Gestão" },
-    { "id": "posicionamento-novo", "nivel": "B", "acao": "Introduzir posicionamento profissional inédito (tese, opinião ou frase-assinatura que não está na base)", "limites": "Recomendação para a Larissa, que valida o conteúdo de fala dela.", "aprovador": "Larissa" },
-    { "id": "mudanca-estrategica", "nivel": "B", "acao": "Alteração estratégica relevante (pilares, metas, matriz semanal, mais de 30% do plano trocado)", "limites": "Recomendação para a gestão.", "aprovador": "Gestão" },
-
-    { "id": "afirmacao-clinica", "nivel": "C", "acao": "Afirmação clínica inédita (indicação, benefício, contraindicação, resultado esperado)", "limites": "O agente marca 'Validação da Larissa = Necessária'. Nunca inventa nem completa.", "aprovador": "Larissa" },
-    { "id": "caso-clinico", "nivel": "C", "acao": "Divulgação de caso clínico", "limites": "Só com validação da Larissa e Autorização de imagem 'Registrada'.", "aprovador": "Larissa" },
-    { "id": "autorizacao-imagem", "nivel": "C", "acao": "Autorização de uso de imagem de paciente", "limites": "O agente nunca altera 'Autorização de imagem'.", "aprovador": "Gestão" },
-    { "id": "publicacao", "nivel": "C", "acao": "Publicação no Instagram", "limites": "Sempre humana, pela social media. Não há integração de publicação.", "aprovador": "Social media" }
+    {
+      "id": "plano-semanal-preliminar",
+      "nivel": "A",
+      "acao": "Gerar planejamento editorial preliminar da semana",
+      "limites": "Cria ou atualiza a Semana com Status do plano 'Preliminar do agente'. Se a equipe já ajustou ('Ajustado pela equipe'), só propõe (B).",
+      "aprovador": null
+    },
+    {
+      "id": "direcionamento-diario",
+      "nivel": "A",
+      "acao": "Atualizar direcionamento diário (intenção, Prioridade 1 a 3, corpo do Dia)",
+      "limites": "Se Direcionamento = 'Ajustado pela equipe', não sobrescreve; propõe.",
+      "aprovador": null
+    },
+    {
+      "id": "priorizar",
+      "nivel": "A",
+      "acao": "Priorizar demandas (campo Prioridade e Prioridade 1 a 3 do Dia)",
+      "limites": "Só em conteúdos com Status antes de 'Aprovado' e sem edição humana na Prioridade.",
+      "aprovador": null
+    },
+    {
+      "id": "roteiro-preliminar",
+      "nivel": "A",
+      "acao": "Criar roteiro preliminar",
+      "limites": "Escreve só na seção 'Rascunho do agente' do corpo. Nunca na seção 'Roteiro', que é da equipe.",
+      "aprovador": null
+    },
+    {
+      "id": "nova-ideia",
+      "nivel": "A",
+      "acao": "Adicionar ideias ao banco editorial",
+      "limites": "Cria Conteúdo com Status 'Ideia' e Origem 'Agente'. No máximo 5 por semana. Antes, verifica duplicidade (90 dias).",
+      "aprovador": null
+    },
+    {
+      "id": "sugerir-captacao",
+      "nivel": "A",
+      "acao": "Sugerir captações",
+      "limites": "Cria pedido em Captação com Status 'A solicitar'. Não marca 'Solicitado à Larissa'; quem pede é a social media.",
+      "aprovador": null
+    },
+    {
+      "id": "impedimentos",
+      "nivel": "A",
+      "acao": "Identificar impedimentos",
+      "limites": "Preenche Bloqueio, liga Pendências e muda para 'Aguardando informação' só se o conteúdo não foi editado pela equipe; caso contrário, cria Pendência e avisa.",
+      "aprovador": null
+    },
+    {
+      "id": "reorganizar",
+      "nivel": "A",
+      "acao": "Reorganizar conteúdos ainda não aprovados",
+      "limites": "Só Status em Ideia, Planejado, Aguardando informação ou Aguardando captação, sem edição humana nas datas. Move a Publicação prevista em no máximo 7 dias e nunca para trás de hoje. Máximo de 3 movimentos por dia.",
+      "aprovador": null
+    },
+    {
+      "id": "marcar-validacao",
+      "nivel": "A",
+      "acao": "Marcar 'Validação da Larissa = Necessária' e o motivo",
+      "limites": "Só escala. Desmarcar é sempre humano.",
+      "aprovador": null
+    },
+    {
+      "id": "registrar-historia",
+      "nivel": "A",
+      "acao": "Registrar no banco de histórias um acontecimento contado na rotina",
+      "limites": "Status Nova, Origem Agente, Relato copiado literalmente do que a Larissa escreveu. Nunca reescreve nem completa. Só vira Pronta para usar com confirmação humana.",
+      "aprovador": null
+    },
+    {
+      "id": "registrar-aprendizado",
+      "nivel": "A",
+      "acao": "Registrar aprendizado como Hipótese ou Preferência",
+      "limites": "Preferência só com 2 ou mais escolhas humanas iguais. Evidência só com métrica em 3 ou mais publicações.",
+      "aprovador": null
+    },
+    {
+      "id": "analisar-referencia",
+      "nivel": "A",
+      "acao": "Preencher a análise de uma referência enviada pela equipe",
+      "limites": "Só campos de análise (gancho, estrutura, adaptação, adequação, limitações). Não cita métricas de terceiros.",
+      "aprovador": null
+    },
+    {
+      "id": "alterar-aprovado",
+      "nivel": "B",
+      "acao": "Alterar conteúdo Aprovado, Agendado ou Publicado",
+      "limites": "Sempre Recomendação.",
+      "aprovador": "Social media"
+    },
+    {
+      "id": "alterar-compromisso",
+      "nivel": "B",
+      "acao": "Alterar compromisso assumido pela equipe (data, prazo ou captação definidos por humano)",
+      "limites": "Sempre Recomendação para quem definiu.",
+      "aprovador": "Social media"
+    },
+    {
+      "id": "campanha",
+      "nivel": "B",
+      "acao": "Criar ou modificar campanha ou prioridade comercial",
+      "limites": "Prioridade fica 'Proposta do agente' até a gestão decidir.",
+      "aprovador": "Gestão"
+    },
+    {
+      "id": "posicionamento-novo",
+      "nivel": "B",
+      "acao": "Introduzir posicionamento profissional inédito (tese, opinião ou frase-assinatura que não está na base)",
+      "limites": "Recomendação para a Larissa, que valida o conteúdo de fala dela.",
+      "aprovador": "Larissa"
+    },
+    {
+      "id": "mudanca-estrategica",
+      "nivel": "B",
+      "acao": "Alteração estratégica relevante (pilares, metas, matriz semanal, mais de 30% do plano trocado)",
+      "limites": "Recomendação para a gestão.",
+      "aprovador": "Gestão"
+    },
+    {
+      "id": "afirmacao-clinica",
+      "nivel": "C",
+      "acao": "Afirmação clínica inédita (indicação, benefício, contraindicação, resultado esperado)",
+      "limites": "O agente marca 'Validação da Larissa = Necessária'. Nunca inventa nem completa.",
+      "aprovador": "Larissa"
+    },
+    {
+      "id": "caso-clinico",
+      "nivel": "C",
+      "acao": "Divulgação de caso clínico",
+      "limites": "Só com validação da Larissa e Autorização de imagem 'Registrada'.",
+      "aprovador": "Larissa"
+    },
+    {
+      "id": "autorizacao-imagem",
+      "nivel": "C",
+      "acao": "Autorização de uso de imagem de paciente",
+      "limites": "O agente nunca altera 'Autorização de imagem'.",
+      "aprovador": "Gestão"
+    },
+    {
+      "id": "publicacao",
+      "nivel": "C",
+      "acao": "Publicação no Instagram",
+      "limites": "Sempre humana, pela social media. Não há integração de publicação.",
+      "aprovador": "Social media"
+    },
+    {
+      "id": "diretriz",
+      "nivel": "B",
+      "acao": "Promover aprendizado a Diretriz aprovada",
+      "limites": "O agente propõe; só a gestão muda o Status para Diretriz aprovada.",
+      "aprovador": "Gestão"
+    },
+    {
+      "id": "expor-terceiros",
+      "nivel": "B",
+      "acao": "Propor conteúdo com filha, marido, mãe ou outra pessoa",
+      "limites": "Enquanto P-22 estiver aberta, sempre recomendação para a Larissa.",
+      "aprovador": "Larissa"
+    }
   ],
   "responsabilidades": {
     "Social media": "Autonomia operacional: edita, adapta, organiza, produz, agenda e publica dentro das diretrizes. Aprova as recomendações operacionais (B de rotina).",

@@ -1,0 +1,188 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "05-excesso-demandas",
+  "saida": {
+    "semana": "sim:semana:2026-W49",
+    "intencao": "Semana de terminar o que já começou: com a social media em meia carga, nada novo entra no feed.",
+    "objetivos": [
+      "Quebra de objeção",
+      "Construção de confiança"
+    ],
+    "narrativas": [
+      {
+        "titulo": "Planejamento individual",
+        "fato_real": "Dois roteiros completos no Trello sobre protocolo pronto e procedimento isolado.",
+        "fontes": [
+          "trello:C-01",
+          "trello:C-06"
+        ]
+      },
+      {
+        "titulo": "Acompanhamento ao longo dos anos",
+        "fato_real": "História pronta da paciente acompanhada desde 2020 que voltou para o retorno.",
+        "fontes": [
+          "sim:his:1"
+        ]
+      }
+    ],
+    "feed": [
+      {
+        "origem": "concluir",
+        "chave": "trello:C-06",
+        "titulo": "Pior erro ao tratar o rosto depois dos 40",
+        "pilar": "Autoridade",
+        "objetivo": "Quebra de objeção",
+        "formato": "Carrossel",
+        "dia": "Terça 01/12",
+        "com_quem": "Social media",
+        "bloqueado_por": [
+          "P-00"
+        ],
+        "nivel": "A",
+        "justificativa": "Texto pronto no Trello, sem gravação."
+      },
+      {
+        "origem": "concluir",
+        "chave": "trello:C-01",
+        "titulo": "Não indico protocolo Ctrl C, Ctrl V",
+        "pilar": "Autoridade",
+        "objetivo": "Quebra de objeção",
+        "formato": "Carrossel",
+        "dia": "Sexta 04/12",
+        "com_quem": "Social media",
+        "bloqueado_por": [
+          "P-00"
+        ],
+        "nivel": "A",
+        "justificativa": "Versão B (\"minha amiga fez\") dispensa caso clínico e autorização."
+      }
+    ],
+    "stories": [
+      {
+        "dia": "Segunda",
+        "direcao": "Bastidor do consultório com os takes do Drive.",
+        "intencao": "Presença sem esforço."
+      },
+      {
+        "dia": "Terça",
+        "direcao": "Objeção do procedimento isolado mais caixinha.",
+        "intencao": "Apoiar o carrossel."
+      },
+      {
+        "dia": "Quarta",
+        "direcao": "Respostas da caixinha de terça.",
+        "intencao": "Conversa."
+      },
+      {
+        "dia": "Quinta",
+        "direcao": "História pronta da paciente de longa data, em texto sobre imagem.",
+        "intencao": "Confiança sem expor ninguém."
+      },
+      {
+        "dia": "Sexta",
+        "direcao": "Leve, sobre a rotina de gestão.",
+        "intencao": "Conexão."
+      },
+      {
+        "dia": "Fim de semana",
+        "direcao": "Pessoal, se a Larissa quiser.",
+        "intencao": "Conexão."
+      }
+    ],
+    "captacao": [],
+    "reaproveitamento": [
+      {
+        "chave": "sim:his:1",
+        "como": "Stories de quinta em texto sobre imagem, sem gravação nova."
+      },
+      {
+        "chave": "sim:cap:drive:1",
+        "como": "Fundo para os stories de segunda e quinta."
+      }
+    ],
+    "impedimentos": [
+      {
+        "descricao": "Textos completos do Trello fora da central",
+        "pendencia": "P-00",
+        "quem_destrava": "Gestão"
+      },
+      {
+        "descricao": "8 conteúdos esperando respostas clínicas ou de caso",
+        "pendencia": "P-25",
+        "quem_destrava": "Larissa"
+      }
+    ],
+    "prioridades_producao": [
+      {
+        "ordem": 1,
+        "chave": "trello:C-06",
+        "o_que_fazer": "Diagramar e agendar."
+      },
+      {
+        "ordem": 2,
+        "chave": "trello:C-01",
+        "o_que_fazer": "Montar a versão B."
+      }
+    ],
+    "acoes": [
+      {
+        "nivel": "A",
+        "tipo": "atualizar_semana",
+        "base": "semanas",
+        "chave": "sim:semana:2026-W49",
+        "campos": [
+          {
+            "campo": "Intenção editorial",
+            "valor": "Terminar o que já começou; nada novo no feed."
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Capacidade reduzida.",
+        "fontes": [
+          "sim:semana:2026-W49"
+        ]
+      },
+      {
+        "nivel": "B",
+        "tipo": "recomendar",
+        "base": "recomendacoes",
+        "chave": "agente:plano-semanal:2026-W49:1",
+        "campos": [
+          {
+            "campo": "Recomendação",
+            "valor": "Adiar para janeiro as ideias I-02 e I-03"
+          },
+          {
+            "campo": "Tipo",
+            "valor": "Mudança de data"
+          },
+          {
+            "campo": "Nível",
+            "valor": "B · Precisa de aprovação"
+          },
+          {
+            "campo": "Quem decide",
+            "valor": "Social media"
+          },
+          {
+            "campo": "Proposta",
+            "valor": "Tirar do radar desta semana duas ideias sem relação com a narrativa."
+          },
+          {
+            "campo": "Por quê",
+            "valor": "21 conteúdos abertos com metade da capacidade."
+          }
+        ],
+        "quem_decide": "Social media",
+        "motivo": "Reduzir a carga visível sem apagar nada.",
+        "fontes": [
+          "trello:I-02",
+          "trello:I-03"
+        ]
+      }
+    ],
+    "alertas": [
+      "Capacidade reduzida: 2 feeds, nenhum novo."
+    ]
+  }
+}

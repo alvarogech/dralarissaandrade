@@ -1,0 +1,116 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "08-info-clinica-incompleta",
+  "saida": {
+    "chave": "trello:C-14",
+    "formato": "Carrossel",
+    "nivel": "C",
+    "ganchos": [
+      {
+        "texto": "O que ninguém te contou sobre o Plasma IQ nas pálpebras…",
+        "tecnica": "Capa sugerida no Trello"
+      },
+      {
+        "texto": "Antes de falar de pálpebra, eu preciso te contar como eu avalio.",
+        "tecnica": "Raciocínio clínico"
+      },
+      {
+        "texto": "Nem toda pálpebra pede o mesmo tratamento.",
+        "tecnica": "Contraste"
+      }
+    ],
+    "roteiro": [
+      {
+        "parte": "Página 1",
+        "fala": "O que ninguém te contou sobre o Plasma IQ nas pálpebras…",
+        "visual": "Capa com a Larissa."
+      },
+      {
+        "parte": "Página 2",
+        "fala": "[PENDENTE P-16: o que o Plasma IQ faz, nas suas palavras]",
+        "visual": "Texto."
+      },
+      {
+        "parte": "Página 3",
+        "fala": "[PENDENTE P-16: para quem você indica]",
+        "visual": "Texto."
+      },
+      {
+        "parte": "Página 4",
+        "fala": "[PENDENTE P-16: para quem você não indica]",
+        "visual": "Texto."
+      },
+      {
+        "parte": "Página 5",
+        "fala": "Por isso a indicação sai da avaliação, e não do que funcionou em outra pessoa.",
+        "visual": "Foto da sala de consulta."
+      },
+      {
+        "parte": "Página 6",
+        "fala": "Se você tem dúvida sobre as suas pálpebras, conversa comigo antes de decidir.",
+        "visual": "Convite."
+      }
+    ],
+    "legenda": "[PENDENTE P-16: legenda depende da explicação da Larissa sobre o tratamento]",
+    "cta": "Me chama no WhatsApp para conversar sobre o seu caso.",
+    "variacoes": [
+      {
+        "abordagem": "Perguntas da caixinha",
+        "resumo": "Responder as dúvidas reais sobre pálpebra que chegarem, depois que a Larissa validar o conteúdo."
+      }
+    ],
+    "direcao_criativa": "Carrossel de 6 páginas. Só pode ser finalizado depois que a Larissa responder P-16. Nenhum benefício foi escrito por suposição.",
+    "pontos_de_validacao": [
+      {
+        "trecho": "Páginas 2, 3 e 4",
+        "pendencia": "P-16"
+      },
+      {
+        "trecho": "Legenda",
+        "pendencia": "P-16"
+      }
+    ],
+    "acoes": [
+      {
+        "nivel": "C",
+        "tipo": "marcar_validacao",
+        "base": "conteudos",
+        "chave": "trello:C-14",
+        "campos": [
+          {
+            "campo": "Validação da Larissa",
+            "valor": "Necessária"
+          },
+          {
+            "campo": "Motivo da validação",
+            "valor": "Afirmação clínica inédita"
+          }
+        ],
+        "quem_decide": "Larissa",
+        "motivo": "Benefícios e indicação do Plasma IQ não estão validados na base.",
+        "fontes": [
+          "trello:C-14",
+          "P-16",
+          "06-Produtos-e-servicos.md"
+        ]
+      },
+      {
+        "nivel": "A",
+        "tipo": "atualizar_rascunho",
+        "base": "conteudos",
+        "chave": "trello:C-14",
+        "campos": [
+          {
+            "campo": "corpo:Rascunho do agente",
+            "valor": "Estrutura com 3 trechos pendentes de P-16."
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Estrutura pronta para a Larissa completar.",
+        "fontes": [
+          "trello:C-14"
+        ]
+      }
+    ]
+  }
+}

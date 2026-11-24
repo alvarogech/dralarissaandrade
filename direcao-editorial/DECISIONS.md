@@ -49,3 +49,12 @@ agente distinguir fato de proposta e de lacuna.
 - **Simulação nas mesmas bases**, marcada (Origem = Simulação, `[SIMULAÇÃO]`, Chave `sim:`), arquivável por uma view. Escolha do Álvaro.
 - **Stories usam "Publicação prevista"** como os demais formatos, em vez de depender do Dia; o rollup "Data do dia" foi removido.
 - **Importação integral do Trello** gera primeiro um plano revisável (`trello-plano.mjs`); nunca escreve direto.
+
+## 2026-11-24 — Fase 3: inteligência editorial
+- **Um modelo, dez módulos, não multiagente.** Uma instrução mestra comum e um módulo por workflow. Multiagente só se a avaliação mostrar um workflow que precise de outro modelo ou de outra instrução base. O que é determinístico (seleção de contexto, radar de repetição, revisão mecânica, permissões) é código, e não IA.
+- **Contratos com JSON Schema** e verificação em código das ações antes de gravar no Notion: dono do campo, trava, nível de autonomia e fontes obrigatórias. O schema da API não garante limites de contagem, por isso eles são conferidos em código.
+- **Produção recusa simulação:** `montarPacote` lança erro se sobrar qualquer registro com Origem = Simulação.
+- **Base nova Histórias:** um relato real tem ciclo próprio (autorização, envolvidos, quantas vezes foi usado) e alimenta vários conteúdos. Como campo de Conteúdos, ele se perderia.
+- **Aprendizado em degraus:** hipótese, preferência (2 ou mais ocorrências), evidência (3 ou mais, com métrica) e diretriz aprovada (sempre humana). Uma edição isolada não vira regra.
+- **Saídas de exemplo escritas na sessão, e não pela API**, porque rodar a API exige credencial e gasto que o Álvaro ainda não aprovou. O caminho `--api` está pronto.
+- **Relações de mão dupla** valem nas duas bases para o verificador de ações (o espelho herda o dono da relação original).

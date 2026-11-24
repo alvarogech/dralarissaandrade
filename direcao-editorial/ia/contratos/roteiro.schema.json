@@ -1,0 +1,240 @@
+{
+  "$comment": "Contrato de saída do workflow roteiro. Gerado por ia/lib/contratos.mjs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "chave",
+    "formato",
+    "nivel",
+    "ganchos",
+    "roteiro",
+    "legenda",
+    "cta",
+    "variacoes",
+    "direcao_criativa",
+    "pontos_de_validacao",
+    "acoes"
+  ],
+  "properties": {
+    "chave": {
+      "type": "string"
+    },
+    "formato": {
+      "type": "string",
+      "enum": [
+        "Reels",
+        "Carrossel",
+        "Sequência de stories",
+        "Foto",
+        "A definir"
+      ]
+    },
+    "nivel": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C"
+      ]
+    },
+    "ganchos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "texto",
+          "tecnica"
+        ],
+        "properties": {
+          "texto": {
+            "type": "string"
+          },
+          "tecnica": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "roteiro": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parte",
+          "fala",
+          "visual"
+        ],
+        "properties": {
+          "parte": {
+            "type": "string"
+          },
+          "fala": {
+            "type": "string"
+          },
+          "visual": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "legenda": {
+      "type": "string"
+    },
+    "cta": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "variacoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "abordagem",
+          "resumo"
+        ],
+        "properties": {
+          "abordagem": {
+            "type": "string"
+          },
+          "resumo": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "direcao_criativa": {
+      "type": "string"
+    },
+    "pontos_de_validacao": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trecho",
+          "pendencia"
+        ],
+        "properties": {
+          "trecho": {
+            "type": "string"
+          },
+          "pendencia": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "acoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nivel",
+          "tipo",
+          "base",
+          "chave",
+          "campos",
+          "quem_decide",
+          "motivo",
+          "fontes"
+        ],
+        "properties": {
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "criar_conteudo",
+              "atualizar_rascunho",
+              "priorizar",
+              "mover_data",
+              "criar_captacao",
+              "criar_pendencia",
+              "marcar_validacao",
+              "atualizar_dia",
+              "atualizar_semana",
+              "criar_historia",
+              "criar_aprendizado",
+              "criar_referencia",
+              "recomendar"
+            ]
+          },
+          "base": {
+            "type": "string",
+            "enum": [
+              "conteudos",
+              "semanas",
+              "dias",
+              "captacao",
+              "pendencias",
+              "referencias",
+              "aprendizados",
+              "prioridades",
+              "recomendacoes",
+              "historias"
+            ]
+          },
+          "chave": {
+            "type": "string",
+            "description": "Chave estável do alvo (ex.: trello:C-04) ou nova chave agente:<workflow>:<data>:<n>"
+          },
+          "campos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "campo",
+                "valor"
+              ],
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "valor": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "quem_decide": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Larissa",
+              "Social media",
+              "Gestão",
+              null
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "fontes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

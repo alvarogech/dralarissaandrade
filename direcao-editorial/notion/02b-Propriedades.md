@@ -20,7 +20,7 @@ Presentes em todas as bases (Execuções usa só ID e datas).
 
 ## Propriedades de sincronização (técnicas, ocultas)
 
-Presentes nas bases que o agente escreve: Conteúdos, Semanas, Dias, Captação, Pendências e decisões, Aprendizados.
+Presentes nas bases que o agente escreve: Conteúdos, Semanas, Dias, Captação, Pendências e decisões, Histórias, Aprendizados.
 
 | Propriedade | Tipo | Descrição |
 |---|---|---|
@@ -48,6 +48,10 @@ Fonte única de cada peça de conteúdo, inclusive ideias (Status = Ideia) e seq
 | Publicação prevista | Data | Equipe (humano) |  |
 | Publicado em | Data | Social media |  |
 | Link da publicação | URL | Social media |  |
+| Tema | Seleção múltipla | Equipe (humano) | Planejamento individual · Associação de procedimentos · Acompanhamento ao longo dos anos · Naturalidade · Procedimento isolado · Envelhecimento · Método ERA · Primeira consulta · Pele · Fé · Maternidade · Família · Vida empresarial · Emagrecimento · Rotina. Fase 3 (radar de repetição). Tema editorial; vocabulário controlado. |
+| Argumento central | Texto | Equipe (humano) | Fase 3 (radar). A ideia principal em uma frase. O agente preenche ao criar; depois é da equipe. |
+| Procedimentos citados | Seleção múltipla | Equipe (humano) | Peeling · Full face · Peptídeos · Plasma IQ. Fase 3 (radar). Só procedimentos já citados na base. |
+| História | Relação | Equipe (humano) | → Histórias (espelho: "Conteúdos"). Fase 3. História real que originou o conteúdo. |
 | Gancho | Texto | Equipe (humano) | Abertura curta. Roteiro, direção criativa e legenda ficam no corpo da página (limite de 2000 caracteres por campo de texto da API). |
 | CTA | Texto | Equipe (humano) |  |
 | Bloqueio | Texto | Equipe (humano) | O que falta para avançar, em uma frase. |
@@ -156,6 +160,25 @@ Perguntas para a Larissa, decisões da gestão e impedimentos. Fonte única das 
 | Documento da base | Texto | Sistema |  |
 | Código | Texto | Sistema | P-xx herdado de base-de-conhecimento/00-Perguntas-pendentes.md. |
 
+## 📖 Histórias (prefixo HIS)
+
+Banco de histórias reais com potencial editorial. Uma história pode originar vários conteúdos ao longo do tempo. Nunca inventada: o relato é da Larissa ou da equipe.
+
+| Propriedade | Tipo | Dono | Opções / detalhe |
+|---|---|---|---|
+| História | Título | Equipe (humano) |  |
+| Tipo | Seleção | Equipe (humano) | História profissional · Percepção de consulta · Pergunta recebida · Maternidade · Vida empresarial · Fé e família · Aprendizado pessoal · Mudança de opinião · Experiência clínica autorizada |
+| Relato | Texto | Larissa | Como aconteceu, nas palavras de quem viveu. O agente pode copiar literalmente da rotina, nunca reescrever nem completar. |
+| Data do acontecimento | Data | Equipe (humano) |  |
+| Envolve | Seleção múltipla | Equipe (humano) | Paciente · Filha · Marido · Mãe · Equipe · Ninguém além dela |
+| Identificação | Seleção | Equipe (humano) | Sem identificação · Identificável. Identificável exige autorização registrada. |
+| Autorização | Seleção | Gestão | Não necessária · Pendente · Registrada |
+| Status | Seleção | Equipe (humano) | Nova · Pronta para usar · Usada · Não usar · Arquivada. Só 'Pronta para usar' entra em roteiro. 'Nova' aparece para a equipe confirmar. |
+| Potencial | Seleção | Agente (IA) | Alto · Médio · Baixo |
+| Pilares | Seleção múltipla | Equipe (humano) | Autoridade · Desejo e prova social · Conexão |
+| Dia de origem | Relação | Sistema | → Dias (só ida) |
+| Vezes usada | undefined | Sistema |  |
+
 ## 🔖 Referências (prefixo REF)
 
 Perfis, posts e técnicas de comunicação. Estudo de formato, nunca cópia.
@@ -170,6 +193,13 @@ Perfis, posts e técnicas de comunicação. Estudo de formato, nunca cópia.
 | Duração | Seleção | Equipe (humano) | Formato duradouro · Tendência passageira |
 | Status | Seleção | Equipe (humano) | Nova · Aprovada · Descartada · A confirmar |
 | Arquivo | Arquivos | Equipe (humano) |  |
+| Data da referência | Data | Equipe (humano) |  |
+| Formato observado | Seleção | Equipe (humano) | Reels · Carrossel · Stories · Foto |
+| Gancho observado | Texto | Agente (IA) |  |
+| Estrutura narrativa | Texto | Agente (IA) |  |
+| Possibilidade de adaptação | Texto | Agente (IA) |  |
+| Adequação à marca | Seleção | Agente (IA) | Alta · Média · Baixa · Não adequada |
+| Limitações éticas ou clínicas | Texto | Agente (IA) |  |
 
 ## 📈 Métricas (prefixo MET)
 
@@ -201,10 +231,12 @@ Memória editorial. Separa percepção de evidência.
 | Propriedade | Tipo | Dono | Opções / detalhe |
 |---|---|---|---|
 | Aprendizado | Título | Agente (IA) |  |
-| Status | Seleção | Gestão | Hipótese · Em teste · Validado por dados · Refutado. Só a gestão promove para 'Validado por dados', depois de ver a evidência. |
-| Área | Seleção | Agente (IA) | Tema · Gancho · Formato · Pilar · Horário · Comercial · Operação |
+| Status | Seleção | Gestão | Hipótese · Em teste · Preferência · Evidência · Diretriz aprovada · Refutado. Fase 3: hipótese (1 ocorrência), preferência (escolha humana repetida), evidência (métrica em 3+ publicações), diretriz aprovada (só a gestão). |
+| Área | Seleção | Agente (IA) | Tema · Gancho · Formato · Pilar · Horário · Comercial · Operação · Linguagem · Abordagem |
 | Evidência | Texto | Agente (IA) |  |
 | Próxima verificação | Data | Agente (IA) |  |
+| Fonte do aprendizado | Seleção | Agente (IA) | Escolha humana · Métrica · Pesquisa · Decisão da gestão |
+| Ocorrências | Número | Agente (IA) |  |
 
 ## 🎯 Prioridades comerciais (prefixo PRI)
 

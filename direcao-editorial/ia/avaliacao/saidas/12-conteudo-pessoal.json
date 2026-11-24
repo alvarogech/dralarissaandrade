@@ -1,0 +1,154 @@
+{
+  "gerado_por": "Claude Opus 5.5 nesta sessão de desenvolvimento, seguindo ia/prompts (não via API de produção)",
+  "cenario": "12-conteudo-pessoal",
+  "saida": {
+    "dia": "2026-12-05",
+    "rotina_informada": true,
+    "social": {
+      "intencao": "Sábado de conexão: um momento de mãe, contado do jeito que a Larissa decidir.",
+      "prioridades": [
+        {
+          "ordem": 1,
+          "chave": "trello:C-07",
+          "titulo": "Deus sempre me empurrou pra fora",
+          "o_que_fazer": "Publicar se já estiver editado; combina com o tom do dia."
+        }
+      ],
+      "publicar": [],
+      "produzir": [],
+      "pedir_larissa": [
+        {
+          "pedido": "Dizer se quer contar a apresentação da sua filha, e como",
+          "duracao": "1 minuto",
+          "como": "Resposta rápida na página Larissa ou por mensagem."
+        }
+      ],
+      "acompanhar": [
+        "P-22 ainda aberta: nada da filha sai sem a decisão da Larissa."
+      ]
+    },
+    "larissa": {
+      "registrar": [
+        {
+          "o_que": "Uma frase sobre o que você sentiu",
+          "por_que": "Se você quiser contar, a frase é o story inteiro."
+        }
+      ],
+      "gravar": [
+        {
+          "pedido": "Se quiser, um story falado de você contando que chorou a apresentação inteira",
+          "duracao": "20 segundos",
+          "onde": "Onde estiver",
+          "como": "Só você na câmera. A filha aparece apenas se você decidir."
+        }
+      ],
+      "stories": [
+        {
+          "titulo": "A primeira apresentação de Natal",
+          "abertura": "\"Hoje teve a primeira apresentação de Natal da escola.\"",
+          "meio": "\"E eu chorei do começo ao fim.\" Pode ser só você, ou o palco de longe, sem rostos.",
+          "fechamento": "Uma caixinha leve: \"Qual foi a apresentação que te fez chorar?\"",
+          "objetivo": "Engajamento"
+        }
+      ],
+      "perguntas": [
+        {
+          "codigo": "P-22",
+          "pergunta": "O que pode ser mostrado da sua filha?"
+        }
+      ],
+      "oportunidades": [
+        {
+          "acontecimento": "Primeira apresentação de Natal da filha",
+          "ideia": "Story de conexão, sem nenhum convite comercial.",
+          "nivel": "B",
+          "cuidado": "A decisão de mostrar a filha é sua (P-22)."
+        }
+      ]
+    },
+    "acoes": [
+      {
+        "nivel": "B",
+        "tipo": "recomendar",
+        "base": "recomendacoes",
+        "chave": "agente:direcionamento-diario:2026-12-05:1",
+        "campos": [
+          {
+            "campo": "Recomendação",
+            "valor": "Contar a primeira apresentação de Natal da filha"
+          },
+          {
+            "campo": "Tipo",
+            "valor": "Novo conteúdo"
+          },
+          {
+            "campo": "Nível",
+            "valor": "B · Precisa de aprovação"
+          },
+          {
+            "campo": "Quem decide",
+            "valor": "Larissa"
+          },
+          {
+            "campo": "Proposta",
+            "valor": "Story com a Larissa contando que chorou; a filha só aparece se ela quiser."
+          },
+          {
+            "campo": "Por quê",
+            "valor": "Momento real de conexão; envolve terceiros e P-22 está aberta."
+          }
+        ],
+        "quem_decide": "Larissa",
+        "motivo": "Exposição de terceiros depende da Larissa.",
+        "fontes": [
+          "sim:dia:2026-12-05",
+          "P-22"
+        ]
+      },
+      {
+        "nivel": "A",
+        "tipo": "criar_historia",
+        "base": "historias",
+        "chave": "agente:direcionamento-diario:2026-12-05:2",
+        "campos": [
+          {
+            "campo": "História",
+            "valor": "Primeira apresentação de Natal da filha"
+          },
+          {
+            "campo": "Tipo",
+            "valor": "Maternidade"
+          },
+          {
+            "campo": "Relato",
+            "valor": "Sábado. Minha filha fez a primeira apresentação de Natal da escola e eu chorei a apresentação inteira."
+          },
+          {
+            "campo": "Status",
+            "valor": "Nova"
+          },
+          {
+            "campo": "Envolve",
+            "valor": "Filha"
+          },
+          {
+            "campo": "Identificação",
+            "valor": "Identificável"
+          },
+          {
+            "campo": "Dia de origem",
+            "valor": "sim:dia:2026-12-05"
+          }
+        ],
+        "quem_decide": null,
+        "motivo": "Registrar o momento no banco privado; uso público depende de P-22.",
+        "fontes": [
+          "sim:dia:2026-12-05"
+        ]
+      }
+    ],
+    "alertas": [
+      "Conteúdo pessoal: sem gancho comercial."
+    ]
+  }
+}

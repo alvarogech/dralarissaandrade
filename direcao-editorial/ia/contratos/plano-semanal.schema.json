@@ -1,0 +1,436 @@
+{
+  "$comment": "Contrato de saída do workflow plano-semanal. Gerado por ia/lib/contratos.mjs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "semana",
+    "intencao",
+    "objetivos",
+    "narrativas",
+    "feed",
+    "stories",
+    "captacao",
+    "reaproveitamento",
+    "impedimentos",
+    "prioridades_producao",
+    "acoes",
+    "alertas"
+  ],
+  "properties": {
+    "semana": {
+      "type": "string"
+    },
+    "intencao": {
+      "type": "string"
+    },
+    "objetivos": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Descoberta",
+          "Engajamento",
+          "Educação",
+          "Construção de confiança",
+          "Quebra de objeção",
+          "Geração de desejo",
+          "Conversão",
+          "Fidelização"
+        ]
+      }
+    },
+    "narrativas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "titulo",
+          "fato_real",
+          "fontes"
+        ],
+        "properties": {
+          "titulo": {
+            "type": "string"
+          },
+          "fato_real": {
+            "type": "string"
+          },
+          "fontes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "feed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "origem",
+          "chave",
+          "titulo",
+          "pilar",
+          "objetivo",
+          "formato",
+          "dia",
+          "com_quem",
+          "bloqueado_por",
+          "nivel",
+          "justificativa"
+        ],
+        "properties": {
+          "origem": {
+            "type": "string",
+            "enum": [
+              "reaproveitar",
+              "concluir",
+              "nova"
+            ]
+          },
+          "chave": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "pilar": {
+            "type": "string",
+            "enum": [
+              "Autoridade",
+              "Desejo e prova social",
+              "Conexão"
+            ]
+          },
+          "objetivo": {
+            "type": "string",
+            "enum": [
+              "Descoberta",
+              "Engajamento",
+              "Educação",
+              "Construção de confiança",
+              "Quebra de objeção",
+              "Geração de desejo",
+              "Conversão",
+              "Fidelização"
+            ]
+          },
+          "formato": {
+            "type": "string",
+            "enum": [
+              "Reels",
+              "Carrossel",
+              "Sequência de stories",
+              "Foto",
+              "A definir"
+            ]
+          },
+          "dia": {
+            "type": "string"
+          },
+          "com_quem": {
+            "type": "string",
+            "enum": [
+              "Larissa",
+              "Social media",
+              "Gestão"
+            ]
+          },
+          "bloqueado_por": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "justificativa": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "stories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dia",
+          "direcao",
+          "intencao"
+        ],
+        "properties": {
+          "dia": {
+            "type": "string"
+          },
+          "direcao": {
+            "type": "string"
+          },
+          "intencao": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "captacao": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pedido",
+          "tipo",
+          "quem_capta",
+          "quando",
+          "duracao",
+          "onde",
+          "como_gravar",
+          "conteudos",
+          "requer_autorizacao"
+        ],
+        "properties": {
+          "pedido": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "Vídeo falado",
+              "Take espontâneo",
+              "Imagem de apoio",
+              "Foto",
+              "Antes e depois",
+              "Áudio"
+            ]
+          },
+          "quem_capta": {
+            "type": "string",
+            "enum": [
+              "Larissa sozinha",
+              "Social media",
+              "Juntas"
+            ]
+          },
+          "quando": {
+            "type": "string"
+          },
+          "duracao": {
+            "type": "string"
+          },
+          "onde": {
+            "type": "string"
+          },
+          "como_gravar": {
+            "type": "string"
+          },
+          "conteudos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requer_autorizacao": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "reaproveitamento": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "chave",
+          "como"
+        ],
+        "properties": {
+          "chave": {
+            "type": "string"
+          },
+          "como": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "impedimentos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "descricao",
+          "pendencia",
+          "quem_destrava"
+        ],
+        "properties": {
+          "descricao": {
+            "type": "string"
+          },
+          "pendencia": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quem_destrava": {
+            "type": "string",
+            "enum": [
+              "Larissa",
+              "Social media",
+              "Gestão"
+            ]
+          }
+        }
+      }
+    },
+    "prioridades_producao": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ordem",
+          "chave",
+          "o_que_fazer"
+        ],
+        "properties": {
+          "ordem": {
+            "type": "integer"
+          },
+          "chave": {
+            "type": "string"
+          },
+          "o_que_fazer": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "acoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nivel",
+          "tipo",
+          "base",
+          "chave",
+          "campos",
+          "quem_decide",
+          "motivo",
+          "fontes"
+        ],
+        "properties": {
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "criar_conteudo",
+              "atualizar_rascunho",
+              "priorizar",
+              "mover_data",
+              "criar_captacao",
+              "criar_pendencia",
+              "marcar_validacao",
+              "atualizar_dia",
+              "atualizar_semana",
+              "criar_historia",
+              "criar_aprendizado",
+              "criar_referencia",
+              "recomendar"
+            ]
+          },
+          "base": {
+            "type": "string",
+            "enum": [
+              "conteudos",
+              "semanas",
+              "dias",
+              "captacao",
+              "pendencias",
+              "referencias",
+              "aprendizados",
+              "prioridades",
+              "recomendacoes",
+              "historias"
+            ]
+          },
+          "chave": {
+            "type": "string",
+            "description": "Chave estável do alvo (ex.: trello:C-04) ou nova chave agente:<workflow>:<data>:<n>"
+          },
+          "campos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "campo",
+                "valor"
+              ],
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "valor": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "quem_decide": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Larissa",
+              "Social media",
+              "Gestão",
+              null
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "fontes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "alertas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

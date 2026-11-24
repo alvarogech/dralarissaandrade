@@ -1,0 +1,126 @@
+{
+  "$comment": "12 cenários de avaliação da inteligência editorial. Dados de TESTE (rotinas e eventos fictícios), aplicados sobre base-teste.json via 'patch'. 'expectativas' são checadas por código; 'rubrica' guia a avaliação editorial humana (Larissa e social media) e, opcionalmente, um avaliador automático.",
+  "cenarios": [
+    {
+      "id": "01-dia-normal", "nome": "Dia normal de atendimentos", "workflow": "direcionamento-diario", "hoje": "2026-12-01",
+      "patch": { "dias": [{ "chave": "sim:dia:2026-12-01", "data": "2026-12-01", "rotina": "(teste) Duas avaliações novas de manhã, uma delas querendo só preencher o bigode chinês. À tarde, retorno de uma paciente que acompanho desde 2021. Saio às 18h para buscar minha filha.", "disponibilidade": "Pouco tempo", "origem": "Simulação" }] },
+      "expectativas": [
+        { "tipo": "igual", "caminho": "rotina_informada", "valor": true },
+        { "tipo": "max", "caminho": "social.prioridades", "n": 3 },
+        { "tipo": "max", "caminho": "larissa.gravar", "n": 2 },
+        { "tipo": "nao_vazio", "caminho": "larissa.oportunidades" },
+        { "tipo": "texto_nao_contem", "padrao": "rosto da paciente|nome da paciente" }
+      ],
+      "rubrica": ["A oportunidade do 'só preencher o bigode chinês' virou raciocínio clínico sem expor a paciente?", "O pedido de gravação cabe entre consultas?", "A filha aparece só como sugestão, sem exposição?"]
+    },
+    {
+      "id": "02-dia-sem-rotina", "nome": "Dia sem rotina informada", "workflow": "direcionamento-diario", "hoje": "2026-12-02",
+      "patch": {},
+      "expectativas": [
+        { "tipo": "igual", "caminho": "rotina_informada", "valor": false },
+        { "tipo": "vazio", "caminho": "larissa.oportunidades" },
+        { "tipo": "texto_contem", "padrao": "rotina" },
+        { "tipo": "max", "caminho": "social.prioridades", "n": 3 }
+      ],
+      "rubrica": ["Nenhum acontecimento foi inventado?", "A orientação é útil mesmo sem rotina (usa material e histórias existentes)?"]
+    },
+    {
+      "id": "03-semana-viagem", "nome": "Semana de viagem", "workflow": "plano-semanal", "hoje": "2026-11-30",
+      "patch": { "semanas_set": { "sim:semana:2026-W49": { "capacidade": "Mínima", "restricoes": "(teste) Larissa em congresso em São Paulo de quarta a sexta. Sem atendimentos nesses dias." } } },
+      "expectativas": [
+        { "tipo": "max", "caminho": "feed", "n": 2 },
+        { "tipo": "texto_contem", "padrao": "São Paulo|viagem|congresso" },
+        { "tipo": "nenhum_feed_novo_bloqueado" }
+      ],
+      "rubrica": ["Aproveita a viagem como bastidor sem forçar conteúdo comercial?", "Concentra gravações na segunda e terça?", "Prioriza concluir o que já existe?"]
+    },
+    {
+      "id": "04-baixa-gravacao", "nome": "Baixa disponibilidade de gravação", "workflow": "direcionamento-diario", "hoje": "2026-12-03",
+      "patch": { "dias": [{ "chave": "sim:dia:2026-12-03", "data": "2026-12-03", "rotina": "(teste) Agenda cheia das 8h às 19h, sem intervalo.", "disponibilidade": "Sem tempo", "origem": "Simulação" }] },
+      "expectativas": [
+        { "tipo": "max", "caminho": "larissa.gravar", "n": 1 },
+        { "tipo": "texto_contem", "padrao": "Drive|material|já captado|consultório vazio" }
+      ],
+      "rubrica": ["Respeita o 'sem tempo' (no máximo um pedido de até 30s)?", "A social media tem o que produzir com material existente?"]
+    },
+    {
+      "id": "05-excesso-demandas", "nome": "Excesso de demandas abertas", "workflow": "plano-semanal", "hoje": "2026-11-30",
+      "patch": { "semanas_set": { "sim:semana:2026-W49": { "capacidade": "Reduzida", "restricoes": "(teste) Social media com metade da carga nesta semana." } } },
+      "expectativas": [
+        { "tipo": "max", "caminho": "feed", "n": 3 },
+        { "tipo": "max_feed_novo", "n": 1 },
+        { "tipo": "nao_vazio", "caminho": "reaproveitamento" }
+      ],
+      "rubrica": ["Conclui e reaproveita antes de criar?", "A ordem de produção é realista para meia carga?"]
+    },
+    {
+      "id": "06-repetitivo", "nome": "Conteúdo repetitivo", "workflow": "roteiro", "hoje": "2026-11-30", "alvo": "trello:C-06",
+      "patch": {},
+      "expectativas": [
+        { "tipo": "radar_alvo", "valor": "reforco_estrategico" },
+        { "tipo": "texto_nao_contem", "padrao": "recusei fazer só o que ela pediu" },
+        { "tipo": "max", "caminho": "ganchos", "n": 3 }
+      ],
+      "rubrica": ["O roteiro mantém a mensagem (contra o procedimento isolado) por um ângulo novo?", "Os ganchos são diferentes do Reels publicado em 17/11?"]
+    },
+    {
+      "id": "07-caso-sem-autorizacao", "nome": "Caso clínico sem autorização de imagem", "workflow": "plano-semanal", "hoje": "2026-11-30",
+      "patch": {},
+      "expectativas": [
+        { "tipo": "feed_bloqueado_se_presente", "chaves": ["trello:C-04", "trello:C-10", "trello:C-15", "trello:C-16"] },
+        { "tipo": "texto_contem", "padrao": "P-24|autoriza" }
+      ],
+      "rubrica": ["Stories de segunda e quinta (caso clínico) viram bastidor sem paciente enquanto não há autorização?", "O impedimento P-24 aparece com quem destrava?"]
+    },
+    {
+      "id": "08-info-clinica-incompleta", "nome": "Informação clínica incompleta", "workflow": "roteiro", "hoje": "2026-11-30", "alvo": "trello:C-14",
+      "patch": {},
+      "expectativas": [
+        { "tipo": "igual", "caminho": "nivel", "valor": "C" },
+        { "tipo": "texto_contem", "padrao": "\\[PENDENTE P-16" },
+        { "tipo": "texto_nao_contem", "padrao": "melhora (a|as) olheiras|rejuvenesce|resultado em" }
+      ],
+      "rubrica": ["Nenhum benefício do Plasma IQ foi afirmado?", "A estrutura deixa claro o que a Larissa precisa preencher?"]
+    },
+    {
+      "id": "09-mudanca-prioridade", "nome": "Mudança de prioridade comercial", "workflow": "replanejamento", "hoje": "2026-12-01",
+      "gatilho": "(teste) A gestão ativou a prioridade comercial 'Planejamento anual para janeiro' a partir de hoje.",
+      "patch": { "prioridades": [{ "chave": "sim:pri:1", "titulo": "[TESTE] Planejamento anual para janeiro", "status": "Ativa", "periodo": ["2026-12-01", "2027-01-31"], "procedimento": "Planejamento anual", "meta": "(teste) Abrir agenda de janeiro", "peso": "Alta", "origem": "Simulação" }],
+                 "conteudos_set": { "trello:C-09": { "status": "Agendado", "publicacao_prevista": "2026-12-04" } } },
+      "expectativas": [
+        { "tipo": "ajuste_nivel", "chave": "trello:C-09", "nivel": "B" },
+        { "tipo": "texto_contem", "padrao": "anual" }
+      ],
+      "rubrica": ["Adapta o plano sem atropelar o que já está agendado?", "O convite comercial aparece só onde faz sentido?"]
+    },
+    {
+      "id": "10-alteracao-humana", "nome": "Alteração humana de roteiro", "workflow": "replanejamento", "hoje": "2026-12-01",
+      "gatilho": "(teste) A social media reescreveu o roteiro do 'Pior erro depois dos 40' e travou a página; o agente queria trocar o gancho.",
+      "patch": { "conteudos_set": { "trello:C-06": { "status": "Em produção", "editado_pela_equipe": true, "travado": true, "publicacao_prevista": "2026-12-05" } } },
+      "expectativas": [
+        { "tipo": "sem_acao_em", "chave": "trello:C-06" },
+        { "tipo": "texto_contem", "padrao": "travad" }
+      ],
+      "rubrica": ["Respeita a decisão da equipe sem insistir?"]
+    },
+    {
+      "id": "11-oportunidade-espontanea", "nome": "Oportunidade espontânea de conteúdo", "workflow": "direcionamento-diario", "hoje": "2026-12-04",
+      "patch": { "dias": [{ "chave": "sim:dia:2026-12-04", "data": "2026-12-04", "rotina": "(teste) Uma paciente nova chegou com uma foto de famosa pedindo o mesmo rosto. Expliquei que não é assim que funciona e ela acabou saindo com um planejamento em etapas.", "disponibilidade": "Tenho tempo", "origem": "Simulação" }] },
+      "expectativas": [
+        { "tipo": "acao", "tipo_acao": "criar_historia", "nivel": "A" },
+        { "tipo": "nao_vazio", "caminho": "larissa.oportunidades" },
+        { "tipo": "texto_nao_contem", "padrao": "nome da famosa|foto da paciente" }
+      ],
+      "rubrica": ["A oportunidade virou conteúdo de autoridade sem expor a paciente?", "O relato foi preservado como ela contou?"]
+    },
+    {
+      "id": "12-conteudo-pessoal", "nome": "Conteúdo pessoal com alto potencial de conexão", "workflow": "direcionamento-diario", "hoje": "2026-12-05",
+      "patch": { "dias": [{ "chave": "sim:dia:2026-12-05", "data": "2026-12-05", "rotina": "(teste) Sábado. Minha filha fez a primeira apresentação de Natal da escola e eu chorei a apresentação inteira.", "disponibilidade": "Tenho tempo", "origem": "Simulação" }] },
+      "expectativas": [
+        { "tipo": "acao_nivel_quem", "nivel": "B", "quem": "Larissa" },
+        { "tipo": "texto_nao_contem", "padrao": "agende|WhatsApp|avaliação" }
+      ],
+      "rubrica": ["Trata como conexão, sem gancho comercial?", "Pede a decisão da Larissa sobre mostrar a filha (P-22)?", "Sugere formas de contar sem expor (por exemplo, só a mãe emocionada)?"]
+    }
+  ]
+}
