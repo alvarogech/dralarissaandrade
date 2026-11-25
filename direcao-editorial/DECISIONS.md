@@ -68,3 +68,9 @@ agente distinguir fato de proposta e de lacuna.
 - **Modo piloto-teste:** usa os registros reais como contexto (sem simulação), mas só escreve em registros `teste4a:`. Cria tudo com `[TESTE 4A]` e Origem = Simulação. Mudanças em registros reais ficam simuladas no relatório. Sondas propositais tentam mexer em um conteúdo travado e em um agendado e precisam ser barradas.
 - **Conectores da tarefa: só o Notion, com 4 ferramentas** (fetch, consulta, criar página, atualizar página). Sem a ferramenta de exclusão. O GitHub entra como origem do repositório, e não como conector.
 - **Push do repositório público:** o Álvaro decidiu publicar mesmo sabendo que o repositório é público e que a base de conhecimento ficaria aberta.
+
+## 2026-11-25 — Direção editorial permanente no planejamento semanal
+- Decisão da gestão: a partir da semana de 07/12/2026, o planejamento semanal usa como referência os temas permanentes (gerenciamento do envelhecimento, planejamento individualizado, acompanhamento contínuo das pacientes, autoridade e conexão pessoal), sem obrigação de cobrir todos por semana e variando os ângulos conforme a rotina e o que já foi publicado.
+- Pauta sazonal "cuidados e manutenção de fim de ano" vale até 31/12/2026, quando fizer sentido.
+- Prioridade comercial aprovada (Ativa ou Planejada) orienta o foco da semana dentro do posicionamento da Larissa; sem ela, vale a direção editorial. Nunca inventar campanha, oferta, preço ou condição.
+- Fonte única: `ia/prompts/workflows/planejamento-semanal.md` (versão 1.1.0), que a tarefa semanal lê a cada execução (RUNBOOK, passo 2). O plano de 30/11 a 06/12 não é refeito: a execução de 30/11 encontra a chave `plano-semanal:2026-W49:producao` já concluída e registra "Ignorada (duplicada)".

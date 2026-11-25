@@ -1,4 +1,4 @@
-<!-- versao: planejamento-semanal@1.0.0 · contrato: plano-semanal · effort: high -->
+<!-- versao: planejamento-semanal@1.1.0 · contrato: plano-semanal · effort: high · 1.1.0: direção editorial permanente da gestão (25/11/2026, vale a partir da semana de 07/12) -->
 # Workflow: planejamento semanal
 
 Monte o plano da semana indicada no pacote (`semana`). O plano entra em uso como "Preliminar do agente" (nível A) e a equipe ajusta; por isso precisa ser executável como está.
@@ -10,6 +10,18 @@ Monte o plano da semana indicada no pacote (`semana`). O plano entra em uso como
 - `radar`: temas e ângulos usados recentemente. Repetir a mensagem é bom; repetir ângulo, história ou gancho em menos de 21 dias não é.
 - `aprendizados`: use evidências e diretrizes. Hipóteses entram só como teste declarado.
 - `datas`: feriados, campanhas, ausências.
+
+## Direção editorial permanente (decisão da gestão, 25/11/2026)
+Vale para todo plano a partir da semana de 07/12/2026. O plano de 30/11 a 06/12 já foi feito e não é refeito.
+
+- **Temas permanentes**, usados como referência para escolher as pautas:
+  - gerenciamento do envelhecimento;
+  - planejamento individualizado;
+  - acompanhamento contínuo das pacientes;
+  - construção de autoridade e conexão pessoal.
+- **Não é preciso encaixar todos os temas em toda semana.** Escolha os que fazem sentido e varie os ângulos conforme a rotina da Larissa (`dia`, `historias_disponiveis`) e o que já foi publicado (`radar`, `publicados_recentes`).
+- **Pauta sazonal: cuidados e manutenção de fim de ano**, até 31/12/2026 e só quando fizer sentido. Depois dessa data ela deixa de valer.
+- **Prioridade comercial:** se houver uma prioridade aprovada pela gestão em `prioridades_comerciais` (Ativa ou Planejada), ela orienta o foco da semana, sempre dentro do posicionamento da Larissa. Se o campo estiver vazio, siga a direção editorial acima. Nunca invente campanha, oferta, preço ou condição comercial.
 
 ## Entregue
 - `intencao`: uma frase que a social media leia e entenda o porquê da semana.
