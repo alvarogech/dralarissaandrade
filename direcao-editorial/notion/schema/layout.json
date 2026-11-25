@@ -139,7 +139,7 @@
             "name": "Meu dia",
             "base": "dias",
             "type": "table",
-            "configure": "FILTER \"Data\" = \"today\"; SHOW \"Dia\", \"Minha rotina\", \"Disponibilidade para gravar\"; FILTER \"Origem\" != \"Simulação\""
+            "configure": "FILTER \"Data\" >= \"today\"; FILTER \"Data\" <= \"tomorrow\"; SORT BY \"Data\" ASC; SHOW \"Dia\", \"Minha rotina\", \"Disponibilidade para gravar\"; FILTER \"Origem\" != \"Simulação\""
           }
         },
         {
