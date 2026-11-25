@@ -213,6 +213,8 @@ else if (cmd === 'validar') {
   const pacote = ler(P('pacote.json')); const snap = ler(P('snapshot.json')); const indice = ler(P('indice.json'));
   const porChave = Object.fromEntries(Object.values(indice).filter((m) => m.chave).map((m) => [m.chave, m]));
   const tituloDe = Object.fromEntries([...snap.conteudos.map((c) => [c.chave, c.titulo])]);
+  // Conteúdos criados nesta execução aparecem pelo título, e não pela chave técnica.
+  for (const a of saida.acoes || []) if (a.tipo === 'criar_conteudo') { const t = (a.campos.find((c) => c.campo === 'Título') || {}).valor; if (t) tituloDe[a.chave] = t; }
   const travadas = Object.values(indice).filter((m) => m.travado).map((m) => m.chave);
   const editadas = Object.values(indice).filter((m) => m.editado_pela_equipe).map((m) => m.chave);
   const preservadosAntes = [];
